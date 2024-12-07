@@ -1,13 +1,13 @@
 from config import pymunk, pygame, math, COLLISION_TYPE_WIND, COLLISION_TYPE_BALLOON
 
 class WindSource:
-    def __init__(self, position, angle=0, strength=5000, cone_length=300, height=200, width=200):
+    def __init__(self, position, cone_angle, angle=0, strength=5000, cone_length=300, height=200, width=200):
         self.position = position
         self.angle = math.radians(angle)
         self.strength = strength
         self.active = True
         self.cone_length = cone_length
-        self.cone_angle = math.pi/4
+        self.cone_angle = cone_angle
         self.cone_points = self.get_cone_points()
         
         max_x = self.cone_points[1][0]

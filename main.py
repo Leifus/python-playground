@@ -66,7 +66,7 @@ class App:
         self.mouse_input = MouseInput()
 
     def setup_wind_source(self):
-        self.wind_source = WindSource(wind_cfg.position, wind_cfg.angle, wind_cfg.strength, wind_cfg.cone_length, wind_cfg.height, wind_cfg.width)
+        self.wind_source = WindSource(wind_cfg.position, wind_cfg.cone_angle, wind_cfg.angle, wind_cfg.strength, wind_cfg.cone_length, wind_cfg.height, wind_cfg.width)
         self.wind_source.on_init(self.space)
 
     def setup_box_with_lid(self):
@@ -87,7 +87,7 @@ class App:
 
         for _ in range(app_cfg.balloon_count):
             balloon_image = random.choice(balloon_images)
-            radius = random.uniform(14, 44)
+            radius = random.uniform(app_cfg.balloon_min_radius, app_cfg.balloon_max_radius)
             
             rand_x = random.uniform(self.balloon_box.rect.left + (radius*2), self.balloon_box.rect.right - (radius*2))
             rand_y = random.uniform(self.balloon_box.rect.bottom - (radius*2), self.balloon_box.rect.top + (radius*2))

@@ -35,12 +35,23 @@ class BoxWithLidConfig():
 
 class WindSourceConfig():
     def __init__(self):
-        self.strength = 10000
-        self.cone_length = 600
-        self.height = 150
-        self.width = 150
-        self.position = (80, 290)
-        self.angle = 0
+        # desk fan config
+        # self.strength = 500
+        # self.cone_length = 600
+        # self.cone_angle = math.pi/4
+        # self.height = 150
+        # self.width = 150
+        # self.position = (80, 290)
+        # self.angle = 0
+
+        # ceiling fan config
+        self.strength = 50000
+        self.cone_length = 350
+        self.cone_angle = 2.5
+        self.height = 70
+        self.width = 70
+        self.position = (500, 20)
+        self.angle = 90
 
 class PhysicsConfig():
     def __init__(self):
@@ -61,7 +72,9 @@ class AppConfig():
         self.wall_elasticity = 1
         self.wall_friction = 0.5
 
-        self.balloon_count = 60
+        self.balloon_count = 50
+        self.balloon_min_radius = 8
+        self.balloon_max_radius = 40
 
 
 app_cfg = AppConfig()
