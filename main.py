@@ -1,190 +1,138 @@
 from config import *
-from classes.walled_room import WalledRoom
-from classes.box_with_lid import BoxWithLid
-from classes.balloon import Balloon
-from classes.wind_source import WindSource
-
-# random.seed(0)
-
-class MouseInput:
-    def __init__(self):
-        self.body = None
-        self.joint = None
-        self.space = None
-
-    def on_init(self, space):
-        self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-        self.space = space
-
-    def on_event(self, event):
-        if event.type == MOUSEBUTTONDOWN:
-            if self.joint is not None:
-                self.space.remove(self.joint)
-                self.joint = None
-
-            p = pymunk.Vec2d(*event.pos)
-            hit = self.space.point_query_nearest(p, 5, pymunk.ShapeFilter())
-            if hit is not None and hit.shape.body.body_type == pymunk.Body.DYNAMIC:
-                shape = hit.shape
-                # Use the closest point on the surface if the click is outside
-                # of the shape.
-                if hit.distance > 0:
-                    nearest = hit.point
-                else:
-                    nearest = p
-                self.joint = pymunk.PivotJoint(
-                    self.body,
-                    shape.body,
-                    (0, 0),
-                    shape.body.world_to_local(nearest),
-                )
-                self.joint.max_force = 200000
-                self.joint.error_bias = (1 - 0.15) ** 60
-                self.space.add(self.joint)
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if self.joint is not None:
-                self.space.remove(self.joint)
-                self.joint = None
-
-    def on_loop(self):
-        self.body.position = pygame.mouse.get_pos()
+import config
+from classes.pool_table import PoolTable
+from classes.pool_cue import PoolCue
+from classes.path_tracer import PathTracer
 
 class App:
     def __init__(self):
+        # Base config
         self.surface = None
-        self.space = None
+        # self.space = None
         self.clock = None
-        self._running = False
-        self.draw_options = None
-        
-        self.walled_room = None
-        self.balloons = []
-        self.balloon_box = None
-        self.background_surface = None
-        self.wind_source = None
-        
-        self.mouse_input = MouseInput()
+        self.is_running = False
 
-    def setup_wind_source(self):
-        self.wind_source = WindSource(wind_cfg.position, wind_cfg.cone_angle, wind_cfg.angle, wind_cfg.strength, wind_cfg.cone_length, wind_cfg.height, wind_cfg.width)
-        self.wind_source.on_init(self.space)
+        # App config
+        self.pool_table = None
+        self.pool_cue = None
 
-    def setup_box_with_lid(self):
-        # position = ((self.surface.get_width()/2) - (width/2) - (self.bounding_box.radius*2), self.surface.get_height() - height - self.bounding_box.radius)
-        position = (150, self.surface.get_height() - box_cfg.box_height - self.walled_room.radius)
-        self.balloon_box = BoxWithLid(box_cfg, position, self.space)
-    
-    def fill_box_with_balloons(self):
-        blue_balloon = pygame.image.load('media/BlueBalloon.webp').convert_alpha()
-        green_balloon = pygame.image.load('media/GreenBalloon.webp').convert_alpha()
-        orange_balloon = pygame.image.load('media/OrangeBalloon.webp').convert_alpha()
-        purple_balloon = pygame.image.load('media/PurpleBalloon.webp').convert_alpha()
-        red_balloon = pygame.image.load('media/RedBalloon.webp').convert_alpha()
-
-        balloon_images = [
-            blue_balloon, green_balloon, orange_balloon, purple_balloon, red_balloon
-        ]
-
-        for _ in range(app_cfg.balloon_count):
-            balloon_image = random.choice(balloon_images)
-            radius = random.uniform(app_cfg.balloon_min_radius, app_cfg.balloon_max_radius)
-            
-            rand_x = random.uniform(self.balloon_box.rect.left + (radius*2), self.balloon_box.rect.right - (radius*2))
-            rand_y = random.uniform(self.balloon_box.rect.bottom - (radius*2), self.balloon_box.rect.top + (radius*2))
-
-            position = (rand_x, rand_y)
-            cfg = balloon_cfg
-            balloon = Balloon(balloon_image, cfg.alpha, radius, position, cfg.base_gravity, cfg.base_gravity_radius_multiplier, cfg.base_mass, cfg.base_mass_radius_multiplier, cfg.elasticity, cfg.friction, self.space)
-            self.balloons.append(balloon)
-
-    def setup_scene(self):
-        background = pygame.image.load('media/room.jpg').convert()
-        self.background_surface = pygame.transform.scale(background, app_cfg.window_size)
-
-        self.walled_room = WalledRoom(self.space, self.surface.get_size(), app_cfg.wall_thickness)
+        self.mouse_position = None
+        self.path_tracer = None
 
 
     def on_init(self):
         pygame.init()
 
-        self.surface = pygame.display.set_mode(app_cfg.window_size, DOUBLEBUF, 32)
-        if app_cfg.debug_draw_pymunk_space:
-            self.draw_options = pymunk.pygame_util.DrawOptions(self.surface)
-
-
-        self.space = pymunk.Space()
-        self.space.iterations = phys_cfg.space_iterations
-        self.space.gravity = phys_cfg.space_gravity
-        self.space.damping = phys_cfg.space_damping
-        self.space.sleep_time_threshold = phys_cfg.space_sleep_time_threshold
-        
+        self.surface = pygame.display.set_mode(config.display_size, config.display_flags, config.display_depth)
         self.clock = pygame.time.Clock()
-        # pygame.event.set_allowed([QUIT])
 
-        self.mouse_input.on_init(self.space)
+        self.setup_pool_table()
+        self.setup_pool_cue()
+        self.setup_path_tracer()
 
-        self.setup_scene()
-        self.setup_wind_source()
-        self.setup_box_with_lid()
-        self.fill_box_with_balloons()
-
-        self._running = True
+        self.is_running = True
         
-    def on_event(self, event):
+    def setup_path_tracer(self):
+        self.path_tracer = PathTracer(self.surface)
+
+    def setup_pool_cue(self):
+        self.pool_cue = PoolCue()
+        self.pool_cue.on_init()
+
+    def setup_pool_table(self):
+        size = config.pool_table_size
+        color = config.pool_table_color
+        surface_size = self.surface.get_size()
+        position = (surface_size[0]/2, surface_size[1]/2)
+        self.pool_table = PoolTable(size, color, position)
+        self.pool_table.on_init()
+
+    def on_event(self, event: pygame.event.Event):
         if event.type == QUIT:
-            self._running = False
+            self.is_running = False
             return
         elif event.type == KEYDOWN and event.key == K_ESCAPE:
-            self._running = False
+            self.is_running = False
             return
-
-        self.mouse_input.on_event(event)
-
-    def on_loop(self):
-        self.mouse_input.on_loop()
-        self.wind_source.on_loop(self.space)
-
-        for balloon in self.balloons:
-            balloon.on_loop()
         
-        self.balloon_box.on_loop()
+        if event.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
+            self.mouse_position = event.pos
+        
+        self.pool_table.on_event(event)
+        self.pool_cue.on_event(event)
 
-    def on_render(self):
-        bg_fill = pygame.Color('white')
+    def update(self):
+        self.pool_table.update()
+        self.pool_cue.update()
+        self.path_tracer.update(self.pool_table.cue_ball.position, self.mouse_position)
+
+        if self.pool_cue.is_picked_up:
+            cue_ball = self.pool_table.cue_ball
+            
+            #get angle from mouse to ball
+            cue_x = cue_ball.position[0]
+            cue_y = cue_ball.position[1]
+            dx = self.mouse_position[0] - (self.pool_table.rect.x + cue_x)
+            dy = self.mouse_position[1] - (self.pool_table.rect.y + cue_y)
+            mouse_to_ball_angle = math.atan2(dy, dx)
+
+            cue_angle = 0
+            cue_x_offset = 0
+            if dx < 0:
+                cue_angle -= 90
+            elif dx > 0:
+                cue_angle += 90
+                cue_x_offset += cue_ball.radius*2 + self.pool_cue.length
+            
+            self.pool_cue.angle = cue_angle + (mouse_to_ball_angle*0.3)
+            
+            # self.pool_cue.position = (self.pool_table.rect.x + cue_ball.rect.left + cue_x_offset - (self.pool_cue.length/2), self.pool_table.rect.y + cue_ball.rect.centery)
+
+            # print('dx',dx,'dy',dy)
+            # print('angle',mouse_to_ball_angle)
+
+            
+            # if distance < force_radius:
+            #     # Calculate force intensity based on distance
+            #     force_intensity = (force_radius - distance) / force_radius * 2000
+            #     angle = math.atan2(dy, dx)
+                
+            #     # Apply rotational impulse
+            #     triangle.body.apply_impulse_at_local_point(
+            #         (-math.sin(angle) * force_intensity, math.cos(angle) * force_intensity),
+            #         (0, 0)
+            #     )
+
+            #self.mouse_position
+            # print('cue_ball.position',cue_ball.position)
+            # print('dx',dx,'dy', dy, 'angle', angle)
+
+    def draw(self):
+        bg_fill = config.display_bg_color
         self.surface.fill(bg_fill)
-        self.surface.blit(self.background_surface, (0,0))
 
-        if app_cfg.debug_draw_pymunk_space:
-            self.space.debug_draw(self.draw_options)
+        self.pool_table.draw(self.surface)
+        self.pool_cue.draw(self.surface)
+        self.path_tracer.draw(self.surface)
 
-        self.wind_source.on_render(self.surface)
-
-        for balloon in self.balloons:
-            balloon.on_render(self.surface)
-
-        self.balloon_box.on_render(self.surface)
-
-        pygame.display.flip()
+        pygame.display.update()
  
     def on_cleanup(self):
         pygame.quit()
 
     def on_execute(self):
         if self.on_init() == False:
-            self._running = False
+            self.is_running = False
  
-        while( self._running ):
+        while( self.is_running ):
             for event in pygame.event.get():
                 self.on_event(event)
 
-            for _ in range(app_cfg.dt_steps):
-                self.space.step(app_cfg.dt / app_cfg.dt_steps)
+            self.update()
+            self.draw()
             
-            self.on_loop()
-            self.on_render()
-            
-            self.clock.tick(app_cfg.fps)
-            pygame.display.set_caption("fps: " + str(int(self.clock.get_fps())))
+            self.clock.tick(config.time_fps)
+            pygame.display.set_caption("Pool Table - fps: " + str(int(self.clock.get_fps())))
 
         self.on_cleanup()
 

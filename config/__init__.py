@@ -5,81 +5,47 @@ import pymunk.pygame_util
 import random
 import math
 
-COLLISION_TYPE_BALLOON_STRING = 4
-COLLISION_TYPE_BALLOON = 3
-COLLISION_TYPE_WIND = 2
+# ----------------------------
+# :: MAIN CONFIG ::
+# ----------------------------
+# Physics Config
+space_iterations = 10
+space_gravity = (0, 0)
+space_damping = 0.98
+space_sleep_time_threshold = math.inf
+space_debug_draw = False
 
-class BalloonConfig():
-    def __init__(self):
-        self.base_gravity = -5
-        self.base_gravity_radius_multiplier = 1.3
-        self.base_mass = 2
-        self.base_mass_radius_multiplier = 0.3
-        self.elasticity = 0.6
-        self.friction = 0.2
-        self.alpha = 180
+# Time Config
+time_fps = 60
+time_dt = 1.0 / time_fps
+time_dt_steps = 1
 
-class BalloonStringConfig():
-    def __init__(self):
-        pass
-
-class BoxWithLidConfig():
-    def __init__(self):
-        self.box_width = 350
-        self.box_height = 300
-        self.box_edge_thickness = 5
-        self.box_alpha = 155
-        self.lid_width = self.box_width + 10
-        self.lid_height = 20
-        self.lid_mass = 10
-
-class WindSourceConfig():
-    def __init__(self):
-        # desk fan config
-        # self.strength = 500
-        # self.cone_length = 600
-        # self.cone_angle = math.pi/4
-        # self.height = 150
-        # self.width = 150
-        # self.position = (80, 290)
-        # self.angle = 0
-
-        # ceiling fan config
-        self.strength = 50000
-        self.cone_length = 350
-        self.cone_angle = 2.5
-        self.height = 70
-        self.width = 70
-        self.position = (500, 20)
-        self.angle = 90
-
-class PhysicsConfig():
-    def __init__(self):
-        self.space_iterations = 10
-        self.space_gravity = (0, 981)
-        self.space_damping = 0.7
-        self.space_sleep_time_threshold = math.inf
-
-class AppConfig():
-    def __init__(self):
-        self.debug_draw_pymunk_space = False
-        self.fps = 60
-        self.dt = 1.0 / self.fps
-        self.dt_steps = 1
-        self.window_size = (1080, 800)
-
-        self.wall_thickness = 5
-        self.wall_elasticity = 1
-        self.wall_friction = 0.5
-
-        self.balloon_count = 50
-        self.balloon_min_radius = 8
-        self.balloon_max_radius = 40
+# Display Config
+display_size = (1080, 800)
+display_flags = DOUBLEBUF
+display_depth = 32
+display_bg_color = pygame.Color('gray75')
 
 
-app_cfg = AppConfig()
-phys_cfg = PhysicsConfig()
-wind_cfg = WindSourceConfig()
-box_cfg = BoxWithLidConfig()
-balloonstring_cfg = BalloonStringConfig()
-balloon_cfg = BalloonConfig()
+# Collision Types
+COLLISION_TYPE_POOL_BALL = 100
+COLLISION_TYPE_POOL_TABLE_POCKET = 10
+COLLISION_TYPE_POOL_TABLE_CUSHION = 50
+
+
+# ----------------------------
+# :: GAME CONFIG ::
+# ----------------------------
+
+pool_table_size = (800, 400)
+pool_table_color = pygame.Color('darkgreen')
+pool_table_pocket_radius = 30
+pool_table_corner_pocket_radius = pool_table_pocket_radius * 1.5
+pool_table_cushion_thickness = 20
+
+pool_ball_radius = 12
+pool_ball_mass = 10
+pool_ball_cue_color = pygame.Color('white')
+pool_ball_8_color = pygame.Color('black')
+pool_ball_spot_color = pygame.Color('blue')
+pool_ball_stripe_color = pygame.Color('green')
