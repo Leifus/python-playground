@@ -3,6 +3,7 @@ import config
 from classes.pool_table import PoolTable
 from classes.pool_cue import PoolCue
 from classes.path_tracer import PathTracer
+from classes.pool_ball import PoolBall
 
 class App:
     def __init__(self):
@@ -18,6 +19,7 @@ class App:
 
         self.mouse_position = None
         self.path_tracer = None
+        self.wait_for_balls_to_stop = False
 
 
     def on_init(self):
@@ -33,7 +35,7 @@ class App:
         self.is_running = True
         
     def setup_path_tracer(self):
-        self.path_tracer = PathTracer(self.surface)
+        self.path_tracer = PathTracer(self.surface.get_size())
 
     def setup_pool_cue(self):
         self.pool_cue = PoolCue()
@@ -61,10 +63,32 @@ class App:
         self.pool_table.on_event(event)
         self.pool_cue.on_event(event)
 
+        ball = self.pool_table.cue_ball
+        if event.type == MOUSEBUTTONDOWN and event.button == 1:
+            if not self.wait_for_balls_to_stop:
+                self.set_ball_force_at_point(ball)
+                # self.wait_for_balls_to_stop = True
+
+    def set_ball_force_at_point(self, ball: PoolBall):
+        dx = self.mouse_position[0] - (self.pool_table.rect.x + ball.position[0])
+        dy = self.mouse_position[1] - (self.pool_table.rect.y + ball.position[1])
+        distance = math.sqrt(dx*dx + dy*dy)
+        angle = math.atan2(dy, dx)
+        
+        #TODO: Fix this so it is a positive value
+        strength = -30000
+        force_magnitude = strength * (distance*0.1)
+        
+        force_x = force_magnitude * math.cos(angle - ball.angle)
+        force_y = force_magnitude * math.sin(angle - ball.angle)
+
+        ball.set_force_at_point((force_x, force_y))
+
     def update(self):
         self.pool_table.update()
         self.pool_cue.update()
-        self.path_tracer.update(self.pool_table.cue_ball.position, self.mouse_position)
+        position_a = (self.pool_table.cue_ball.position[0] + self.pool_table.rect.left, self.pool_table.cue_ball.position[1] + self.pool_table.rect.top)
+        self.path_tracer.update(position_a, self.mouse_position)
 
         if self.pool_cue.is_picked_up:
             cue_ball = self.pool_table.cue_ball
@@ -116,6 +140,7 @@ class App:
         self.path_tracer.draw(self.surface)
 
         pygame.display.update()
+        # pygame.display.flip()
  
     def on_cleanup(self):
         pygame.quit()

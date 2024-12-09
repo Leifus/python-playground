@@ -40,7 +40,7 @@ class PoolCue():
 
     def _draw(self):
         # draw bg
-        # self.surface.fill('white')
+        self.surface.fill((0, 0, 0, 0))
 
         # draw cue
         color = self.color
@@ -82,8 +82,8 @@ class PoolCue():
         self.surface = pygame.transform.rotate(self.orig_surface, self.angle)
 
         #check angle to set rect
-        print('cue angle', self.angle)
-        print('cue position', self.position)
+        # print('cue angle', self.angle)
+        # print('cue position', self.position)
         self.rect = self.surface.get_rect(center=self.rect.center)
 
     def update(self):

@@ -1,4 +1,4 @@
-from config import COLLISION_TYPE_POOL_BALL, pygame, pymunk
+from config import COLLISION_TYPE_POOL_BALL, pygame, pymunk, math
 import config
 
 POOL_BALL_TYPE_STRIPE = 1
@@ -10,12 +10,14 @@ class PoolBall():
     def __init__(self, type, position):
         self.type = type
         self.position = position
+        self.angle = 0
         self.radius = self.get_radius_by_type()
         self.color = self.get_color_by_type()
         self.surface = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=position)
         self.type = type
         self.mass = config.pool_ball_mass
+        self.max_force = config.pool_ball_max_force
 
         self.is_highlighted = False
         self.highlight_color = pygame.Color('red')
@@ -38,10 +40,14 @@ class PoolBall():
         self.body.position = self.position
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.collision_type = COLLISION_TYPE_POOL_BALL + body_iter
+        self.shape.elasticity = config.pool_ball_elasticity
+        self.shape.friction = config.pool_ball_friction
         space.add(self.body, self.shape)
 
     def update(self):
-        pass
+        self.angle = self.body.angle
+        self.position = self.body.position
+        self.rect = self.surface.get_rect(center=self.body.position)
 
     def draw(self, surface: pygame.Surface):
         surface.blit(self.surface, self.rect)
@@ -50,6 +56,18 @@ class PoolBall():
         self.is_highlighted = show
         self._draw()
 
+    def set_force_at_point(self, force):
+        force_x = force[0]
+        force_y = force[1]
+        if force_x > 0 and force_x > self.max_force:
+            force_x = self.max_force
+        elif force_x < 0 and force_x < -self.max_force:
+            force_x = -self.max_force
+        if force_y > 0 and force_y > self.max_force:
+            force_y = self.max_force
+        elif force_y < 0 and force_y < -self.max_force:
+            force_y = -self.max_force
+        self.body.apply_force_at_local_point((force_x, force_y))
 
     def get_radius_by_type(self):
         return config.pool_ball_radius
