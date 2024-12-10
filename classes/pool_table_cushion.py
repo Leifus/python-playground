@@ -2,15 +2,18 @@ from config import COLLISION_TYPE_POOL_TABLE_CUSHION, pygame, pymunk
 import config
 
 class PoolTableCushion():
-    def __init__(self, size, color, elasticity, friction, position):
+    def __init__(self, size, color, elasticity, friction, position, poly_points):
         self.surface = pygame.Surface(size, pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=position)
         self.position = position
         self.elasticity = elasticity
         self.friction = friction
         self.color = color
-        self.poly_points = [(0,0), (self.rect.width, 0), (self.rect.width, self.rect.height), (0, self.rect.height)]
-
+        if poly_points is not None:
+            self.poly_points = poly_points
+        else:
+            self.poly_points = [(0,0), (self.rect.width, 0), (self.rect.width, self.rect.height), (0, self.rect.height)]
+        
         self.body = None
         self.shape = None
 

@@ -11,7 +11,7 @@ class PoolTablePocket():
         self.body = None
         self.shape = None
 
-    def on_init(self, space, body_iter):
+    def on_init(self, space: pymunk.Space, body_iter):
         pygame.draw.circle(self.surface, self.color, (self.radius, self.radius), self.radius)
 
         self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)

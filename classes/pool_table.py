@@ -14,12 +14,12 @@ class PoolTable:
         self.height = size[1]
         
         self.space = pymunk.Space()
-        self.space.iterations = config.space_iterations
-        self.space.gravity = config.space_gravity
-        self.space.damping = config.space_damping
-        self.space.sleep_time_threshold = config.space_sleep_time_threshold
+        self.space.iterations = config.pool_table_space_iterations
+        self.space.gravity = config.pool_table_space_gravity
+        self.space.damping = config.pool_table_space_damping
+        self.space.sleep_time_threshold = config.pool_table_space_sleep_time_threshold
         
-        if config.space_debug_draw:
+        if config.pool_table_space_debug_draw:
             self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
         self.pockets = []
@@ -29,6 +29,7 @@ class PoolTable:
         self.mouse_pos = None
         self.cue_point_start = None
         self.cue_point_end = None
+        self.balls_to_remove_from_table = []
         
         self.hovered_ball = None
         self.selected_ball = None
@@ -36,6 +37,8 @@ class PoolTable:
         self.setup_pockets()
         self.setup_cushions()
         self.setup_balls()
+        
+        self.handlers = []
 
     def on_init(self):
         self.surface.fill(self.color)
@@ -49,6 +52,35 @@ class PoolTable:
         for i, ball in enumerate(self.balls):
             ball.on_init(self.space, i)
 
+        for pocket in self.pockets:
+            for ball in self.balls:
+                handler = self.space.add_collision_handler(ball.shape.collision_type, pocket.shape.collision_type)
+                handler.pre_solve = self.on_ball_collide_with_pocket
+                handler.separate = self.on_ball_separate_from_pocket
+                self.handlers.append(handler)
+
+    def get_ball_by_shape(self, shape: pymunk.Shape):
+        for ball in self.balls:
+            if ball.shape == shape:
+                return ball
+        
+        return None
+
+    def on_ball_collide_with_pocket(self, arbiter: pymunk.Arbiter, space, data):
+        ball_shape = arbiter.shapes[0]
+        distance = 0 - arbiter.contact_point_set.points[0].distance
+        buffer = 2
+
+        ball = self.get_ball_by_shape(ball_shape)
+        if ball.is_on_table and distance > ball.radius + buffer: #fallen into the pocket
+            self.balls_to_remove_from_table.append(ball)
+            ball.is_on_table = False
+
+        return True
+
+    def on_ball_separate_from_pocket(self, arbiter, space, data):
+        return True
+    
     def check_for_hovered_ball(self):
         hovered_ball = None
         max_distance = 3
@@ -56,7 +88,9 @@ class PoolTable:
         if hit is not None:
             if hit.shape.collision_type >= COLLISION_TYPE_POOL_BALL:
                 idx = hit.shape.collision_type - COLLISION_TYPE_POOL_BALL
-                hovered_ball = self.balls[idx]
+                ball = self.balls[idx]
+                if not ball.is_moving:
+                    hovered_ball = ball
 
         if hovered_ball is None:
             if self.hovered_ball is not None:
@@ -72,6 +106,15 @@ class PoolTable:
             self.hovered_ball = hovered_ball
             self.hovered_ball.highlight_position(show=True)
 
+    def check_for_moving_balls(self):
+        margin = 0.1
+        for _ in self.balls:
+            x_v = _.shape.body.velocity[0]
+            y_v = _.shape.body.velocity[1]
+            if not _.shape.body.is_sleeping and ((x_v < -margin or x_v > margin) or (y_v < -margin or y_v > margin)):
+                return True
+            
+        return False
 
     def on_event(self, event: pygame.event.Event):
         if event.type not in [MOUSEMOTION, MOUSEBUTTONDOWN, MOUSEBUTTONUP]:
@@ -171,7 +214,7 @@ class PoolTable:
         self.balls.append(ball15)
 
     def setup_pockets(self):
-        color = pygame.Color('red')
+        color = config.pool_table_pocket_color
         radius = config.pool_table_pocket_radius
         corner_radius = config.pool_table_corner_pocket_radius
 
@@ -181,7 +224,7 @@ class PoolTable:
         self.pockets.append(pocket)
 
         #top mid
-        position = (self.width/2, 0)
+        position = (self.width/2, -radius/2)
         pocket = PoolTablePocket(radius, color, position)
         self.pockets.append(pocket)
 
@@ -196,7 +239,7 @@ class PoolTable:
         self.pockets.append(pocket)
 
         #bottom mid
-        position = (self.width/2, self.height)
+        position = (self.width/2, self.height + (radius/2))
         pocket = PoolTablePocket(radius, color, position)
         self.pockets.append(pocket)
 
@@ -208,56 +251,89 @@ class PoolTable:
     def setup_cushions(self):
         elasticity = 0.7
         friction = 0.9
-        color = pygame.Color('black')
-        alpha = 255
-
+        color = config.pool_table_cushion_color
+        corner_pocket_radius = config.pool_table_corner_pocket_radius
+        cushion_gap = config.pool_table_cushion_gap_to_pocket
+        cushion_thickness = config.pool_table_cushion_thickness
+        bezel_short = config.pool_table_cushion_bezel_short
+        bezel_long = config.pool_table_cushion_bezel_long
+        
         #left
-        offset = config.pool_table_corner_pocket_radius * 2
-        width = config.pool_table_cushion_thickness
+        offset = corner_pocket_radius*2 + cushion_gap*2
+        width = cushion_thickness
         height = self.height - offset
         position = (width/2, self.height/2)
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position)
+        poly_points = [
+            (0, 0), 
+            (width - bezel_short, 0), 
+            (width, bezel_long), 
+            (width, height - bezel_long),
+            (width-bezel_short, height),
+            (0, height)
+        ]
+        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
         self.cushions.append(cushion)
 
         #top left
-        offset = (config.pool_table_corner_pocket_radius + config.pool_table_pocket_radius)
-        height = config.pool_table_cushion_thickness
+        offset = corner_pocket_radius + config.pool_table_pocket_radius + cushion_gap*2
+        height = cushion_thickness
         width = (self.width/2) - offset
-        position = ((width/2) + config.pool_table_corner_pocket_radius, height/2)
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position)
+        position = ((width/2) + corner_pocket_radius + cushion_gap, height/2)
+        poly_points = [
+            (0, 0), 
+            (width, 0), 
+            (width, height - bezel_short),
+            (width - bezel_long, height),
+            (bezel_long, height),
+            (0, height - bezel_short),
+        ]
+        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
         self.cushions.append(cushion)
 
         #top right
-        offset = (config.pool_table_corner_pocket_radius + config.pool_table_pocket_radius)
-        height = config.pool_table_cushion_thickness
-        width = (self.width/2) - offset
-        position = ((self.width/2) + (width/2) + config.pool_table_pocket_radius, height/2)
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position)
+        position = ((self.width/2) + (width/2) + corner_pocket_radius + cushion_gap, height/2)
+        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
         self.cushions.append(cushion)
 
         #right
-        offset = config.pool_table_corner_pocket_radius * 2
+        offset = corner_pocket_radius*2 + cushion_gap*2
         width = config.pool_table_cushion_thickness
         height = self.height - offset
         position = (self.width - (width/2), self.height/2)
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position)
+        poly_points = [
+            (bezel_short, 0), 
+            (width, 0),
+            (width, height),
+            (bezel_short, height),
+            (0, height - bezel_long),
+            (0, bezel_long)
+        ]
+        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
         self.cushions.append(cushion)
 
         #bottom left
-        offset = (config.pool_table_corner_pocket_radius + config.pool_table_pocket_radius)
+        offset = corner_pocket_radius + config.pool_table_pocket_radius + cushion_gap*2
         height = config.pool_table_cushion_thickness
         width = (self.width/2) - offset
-        position = ((width/2) + config.pool_table_corner_pocket_radius, self.height - (height/2))
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position)
+        position = ((width/2) + corner_pocket_radius + cushion_gap, self.height - (height/2))
+        poly_points = [
+            (bezel_long, 0),
+            (width - bezel_long, 0),
+            (width, bezel_short),
+            (width, height),
+            (0, height),
+            (0, bezel_short)
+        ]
+        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
         self.cushions.append(cushion)
 
         #bottom right
-        offset = (config.pool_table_corner_pocket_radius + config.pool_table_pocket_radius)
-        height = config.pool_table_cushion_thickness
-        width = (self.width/2) - offset
-        position = ((self.width/2) + (width/2) + config.pool_table_pocket_radius, self.height - (height/2))
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position)
+        position = ((self.width/2) + (width/2) + corner_pocket_radius + cushion_gap, self.height - (height/2))
+        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
         self.cushions.append(cushion)
+
+    def remove_ball(self, ball: PoolBall):
+        self.space.remove(ball.shape, ball.shape.body)
 
     def update(self):
         for _ in range(config.time_dt_steps):
@@ -270,7 +346,8 @@ class PoolTable:
             _.update()
 
         for _ in self.balls:
-            _.update()
+            if _.is_on_table:
+                _.update()
 
     def draw_cue_points(self):
         start_color = pygame.Color('red')
@@ -294,12 +371,13 @@ class PoolTable:
             _.draw(self.surface)
             
         for _ in self.balls:
-            _.draw(self.surface)
+            if _.is_on_table:
+                _.draw(self.surface)
 
         self.draw_cue_points()
 
 
-        if config.space_debug_draw:
+        if config.pool_table_space_debug_draw:
             self.space.debug_draw(self.space_draw_options)
 
         surface.blit(self.surface, self.rect)

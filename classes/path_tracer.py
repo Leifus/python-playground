@@ -15,6 +15,7 @@ class PathTracer():
         self.rect_a = None
         self.rect_b = None
         self.rect_line = None
+        self.show = True
 
     def update(self, position_a, position_b):
         self.position_a = position_a
@@ -29,7 +30,11 @@ class PathTracer():
         
 
     def draw(self, surface: pygame.Surface):
-        # surface.blit(self.surface, self.rect)
+        # surface.fill((0,0,0,0))
+
+        if not self.show:
+            return
+        
         
         if self.position_a is not None:
             pygame.draw.circle(surface, self.position_a_color, self.position_a, self.position_radius)

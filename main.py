@@ -4,31 +4,36 @@ from classes.pool_table import PoolTable
 from classes.pool_cue import PoolCue
 from classes.path_tracer import PathTracer
 from classes.pool_ball import PoolBall
+from classes.pool_ball_gutter import PoolBallGutter
 
 class App:
     def __init__(self):
         # Base config
         self.surface = None
+        self.rect = None
         # self.space = None
         self.clock = None
         self.is_running = False
 
         # App config
         self.pool_table = None
+        self.pool_ball_gutter = None
         self.pool_cue = None
 
         self.mouse_position = None
         self.path_tracer = None
-        self.wait_for_balls_to_stop = False
+        self.balls_are_in_motion = False
 
 
     def on_init(self):
         pygame.init()
 
         self.surface = pygame.display.set_mode(config.display_size, config.display_flags, config.display_depth)
+        self.rect = self.surface.get_rect()
         self.clock = pygame.time.Clock()
 
         self.setup_pool_table()
+        self.setup_ball_gutter()
         self.setup_pool_cue()
         self.setup_path_tracer()
 
@@ -49,6 +54,17 @@ class App:
         self.pool_table = PoolTable(size, color, position)
         self.pool_table.on_init()
 
+    def setup_ball_gutter(self):
+        size = config.pool_ball_gutter_size
+        color = config.pool_ball_gutter_color
+        border_color = config.pool_ball_gutter_border_color
+        border_width = config.pool_ball_gutter_border_width
+        x_buffer = 10
+        position = (self.rect.right - size[0] - x_buffer, self.pool_table.rect.centery)
+        self.pool_ball_gutter = PoolBallGutter(size, color, border_width, border_color, position)
+        self.pool_ball_gutter.on_init()
+
+
     def on_event(self, event: pygame.event.Event):
         if event.type == QUIT:
             self.is_running = False
@@ -61,34 +77,47 @@ class App:
             self.mouse_position = event.pos
         
         self.pool_table.on_event(event)
+
+        #TODO: Fix the pool cue
         self.pool_cue.on_event(event)
 
         ball = self.pool_table.cue_ball
         if event.type == MOUSEBUTTONDOWN and event.button == 1:
-            if not self.wait_for_balls_to_stop:
-                self.set_ball_force_at_point(ball)
-                # self.wait_for_balls_to_stop = True
+            if not self.balls_are_in_motion and ball.is_on_table:
+                self.apply_force_to_ball(ball)
+                self.balls_are_in_motion = True
 
-    def set_ball_force_at_point(self, ball: PoolBall):
+    def apply_force_to_ball(self, ball: PoolBall):
         dx = self.mouse_position[0] - (self.pool_table.rect.x + ball.position[0])
         dy = self.mouse_position[1] - (self.pool_table.rect.y + ball.position[1])
         distance = math.sqrt(dx*dx + dy*dy)
         angle = math.atan2(dy, dx)
         
-        #TODO: Fix this so it is a positive value
-        strength = -30000
+        strength = 70000
         force_magnitude = strength * (distance*0.1)
         
-        force_x = force_magnitude * math.cos(angle - ball.angle)
-        force_y = force_magnitude * math.sin(angle - ball.angle)
+        force_x = force_magnitude * -math.cos(angle - ball.angle)
+        force_y = force_magnitude * -math.sin(angle - ball.angle)
 
         ball.set_force_at_point((force_x, force_y))
 
     def update(self):
         self.pool_table.update()
+        if len(self.pool_table.balls_to_remove_from_table) > 0:
+            for ball in self.pool_table.balls_to_remove_from_table:
+                self.pool_table.remove_ball(ball)
+                self.pool_ball_gutter.add_ball(ball)
+            
+            self.pool_table.balls_to_remove_from_table = []
+
+        self.pool_ball_gutter.update()
         self.pool_cue.update()
-        position_a = (self.pool_table.cue_ball.position[0] + self.pool_table.rect.left, self.pool_table.cue_ball.position[1] + self.pool_table.rect.top)
-        self.path_tracer.update(position_a, self.mouse_position)
+
+        self.balls_are_in_motion = self.pool_table.check_for_moving_balls()
+
+        cue_ball_world_position = (self.pool_table.cue_ball.position[0] + self.pool_table.rect.left, self.pool_table.cue_ball.position[1] + self.pool_table.rect.top)
+        self.path_tracer.show = self.balls_are_in_motion is False and self.pool_table.cue_ball.is_on_table
+        self.path_tracer.update(cue_ball_world_position, self.mouse_position)
 
         if self.pool_cue.is_picked_up:
             cue_ball = self.pool_table.cue_ball
@@ -136,6 +165,7 @@ class App:
         self.surface.fill(bg_fill)
 
         self.pool_table.draw(self.surface)
+        self.pool_ball_gutter.draw(self.surface)
         self.pool_cue.draw(self.surface)
         self.path_tracer.draw(self.surface)
 

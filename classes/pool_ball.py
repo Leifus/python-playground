@@ -25,6 +25,9 @@ class PoolBall():
         self.body = None
         self.shape = None
 
+        self.is_on_table = False
+        self.is_moving = False
+
     def _draw(self):
         pygame.draw.circle(self.surface, self.color, (self.radius, self.radius), self.radius)
 
@@ -43,11 +46,21 @@ class PoolBall():
         self.shape.elasticity = config.pool_ball_elasticity
         self.shape.friction = config.pool_ball_friction
         space.add(self.body, self.shape)
+        self.is_on_table = True
 
     def update(self):
         self.angle = self.body.angle
         self.position = self.body.position
         self.rect = self.surface.get_rect(center=self.body.position)
+
+        margin = 2
+        x_v = self.body.velocity[0]
+        y_v = self.body.velocity[1]
+        if not self.body.is_sleeping and (x_v > -margin and x_v < margin) and (y_v > -margin and y_v < margin):
+            self.body._set_velocity((0, 0))
+            self.is_moving = False
+        else:
+            self.is_moving = True
 
     def draw(self, surface: pygame.Surface):
         surface.blit(self.surface, self.rect)
