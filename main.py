@@ -5,6 +5,7 @@ from classes.pool_cue import PoolCue
 from classes.path_tracer import PathTracer
 from classes.pool_ball import PoolBall
 from classes.pool_ball_gutter import PoolBallGutter
+from classes.media_manager import MediaManager
 
 class App:
     def __init__(self):
@@ -24,9 +25,13 @@ class App:
         self.path_tracer = None
         self.balls_are_in_motion = False
 
+        self.media_manager = None
+
 
     def on_init(self):
         pygame.init()
+
+        self.media_manager = MediaManager()
 
         self.surface = pygame.display.set_mode(config.display_size, config.display_flags, config.display_depth)
         self.rect = self.surface.get_rect()
@@ -35,11 +40,11 @@ class App:
         self.setup_pool_table()
         self.setup_ball_gutter()
         self.setup_pool_cue()
-        self.setup_path_tracer()
+        self.setup_user_path_tracer()
 
         self.is_running = True
         
-    def setup_path_tracer(self):
+    def setup_user_path_tracer(self):
         self.path_tracer = PathTracer(self.surface.get_size())
 
     def setup_pool_cue(self):
@@ -51,7 +56,7 @@ class App:
         color = config.pool_table_color
         surface_size = self.surface.get_size()
         position = (surface_size[0]/2, surface_size[1]/2)
-        self.pool_table = PoolTable(size, color, position)
+        self.pool_table = PoolTable(size, color, position, self.media_manager)
         self.pool_table.on_init()
 
     def setup_ball_gutter(self):
