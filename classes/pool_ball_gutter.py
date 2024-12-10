@@ -1,5 +1,5 @@
 from classes.pool_ball import PoolBall
-from config import pygame, pymunk, math
+from config import pygame, pymunk, pool_ball_gutter_config
 import config
 
 class PoolBallGutter():
@@ -11,19 +11,19 @@ class PoolBallGutter():
         self.rect = self.surface.get_rect(center=position)
 
         self.space = pymunk.Space()
-        self.space.iterations = config.pool_ball_gutter_space_iterations
-        self.space.gravity = config.pool_ball_gutter_space_gravity
-        self.space.damping = config.pool_ball_gutter_space_damping
-        self.space.sleep_time_threshold = config.pool_ball_gutter_space_sleep_time_threshold
-        self.debug_draw = config.pool_ball_gutter_space_debug_draw
+        self.space.iterations = pool_ball_gutter_config.pool_ball_gutter_space_iterations
+        self.space.gravity = pool_ball_gutter_config.pool_ball_gutter_space_gravity
+        self.space.damping = pool_ball_gutter_config.pool_ball_gutter_space_damping
+        self.space.sleep_time_threshold = pool_ball_gutter_config.pool_ball_gutter_space_sleep_time_threshold
+        self.debug_draw = pool_ball_gutter_config.pool_ball_gutter_space_debug_draw
         self.space_draw_options = None
 
         if self.debug_draw:
             self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
         self.balls = []
-        self.border_elasticity = config.pool_ball_gutter_border_elasticity
-        self.border_friction = config.pool_ball_gutter_border_friction
+        self.border_elasticity = pool_ball_gutter_config.pool_ball_gutter_border_elasticity
+        self.border_friction = pool_ball_gutter_config.pool_ball_gutter_border_friction
         self.border_segments = []
 
 

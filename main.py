@@ -1,11 +1,14 @@
 from config import *
+import config.pool_table_config as pool_table_cfg
 import config
+import config.pool_ball_gutter_config as pool_ball_gutter_config
 from classes.pool_table import PoolTable
 from classes.pool_cue import PoolCue
 from classes.path_tracer import PathTracer
 from classes.pool_ball import PoolBall
 from classes.pool_ball_gutter import PoolBallGutter
 from classes.media_manager import MediaManager
+from classes.floor import Floor
 
 class App:
     def __init__(self):
@@ -26,7 +29,7 @@ class App:
         self.balls_are_in_motion = False
 
         self.media_manager = None
-
+        self.floor = None
 
     def on_init(self):
         pygame.init()
@@ -37,13 +40,18 @@ class App:
         self.rect = self.surface.get_rect()
         self.clock = pygame.time.Clock()
 
+        self.setup_floor()
         self.setup_pool_table()
         self.setup_ball_gutter()
         self.setup_pool_cue()
         self.setup_user_path_tracer()
 
         self.is_running = True
-        
+
+    def setup_floor(self):
+        self.floor = Floor(self.rect.size, self.rect.center, self.media_manager)
+        self.floor.on_init()
+
     def setup_user_path_tracer(self):
         self.path_tracer = PathTracer(self.surface.get_size())
 
@@ -52,18 +60,18 @@ class App:
         self.pool_cue.on_init()
 
     def setup_pool_table(self):
-        size = config.pool_table_size
-        color = config.pool_table_color
+        size = pool_table_cfg.pool_table_size
+        color = pool_table_cfg.pool_table_color
         surface_size = self.surface.get_size()
         position = (surface_size[0]/2, surface_size[1]/2)
         self.pool_table = PoolTable(size, color, position, self.media_manager)
         self.pool_table.on_init()
 
     def setup_ball_gutter(self):
-        size = config.pool_ball_gutter_size
-        color = config.pool_ball_gutter_color
-        border_color = config.pool_ball_gutter_border_color
-        border_width = config.pool_ball_gutter_border_width
+        size = pool_ball_gutter_config.pool_ball_gutter_size
+        color = pool_ball_gutter_config.pool_ball_gutter_color
+        border_color = pool_ball_gutter_config.pool_ball_gutter_border_color
+        border_width = pool_ball_gutter_config.pool_ball_gutter_border_width
         x_buffer = 10
         position = (self.rect.right - size[0] - x_buffer, self.pool_table.rect.centery)
         self.pool_ball_gutter = PoolBallGutter(size, color, border_width, border_color, position)
@@ -168,6 +176,8 @@ class App:
     def draw(self):
         bg_fill = config.display_bg_color
         self.surface.fill(bg_fill)
+        
+        self.floor.draw(self.surface)
 
         self.pool_table.draw(self.surface)
         self.pool_ball_gutter.draw(self.surface)

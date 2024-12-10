@@ -1,4 +1,6 @@
-from config import *
+from config import pygame, pymunk, pool_table_config, pool_balls_config
+from pygame.locals import *
+
 import config
 from classes.pool_table_cushion import PoolTableCushion
 from classes.pool_table_pocket import PoolTablePocket
@@ -16,12 +18,13 @@ class PoolTable:
         self.height = size[1]
         
         self.space = pymunk.Space()
-        self.space.iterations = config.pool_table_space_iterations
-        self.space.gravity = config.pool_table_space_gravity
-        self.space.damping = config.pool_table_space_damping
-        self.space.sleep_time_threshold = config.pool_table_space_sleep_time_threshold
-        
-        if config.pool_table_space_debug_draw:
+        self.space.iterations = pool_table_config.pool_table_space_iterations
+        self.space.gravity = pool_table_config.pool_table_space_gravity
+        self.space.damping = pool_table_config.pool_table_space_damping
+        self.space.sleep_time_threshold = pool_table_config.pool_table_space_sleep_time_threshold
+        self.debug_draw = pool_table_config.pool_table_space_debug_draw
+
+        if self.debug_draw:
             self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
         self.pockets = []
@@ -91,8 +94,8 @@ class PoolTable:
         max_distance = 3
         hit = self.space.point_query_nearest(self.mouse_pos, max_distance, pymunk.ShapeFilter())
         if hit is not None:
-            if hit.shape.collision_type >= COLLISION_TYPE_POOL_BALL:
-                idx = hit.shape.collision_type - COLLISION_TYPE_POOL_BALL
+            if hit.shape.collision_type >= pool_balls_config.COLLISION_TYPE_POOL_BALL:
+                idx = hit.shape.collision_type - pool_balls_config.COLLISION_TYPE_POOL_BALL
                 ball = self.balls[idx]
                 if not ball.is_moving:
                     hovered_ball = ball
@@ -151,78 +154,78 @@ class PoolTable:
 
     def setup_balls(self):
         position = (120, self.height/2)
-        cue_ball = PoolBall(POOL_BALL_TYPE_CUE, position, self.media_manager)
+        cue_ball = PoolBall(POOL_BALL_TYPE_CUE, 16, position, self.media_manager)
         self.balls.append(cue_ball)
         self.cue_ball = cue_ball
 
         #triangle setup
-        #      1
-        #     1 2
-        #    2 8 1
-        #   1 2 2 1
-        #  2 1 2 1 2
+        #      9
+        #     1 10
+        #    11 8 2
+        #   3 12 4 13
+        #  14 5 15 6 7
 
         #1
         position = ((self.width/2) + 150, self.height/2)
-        ball1 = PoolBall(POOL_BALL_TYPE_SPOT, position, self.media_manager)
+        ball1 = PoolBall(POOL_BALL_TYPE_STRIPE, 9, position, self.media_manager)
         self.balls.append(ball1)
 
-        next_x_position_offset = config.pool_ball_radius * 2
+        next_x_position_offset = pool_balls_config.pool_ball_radius * 2
 
         #2
-        position = (position[0] + next_x_position_offset, position[1] + config.pool_ball_radius)
-        ball2 = PoolBall(POOL_BALL_TYPE_STRIPE, position, self.media_manager)
+        position = (position[0] + next_x_position_offset, position[1] + pool_balls_config.pool_ball_radius)
+        ball2 = PoolBall(POOL_BALL_TYPE_SPOT, 1, position, self.media_manager)
         self.balls.append(ball2)
-        position = (position[0], position[1] - (config.pool_ball_radius*2))
-        ball3 = PoolBall(POOL_BALL_TYPE_SPOT, position, self.media_manager)
+        position = (position[0], position[1] - (pool_balls_config.pool_ball_radius*2))
+        ball3 = PoolBall(POOL_BALL_TYPE_STRIPE, 10, position, self.media_manager)
         self.balls.append(ball3)
 
         #3
-        position = (position[0] + (config.pool_ball_radius*2), position[1] + config.pool_ball_radius*3)
-        ball4 = PoolBall(POOL_BALL_TYPE_STRIPE, position, self.media_manager)
+        position = (position[0] + (pool_balls_config.pool_ball_radius*2), position[1] + pool_balls_config.pool_ball_radius*3)
+        ball4 = PoolBall(POOL_BALL_TYPE_STRIPE, 11, position, self.media_manager)
         self.balls.append(ball4)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball5 = PoolBall(POOL_BALL_TYPE_8, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball5 = PoolBall(POOL_BALL_TYPE_8, 8, position, self.media_manager)
         self.balls.append(ball5)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball6 = PoolBall(POOL_BALL_TYPE_STRIPE, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball6 = PoolBall(POOL_BALL_TYPE_SPOT, 2, position, self.media_manager)
         self.balls.append(ball6)
 
         #4
-        position = (position[0] + (config.pool_ball_radius*2), position[1] + config.pool_ball_radius*5)
-        ball7 = PoolBall(POOL_BALL_TYPE_SPOT, position, self.media_manager)
+        position = (position[0] + (pool_balls_config.pool_ball_radius*2), position[1] + pool_balls_config.pool_ball_radius*5)
+        ball7 = PoolBall(POOL_BALL_TYPE_SPOT, 3, position, self.media_manager)
         self.balls.append(ball7)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball8 = PoolBall(POOL_BALL_TYPE_STRIPE, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball8 = PoolBall(POOL_BALL_TYPE_STRIPE, 12, position, self.media_manager)
         self.balls.append(ball8)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball9 = PoolBall(POOL_BALL_TYPE_SPOT, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball9 = PoolBall(POOL_BALL_TYPE_SPOT, 4, position, self.media_manager)
         self.balls.append(ball9)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball10 = PoolBall(POOL_BALL_TYPE_SPOT, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball10 = PoolBall(POOL_BALL_TYPE_STRIPE, 13, position, self.media_manager)
         self.balls.append(ball10)
 
         #5
-        position = (position[0] + (config.pool_ball_radius*2), position[1] + config.pool_ball_radius*7)
-        ball11 = PoolBall(POOL_BALL_TYPE_STRIPE, position, self.media_manager)
+        position = (position[0] + (pool_balls_config.pool_ball_radius*2), position[1] + pool_balls_config.pool_ball_radius*7)
+        ball11 = PoolBall(POOL_BALL_TYPE_STRIPE, 14, position, self.media_manager)
         self.balls.append(ball11)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball12 = PoolBall(POOL_BALL_TYPE_SPOT, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball12 = PoolBall(POOL_BALL_TYPE_SPOT, 5, position, self.media_manager)
         self.balls.append(ball12)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball13 = PoolBall(POOL_BALL_TYPE_STRIPE, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball13 = PoolBall(POOL_BALL_TYPE_SPOT, 15, position, self.media_manager)
         self.balls.append(ball13)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball14 = PoolBall(POOL_BALL_TYPE_SPOT, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball14 = PoolBall(POOL_BALL_TYPE_SPOT, 6, position, self.media_manager)
         self.balls.append(ball14)
-        position = (position[0], position[1] - config.pool_ball_radius*2)
-        ball15 = PoolBall(POOL_BALL_TYPE_STRIPE, position, self.media_manager)
+        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
+        ball15 = PoolBall(POOL_BALL_TYPE_SPOT, 7, position, self.media_manager)
         self.balls.append(ball15)
 
     def setup_pockets(self):
-        color = config.pool_table_pocket_color
-        radius = config.pool_table_pocket_radius
-        corner_radius = config.pool_table_corner_pocket_radius
+        color = pool_table_config.pool_table_pocket_color
+        radius = pool_table_config.pool_table_pocket_radius
+        corner_radius = pool_table_config.pool_table_corner_pocket_radius
 
         #top left
         position = (0, 0)
@@ -255,15 +258,15 @@ class PoolTable:
         self.pockets.append(pocket)
 
     def setup_cushions(self):
-        elasticity = config.pool_table_cushion_elasticity
-        friction = config.pool_table_cushion_friction
-        color = config.pool_table_cushion_color
-        corner_pocket_radius = config.pool_table_corner_pocket_radius
-        pocket_radius = config.pool_table_pocket_radius
-        cushion_gap = config.pool_table_cushion_gap_to_pocket
-        cushion_thickness = config.pool_table_cushion_thickness
-        bezel_short = config.pool_table_cushion_bezel_short
-        bezel_long = config.pool_table_cushion_bezel_long
+        elasticity = pool_table_config.pool_table_cushion_elasticity
+        friction = pool_table_config.pool_table_cushion_friction
+        color = pool_table_config.pool_table_cushion_color
+        corner_pocket_radius = pool_table_config.pool_table_corner_pocket_radius
+        pocket_radius = pool_table_config.pool_table_pocket_radius
+        cushion_gap = pool_table_config.pool_table_cushion_gap_to_pocket
+        cushion_thickness = pool_table_config.pool_table_cushion_thickness
+        bezel_short = pool_table_config.pool_table_cushion_bezel_short
+        bezel_long = pool_table_config.pool_table_cushion_bezel_long
         
         #left
         offset = corner_pocket_radius*2 + cushion_gap*4
@@ -369,14 +372,14 @@ class PoolTable:
         self.surface.fill(self.color)
 
         # draw chalk lines
-        color = config.pool_table_chalk_line_color
-        width = config.pool_table_chalk_line_width
+        color = pool_table_config.pool_table_chalk_line_color
+        width = pool_table_config.pool_table_chalk_line_width
         for _ in self.chalk_line_positions:
             pygame.draw.line(self.surface, color, _[0], _[1], width)
 
         # draw chalk dots
-        color = config.pool_table_chalk_dot_color
-        radius = config.pool_table_chalk_dot_radius
+        color = pool_table_config.pool_table_chalk_dot_color
+        radius = pool_table_config.pool_table_chalk_dot_radius
         outline = 0
         for position in self.chalk_dot_positions:
             position = (position[0] + radius/2, position[1] + radius/2)
@@ -394,7 +397,7 @@ class PoolTable:
                 _.draw(self.surface)
 
 
-        if config.pool_table_space_debug_draw:
+        if self.debug_draw:
             self.space.debug_draw(self.space_draw_options)
 
         surface.blit(self.surface, self.rect)

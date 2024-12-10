@@ -1,5 +1,4 @@
-from config import COLLISION_TYPE_POOL_TABLE_CUSHION, pygame, pymunk
-import config
+from config import pool_balls_config, pool_table_config, pygame, pymunk
 
 class PoolTableCushion():
     def __init__(self, size, color, elasticity, friction, position, poly_points):
@@ -23,9 +22,9 @@ class PoolTableCushion():
         self.body = pymunk.Body(body_type=pymunk.Body.STATIC)
         self.body.position = (self.position[0] - (self.rect.width/2), self.position[1] - (self.rect.height/2))
         self.shape = pymunk.Poly(self.body, self.poly_points)
-        self.shape.collision_type = COLLISION_TYPE_POOL_TABLE_CUSHION + body_iter
-        self.shape.elasticity = config.pool_table_cushion_elasticity
-        self.shape.friction = config.pool_table_cushion_friction
+        self.shape.collision_type = pool_balls_config.COLLISION_TYPE_POOL_TABLE_CUSHION + body_iter
+        self.shape.elasticity = pool_table_config.pool_table_cushion_elasticity
+        self.shape.friction = pool_table_config.pool_table_cushion_friction
         space.add(self.body, self.shape)
 
     def update(self):

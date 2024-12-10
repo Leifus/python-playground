@@ -1,4 +1,4 @@
-from config import COLLISION_TYPE_POOL_TABLE_POCKET, pygame, pymunk
+from config import pool_balls_config, pygame, pymunk
 
 class PoolTablePocket():
     def __init__(self, radius, color, position):
@@ -18,7 +18,7 @@ class PoolTablePocket():
         self.body.position = self.position
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.sensor = True
-        self.shape.collision_type = COLLISION_TYPE_POOL_TABLE_POCKET + body_iter
+        self.shape.collision_type = pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET + body_iter
         space.add(self.body, self.shape)
 
     def update(self):
