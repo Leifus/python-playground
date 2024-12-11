@@ -1,4 +1,4 @@
-from config import pygame, pymunk, pool_table_config, pool_balls_config
+from config import pygame, pymunk, pool_table_config, pool_balls_config, random
 from pygame.locals import *
 
 import config
@@ -6,33 +6,36 @@ from classes.pool_table_cushion import PoolTableCushion
 from classes.pool_table_pocket import PoolTablePocket
 from classes.pool_ball import PoolBall, POOL_BALL_TYPE_STRIPE, POOL_BALL_TYPE_SPOT, POOL_BALL_TYPE_8, POOL_BALL_TYPE_CUE
 from classes.media_manager import MediaManager
+from classes.draw_mode import DrawMode
 
 class PoolTable:
-    def __init__(self, size, color, position, media_manager: MediaManager):
-        self.media_manager = media_manager
-        self.surface = pygame.Surface(size)
-        self.surface.fill(color)
-        self.rect = self.surface.get_rect(center=position)
-        self.color = color
-        self.width = size[0]
-        self.height = size[1]
-        
+    def __init__(self, position, media_manager: MediaManager):
+        self.draw_mode = pool_table_config.pool_table_draw_mode
+        self.raw_color = pool_table_config.pool_table_DM_RAW_color
+        self.size = pool_table_config.pool_table_size
+        self.width = self.size[0]
+        self.height = self.size[1]
+        self.position = position
         self.space = pymunk.Space()
         self.space.iterations = pool_table_config.pool_table_space_iterations
         self.space.gravity = pool_table_config.pool_table_space_gravity
         self.space.damping = pool_table_config.pool_table_space_damping
         self.space.sleep_time_threshold = pool_table_config.pool_table_space_sleep_time_threshold
-        self.debug_draw = pool_table_config.pool_table_space_debug_draw
+        self.space_draw_options = None
 
-        if self.debug_draw:
-            self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
-
+        self.media_manager = media_manager
+        
         self.pockets = []
         self.cushions = []
         self.balls = []
         self.cue_ball = None
         self.mouse_pos = None
         self.balls_to_remove_from_table = []
+        
+        self.raw_surface = None
+        self.raw_rect = None
+        self.rich_surface = None
+        self.rich_rect = None
         
         self.hovered_ball = None
         self.selected_ball = None
@@ -48,8 +51,55 @@ class PoolTable:
         
         self.handlers = []
 
+    def draw_rich_media_layers(self):
+        # table
+        media_path = pool_table_config.pool_table_DM_RICH_media
+        table_surface = self.media_manager.get(media_path, convert_alpha=True)
+        if not table_surface:
+            print('No table img')
+            return
+        
+        self.rich_surface = pygame.transform.scale(table_surface, self.size)
+        self.rich_rect = self.rich_surface.get_rect(center=self.position)
+
+        # decals
+        decals = [
+            ['spr_Decal_Scratches3.png', 255], 
+            ['spr_Decal_Scuff2.png', 200], 
+            ['spr_Decal_Scratches1.png', 255], 
+            ['spr_Decal_Scratches2.png', 255], 
+            ['spr_Decal_Scratches3.png', 255], 
+            ['spr_Decal_Scuff1.png', 200], 
+            ['spr_Decal_Scratches2.png', 255], 
+        ]
+
+        for file_name, alpha in decals:
+            media_path = f'table/decals/{file_name}'
+            decal_surface = self.media_manager.get(media_path, convert_alpha=True)
+            decal_surface.set_alpha(alpha)
+            if not decal_surface:
+                print('No decal_surface img', media_path)
+            else:
+                size = decal_surface.get_size()
+                rand_x = random.uniform(size[0]/2, self.width-size[0]/2)
+                rand_y = random.uniform(size[1]/2, self.height-size[1]/2)
+                self.rich_surface.blit(decal_surface, (rand_x, rand_y))
+        
+
+
     def on_init(self):
-        self.surface.fill(self.color)
+        self.raw_surface = pygame.Surface(self.size, pygame.SRCALPHA)
+        self.raw_rect = self.raw_surface.get_rect(center=self.position)
+
+        # if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME | DrawMode.PHYSICS:
+        #     self.raw_surface.fill(self.raw_color)
+        if self.draw_mode in DrawMode.RICH:
+            # self.raw_surface.fill((0,0,0,0))
+
+            self.draw_rich_media_layers()
+        elif self.draw_mode in DrawMode.PHYSICS:
+            self.space_draw_options = pymunk.pygame_util.DrawOptions(self.raw_surface)
+
 
         for i, _ in enumerate(self.cushions):
             _.on_init(self.space, i)
@@ -129,7 +179,7 @@ class PoolTable:
             return
         
         mouse_pos = event.pos
-        self.mouse_pos = (mouse_pos[0] - self.rect.left, mouse_pos[1] - self.rect.top)
+        self.mouse_pos = (mouse_pos[0] - self.raw_rect.left, mouse_pos[1] - self.raw_rect.top)
         
         # check if we're hovering over a ball
         self.check_for_hovered_ball()
@@ -258,9 +308,6 @@ class PoolTable:
         self.pockets.append(pocket)
 
     def setup_cushions(self):
-        elasticity = pool_table_config.pool_table_cushion_elasticity
-        friction = pool_table_config.pool_table_cushion_friction
-        color = pool_table_config.pool_table_cushion_color
         corner_pocket_radius = pool_table_config.pool_table_corner_pocket_radius
         pocket_radius = pool_table_config.pool_table_pocket_radius
         cushion_gap = pool_table_config.pool_table_cushion_gap_to_pocket
@@ -274,16 +321,31 @@ class PoolTable:
         height = self.height - offset
         position = (width/2, self.height/2)
         poly_points = [
-            (0, 0), 
-            (width - bezel_short, 0), 
-            (width - bezel_short/2, bezel_long/2), 
-            (width, bezel_long), 
+            (0, 0),
+            (bezel_short, 0),
+            (width - bezel_short/2, bezel_long/2),
+            (width, bezel_long),
             (width, height - bezel_long),
             (width - bezel_short/2, height - bezel_long/2),
             (width - bezel_short, height),
             (0, height)
         ]
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
+        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
+        self.cushions.append(cushion)
+
+        #right
+        position = (self.width - (width/2), self.height/2)
+        poly_points = [
+            (width, 0), 
+            (width, height),
+            (bezel_short, height),
+            (bezel_short/2, height - bezel_long/2),
+            (0, height - bezel_long),
+            (0, bezel_long),
+            (bezel_short/2, bezel_long/2),
+            (bezel_short, 0)
+        ]
+        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
         self.cushions.append(cushion)
 
         #top left
@@ -301,30 +363,12 @@ class PoolTable:
             (bezel_long/2, height - bezel_short/2),
             (0, height - bezel_short)
         ]
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
+        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
         self.cushions.append(cushion)
 
         #top right
         position = ((self.width/2) + (width/2) + corner_pocket_radius + cushion_gap, height/2)
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
-        self.cushions.append(cushion)
-
-        #right
-        offset = corner_pocket_radius*2 + cushion_gap*4
-        width = cushion_thickness
-        height = self.height - offset
-        position = (self.width - (width/2), self.height/2)
-        poly_points = [
-            (width, 0), 
-            (width, height),
-            (bezel_short, height),
-            (bezel_short/2, height - bezel_long/2),
-            (0, height - bezel_long),
-            (0, bezel_long),
-            (bezel_short/2, bezel_long/2),
-            (bezel_short, 0)
-        ]
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
+        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
         self.cushions.append(cushion)
 
         #bottom left
@@ -342,12 +386,12 @@ class PoolTable:
             (0, bezel_short),
             (bezel_long/2, bezel_short/2),
         ]
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
+        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
         self.cushions.append(cushion)
 
         #bottom right
         position = ((self.width/2) + (width/2) + corner_pocket_radius + cushion_gap, self.height - (height/2))
-        cushion = PoolTableCushion((width, height), color, elasticity, friction, position, poly_points)
+        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
         self.cushions.append(cushion)
 
     def remove_ball(self, ball: PoolBall):
@@ -368,36 +412,62 @@ class PoolTable:
                 _.update()
 
     def draw(self, surface: pygame.Surface):
-        # draw table
-        self.surface.fill(self.color)
+        self.raw_surface.fill((0,0,0,0))
+        wireframe_thickness = pool_table_config.pool_table_draw_mode_wireframe_thickness
 
-        # draw chalk lines
-        color = pool_table_config.pool_table_chalk_line_color
-        width = pool_table_config.pool_table_chalk_line_width
-        for _ in self.chalk_line_positions:
-            pygame.draw.line(self.surface, color, _[0], _[1], width)
+        if self.draw_mode in DrawMode.WIREFRAME:
+            # draw table
+            rect = pygame.Rect(0, 0, self.raw_rect.width, self.raw_rect.height)
+            pygame.draw.rect(self.raw_surface, self.raw_color, rect, wireframe_thickness)
 
-        # draw chalk dots
-        color = pool_table_config.pool_table_chalk_dot_color
-        radius = pool_table_config.pool_table_chalk_dot_radius
-        outline = 0
-        for position in self.chalk_dot_positions:
-            position = (position[0] + radius/2, position[1] + radius/2)
-            pygame.draw.circle(self.surface, color, position, radius, outline)
+            # draw poly points
+            pygame.draw.circle(self.raw_surface, (0,0,0), (0, 0), 2)
+            pygame.draw.circle(self.raw_surface, (0,0,0), (self.raw_rect.width, 0), 2)
+            pygame.draw.circle(self.raw_surface, (0,0,0), (self.raw_rect.width, self.raw_rect.height), 2)
+            pygame.draw.circle(self.raw_surface, (0,0,0), (0, self.raw_rect.height), 2)
+        elif self.draw_mode in DrawMode.PHYSICS:
+            self.space.debug_draw(self.space_draw_options)
+                
+        # elif self.draw_mode in DrawMode.RICH:
+
+
+        # if self.draw_mode in DrawMode.WIREFRAME:
+        #     wireframe_thickness = pool_table_config.pool_table_draw_mode_wireframe_thickness
+
+        if self.draw_mode in DrawMode.RAW:
+            # draw table
+            self.raw_surface.fill(self.raw_color)
+
+            # draw chalk lines
+            color = pool_table_config.pool_table_chalk_line_color
+            width = pool_table_config.pool_table_chalk_line_width
+            for _ in self.chalk_line_positions:
+                pygame.draw.line(self.raw_surface, color, _[0], _[1], width)
+
+            # draw chalk dots
+            color = pool_table_config.pool_table_chalk_dot_color
+            radius = pool_table_config.pool_table_chalk_dot_radius
+            outline = 0
+            for position in self.chalk_dot_positions:
+                position = (position[0] + radius/2, position[1] + radius/2)
+                pygame.draw.circle(self.raw_surface, color, position, radius, outline)
             
 
         for _ in self.pockets:
-            _.draw(self.surface)
+            _.draw(self.raw_surface)
             
         for _ in self.cushions:
-            _.draw(self.surface)
+            _.draw(self.raw_surface)
             
         for _ in self.balls:
             if _.is_on_table:
-                _.draw(self.surface)
+                _.draw(self.raw_surface)
 
 
-        if self.debug_draw:
+        if self.draw_mode in DrawMode.PHYSICS:
             self.space.debug_draw(self.space_draw_options)
 
-        surface.blit(self.surface, self.rect)
+        if self.draw_mode in DrawMode.RICH:
+            surface.blit(self.rich_surface, self.rich_rect)
+
+        surface.blit(self.raw_surface, self.raw_rect)

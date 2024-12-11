@@ -1,5 +1,4 @@
 from config import pool_balls_config, pygame, pymunk
-import config
 
 from classes.draw_mode import DrawMode
 from classes.media_manager import MediaManager
@@ -11,28 +10,31 @@ POOL_BALL_TYPE_CUE = 7
 
 class PoolBall():
     def __init__(self, type, identifier, position, media_manager: MediaManager):
+        # Config Values
+        self.draw_mode = pool_balls_config.pool_ball_draw_mode
+        self.mass = pool_balls_config.pool_ball_mass
+        self.max_force = pool_balls_config.pool_ball_max_force
+        self.radius = pool_balls_config.pool_ball_radius
+        self.wireframe_thickness = pool_balls_config.pool_ball_draw_mode_wireframe_thickness
+
+        # Arg Values
         self.media_manager = media_manager
         self.type = type
         self.identifier = identifier
         self.position = position
-        self.angle = 0
-        self.draw_mode = pool_balls_config.pool_ball_draw_mode
         self.type = type
-        self.mass = pool_balls_config.pool_ball_mass
-        self.max_force = pool_balls_config.pool_ball_max_force
-        self.is_highlighted = False
+
+        # Default Values
         self.highlight_color = pygame.Color('red')
+        self.angle = 0
+        self.is_highlighted = False
         self.body = None
         self.shape = None
         self.is_on_table = False
         self.is_moving = False
-        self.radius = pool_balls_config.pool_ball_radius
-
         self.raw_surface = None
         self.raw_rect = None
         self.raw_color = self.get_color_by_type()
-        self.wireframe_thickness = pool_balls_config.pool_ball_draw_mode_wireframe_thickness
-        
         self.rich_surface = None
         self.rich_rect = None
 
@@ -46,16 +48,16 @@ class PoolBall():
         self.shape.friction = pool_balls_config.pool_ball_friction
         space.add(self.body, self.shape)
 
-        if DrawMode.RAW in self.draw_mode or DrawMode.WIREFRAME in self.draw_mode:
+        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME | DrawMode.PHYSICS:
             padding = 0
-            if DrawMode.WIREFRAME in self.draw_mode:
+            if self.draw_mode in DrawMode.WIREFRAME:
                 padding = pool_balls_config.pool_ball_draw_mode_wireframe_thickness*2
 
             self.raw_surface = pygame.Surface((self.radius*2+padding, self.radius*2+padding), pygame.SRCALPHA)
-        elif DrawMode.RICH in self.draw_mode:
+        elif self.draw_mode in DrawMode.RICH:
             img = self.get_rich_surface()
             if not img:
-                print('No img:', self.type)
+                print('No pool ball img:', self.type)
                 return
             
             self.rich_surface = pygame.transform.scale(img, (self.radius*2, self.radius*2))
@@ -66,9 +68,9 @@ class PoolBall():
         self._draw()
 
     def _draw(self):
-        if DrawMode.RAW in self.draw_mode or DrawMode.WIREFRAME in self.draw_mode:
+        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
             width = 0
-            if DrawMode.WIREFRAME in self.draw_mode:
+            if self.draw_mode in DrawMode.WIREFRAME:
                 width = self.wireframe_thickness
             pygame.draw.circle(self.raw_surface, self.raw_color, (self.radius, self.radius), self.radius, width)
 
@@ -79,9 +81,9 @@ class PoolBall():
         self.angle = self.body.angle
         self.position = self.body.position
         
-        if DrawMode.RAW in self.draw_mode or DrawMode.WIREFRAME in self.draw_mode:
+        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
             self.raw_rect = self.raw_surface.get_rect(center=self.body.position)
-        elif DrawMode.RICH in self.draw_mode:
+        elif self.draw_mode in DrawMode.RICH:
             self.rich_rect = self.rich_surface.get_rect(center=self.body.position)
 
         stop_force_margin = 3
@@ -95,9 +97,9 @@ class PoolBall():
             self.is_moving = True
 
     def draw(self, surface: pygame.Surface):
-        if DrawMode.RAW in self.draw_mode or DrawMode.WIREFRAME in self.draw_mode:
+        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
             surface.blit(self.raw_surface, self.raw_rect)
-        elif DrawMode.RICH in self.draw_mode:
+        elif self.draw_mode in DrawMode.RICH:
             surface.blit(self.rich_surface, self.rich_rect)
             
 

@@ -9,10 +9,16 @@ class MediaManager():
 
     def get(self, path, convert=False, convert_alpha=False):
         full_path = f'{self.root_path}/{path}'
-        img_surface = pygame.image.load(full_path)
+
+        cached_media = self.media.get(full_path)
+        if cached_media is not None:
+            return cached_media
+
+        loaded_media = pygame.image.load(full_path)
         if convert:
-            img_surface = img_surface.convert()
+            loaded_media = loaded_media.convert()
         elif convert_alpha:
-            img_surface = img_surface.convert_alpha()
+            loaded_media = loaded_media.convert_alpha()
             
-        return img_surface
+        self.media[full_path] = loaded_media
+        return loaded_media

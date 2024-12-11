@@ -17,12 +17,14 @@ pool_ball_elasticity = 0.9
 pool_ball_friction = 0.6
 pool_ball_max_force = 1000000
 
-pool_ball_draw_mode = DrawMode.RICH
+pool_ball_draw_mode = DrawMode.RICH  # PHYSICS is treated as WIREFRAME due to space inherited from the parent
 pool_ball_draw_mode_wireframe_thickness = 2
 
 # Rich Drawing
 pool_ball_DM_RICH_use_identifer_as_media = True
-pool_ball_DM_RICH_media_path = 'Numbered_balls' # 'Billiard_Balls_01'
+pool_ball_DM_RICH_media_path = 'balls/Numbered_balls'
+# pool_ball_DM_RICH_use_identifer_as_media = False
+# pool_ball_DM_RICH_media_path = 'balls/Billiard_Balls_01'
 
 # When pool_ball_DM_RICH_use_identifer_as_media = False
 pool_ball_DM_RICH_cue_media_path = 'white.png'
