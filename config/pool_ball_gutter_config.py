@@ -14,11 +14,12 @@ pool_ball_gutter_space_gravity = (0, 980)
 pool_ball_gutter_space_damping = 0.55
 pool_ball_gutter_space_sleep_time_threshold = 0.1 #math.inf
 
-pool_ball_gutter_draw_mode = DrawMode.RAW
+pool_ball_gutter_draw_mode = DrawMode.RICH
 pool_ball_gutter_DM_WIREFRAME_thickness = 2
 
 # Rich Drawing
-pool_ball_gutter_DM_RICH_media = 'pool_ball_gutter/green_pipe.png'
+pool_ball_gutter_DM_RICH_media = 'UI/spr_UI_Powerbar_Overlay.png'
+# pool_ball_gutter_DM_RICH_media = 'pool_ball_gutter/green_pipe.png'
 
 
 # Raw & Wireframe Drawing

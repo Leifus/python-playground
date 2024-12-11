@@ -62,7 +62,7 @@ class App:
     def setup_ball_gutter(self):
         size = pool_ball_gutter_config.pool_ball_gutter_size
         x_buffer = 10
-        position = (self.rect.right - size[0] - x_buffer, self.pool_table.raw_rect.centery)
+        position = (self.rect.right - size[0] - x_buffer, self.pool_table.rect.centery)
         self.pool_ball_gutter = PoolBallGutter(position, self.media_manager)
         self.pool_ball_gutter.on_init()
 
@@ -90,8 +90,8 @@ class App:
                 self.balls_are_in_motion = True
 
     def apply_force_to_ball(self, ball: PoolBall):
-        dx = self.mouse_position[0] - (self.pool_table.raw_rect.x + ball.position[0])
-        dy = self.mouse_position[1] - (self.pool_table.raw_rect.y + ball.position[1])
+        dx = self.mouse_position[0] - (self.pool_table.rect.x + ball.position[0])
+        dy = self.mouse_position[1] - (self.pool_table.rect.y + ball.position[1])
         distance = math.sqrt(dx*dx + dy*dy)
         angle = math.atan2(dy, dx)
         
@@ -117,7 +117,7 @@ class App:
 
         self.balls_are_in_motion = self.pool_table.check_for_moving_balls()
 
-        cue_ball_world_position = (self.pool_table.cue_ball.position[0] + self.pool_table.raw_rect.left, self.pool_table.cue_ball.position[1] + self.pool_table.raw_rect.top)
+        cue_ball_world_position = (self.pool_table.cue_ball.position[0] + self.pool_table.rect.left, self.pool_table.cue_ball.position[1] + self.pool_table.rect.top)
         self.path_tracer.show = self.balls_are_in_motion is False and self.pool_table.cue_ball.is_on_table
         self.path_tracer.update(cue_ball_world_position, self.mouse_position)
 
@@ -127,8 +127,8 @@ class App:
             #get angle from mouse to ball
             cue_x = cue_ball.position[0]
             cue_y = cue_ball.position[1]
-            dx = self.mouse_position[0] - (self.pool_table.raw_rect.x + cue_x)
-            dy = self.mouse_position[1] - (self.pool_table.raw_rect.y + cue_y)
+            dx = self.mouse_position[0] - (self.pool_table.rect.x + cue_x)
+            dy = self.mouse_position[1] - (self.pool_table.rect.y + cue_y)
             mouse_to_ball_angle = math.atan2(dy, dx)
 
             cue_angle = 0

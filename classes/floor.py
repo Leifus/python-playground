@@ -20,20 +20,12 @@ class Floor():
 
         rows = math.ceil(self.rect.height / self.tile_rect.height)
         cols = math.ceil(self.rect.width / self.tile_rect.width)
-        draw_x = self.rect.width - self.tile_rect.width
 
         for row in range(rows):
             for col in range(cols):
                 position = (self.tile_rect.width * col, self.tile_rect.height * row)
                 self.surface.blit(self.tile_surface, position)
                 
-
-        # while draw_y > 0:
-        #     draw_y -= self.tile_rect.height
-        #     while draw_x > 0:
-        #         draw_x -= self.tile_rect.width
-        #         position = (position[0] + self.tile_rect.width, position[1])
-        #         self.surface.blit(self.tile_surface, position)
 
     def draw(self, surface: pygame.Surface):
         surface.blit(self.surface, self.rect)

@@ -72,3 +72,6 @@ class PoolTableCushion():
 
     def draw(self, surface: pygame.Surface):
         surface.blit(self.raw_surface, self.raw_rect)
+
+        if self.draw_mode in DrawMode.RICH:
+            surface.blit(self.rich_surface, self.rich_rect)

@@ -108,6 +108,7 @@ class PoolBall():
         self._draw()
 
     def set_force_at_point(self, force):
+        #TODO: IF using max force, then apply at SCALE, fixing the ratio!!
         force_x = force[0]
         force_y = force[1]
         if force_x > 0 and force_x > self.max_force:
