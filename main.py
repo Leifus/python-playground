@@ -11,7 +11,6 @@ from classes.floor import Floor
 
 class App:
     def __init__(self):
-        # Default Values
         self.surface = None
         self.rect = None
         self.clock = None
@@ -47,7 +46,8 @@ class App:
         self.floor.on_init()
 
     def setup_user_path_tracer(self):
-        self.path_tracer = PathTracer(self.surface.get_size())
+        self.path_tracer = PathTracer(self.surface.get_size(), self.media_manager)
+        self.path_tracer.on_init()
 
     def setup_pool_cue(self):
         self.pool_cue = PoolCue()

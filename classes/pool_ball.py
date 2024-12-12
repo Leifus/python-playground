@@ -2,6 +2,7 @@ from config import pool_balls_config, pygame, pymunk
 
 from classes.draw_mode import DrawMode
 from classes.media_manager import MediaManager
+from classes.__helpers__ import aspect_scale
 
 POOL_BALL_TYPE_STRIPE = 1
 POOL_BALL_TYPE_SPOT = 0
@@ -10,81 +11,75 @@ POOL_BALL_TYPE_CUE = 7
 
 class PoolBall():
     def __init__(self, type, identifier, position, media_manager: MediaManager):
-        # Config Values
         self.draw_mode = pool_balls_config.pool_ball_draw_mode
         self.mass = pool_balls_config.pool_ball_mass
         self.max_force = pool_balls_config.pool_ball_max_force
         self.radius = pool_balls_config.pool_ball_radius
-        self.wireframe_thickness = pool_balls_config.pool_ball_draw_mode_wireframe_thickness
+        self.shape_collision_type = pool_balls_config.COLLISION_TYPE_POOL_BALL
+        self.shape_elasticity = pool_balls_config.pool_ball_elasticity
+        self.shape_friction = pool_balls_config.pool_ball_friction
+        self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
 
-        # Arg Values
         self.media_manager = media_manager
         self.type = type
         self.identifier = identifier
         self.position = position
-        self.type = type
 
-        # Default Values
-        self.highlight_color = pygame.Color('red')
+        # self.highlight_color = pygame.Color('red')
         self.angle = 0
-        self.is_highlighted = False
         self.body = None
         self.shape = None
+
+        # self.is_highlighted = False
         self.is_on_table = False
         self.is_moving = False
-        self.raw_surface = None
-        self.raw_rect = None
-        self.raw_color = self.get_color_by_type()
-        self.rich_surface = None
-        self.rich_rect = None
 
-    def on_init(self, space, body_iter):        
-        inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
-        self.body = pymunk.Body(self.mass, inertia)
-        self.body.position = self.position
-        self.shape = pymunk.Circle(self.body, self.radius)
-        self.shape.collision_type = pool_balls_config.COLLISION_TYPE_POOL_BALL + body_iter
-        self.shape.elasticity = pool_balls_config.pool_ball_elasticity
-        self.shape.friction = pool_balls_config.pool_ball_friction
-        space.add(self.body, self.shape)
+        self.surface = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
+        self.rect = self.surface.get_rect(center=position)
+        self.ball_surface = self.surface.copy()
+        self.ball_RICH_surface = None
 
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME | DrawMode.PHYSICS:
-            padding = 0
+        self.ball_RAW_color = self.get_color_by_type()
+
+    def setup_visuals(self):
+        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
+            outline_width = 0
             if self.draw_mode in DrawMode.WIREFRAME:
-                padding = pool_balls_config.pool_ball_draw_mode_wireframe_thickness*2
+                outline_width = self.WIREFRAME_outline_width
 
-            self.raw_surface = pygame.Surface((self.radius*2+padding, self.radius*2+padding), pygame.SRCALPHA)
+            pygame.draw.circle(self.ball_surface, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
         elif self.draw_mode in DrawMode.RICH:
             img = self.get_rich_surface()
             if not img:
                 print('No pool ball img:', self.type)
                 return
             
-            self.rich_surface = pygame.transform.scale(img, (self.radius*2, self.radius*2))
-            self.rich_rect = self.rich_surface.get_rect(center=self.position)
+            self.ball_RICH_surface = aspect_scale(img, (self.radius*2, self.radius*2))
+            self.ball_surface.blit(self.ball_RICH_surface, (0, 0))
 
-        self.is_on_table = True
-        
-        self._draw()
+    def setup_physical_space(self, space, body_iter):
+        inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
+        self.body = pymunk.Body(self.mass, inertia)
+        self.body.position = self.position
+        self.shape = pymunk.Circle(self.body, self.radius)
+        self.shape.collision_type = self.shape_collision_type + body_iter
+        self.shape.elasticity = self.shape_elasticity
+        self.shape.friction = self.shape_friction
+        space.add(self.body, self.shape)
 
-    def _draw(self):
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
-            width = 0
-            if self.draw_mode in DrawMode.WIREFRAME:
-                width = self.wireframe_thickness
-            pygame.draw.circle(self.raw_surface, self.raw_color, (self.radius, self.radius), self.radius, width)
-
-            # if self.is_highlighted:
-            #     pygame.draw.circle(self.raw_surface, self.highlight_color, (self.radius, self.radius), self.radius, 2)            
+    def on_init(self, space, body_iter):
+        self.setup_visuals()
+        self.setup_physical_space(space, body_iter)
 
     def update(self):
         self.angle = self.body.angle
         self.position = self.body.position
+        self.rect = self.surface.get_rect(center=self.position)
         
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
-            self.raw_rect = self.raw_surface.get_rect(center=self.body.position)
-        elif self.draw_mode in DrawMode.RICH:
-            self.rich_rect = self.rich_surface.get_rect(center=self.body.position)
+        # if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
+        #     self.rect = self.surface.get_rect(center=self.body.position)
+        # elif self.draw_mode in DrawMode.RICH:
+        #     self.rich_rect = self.rich_surface.get_rect(center=self.body.position)
 
         stop_force_margin = 3
         x_v = self.body.velocity[0]
@@ -97,15 +92,16 @@ class PoolBall():
             self.is_moving = True
 
     def draw(self, surface: pygame.Surface):
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
-            surface.blit(self.raw_surface, self.raw_rect)
-        elif self.draw_mode in DrawMode.RICH:
-            surface.blit(self.rich_surface, self.rich_rect)
-            
+        self.surface.fill((0,0,0,0))
+        
+        self.surface.blit(self.ball_surface, (0,0))
 
-    def highlight_position(self, show=True):
-        self.is_highlighted = show
-        self._draw()
+        surface.blit(self.surface, self.rect)
+
+
+    # def highlight_position(self, show=True):
+    #     self.is_highlighted = show
+    #     self._draw()
 
     def set_force_at_point(self, force):
         #TODO: IF using max force, then apply at SCALE, fixing the ratio!!

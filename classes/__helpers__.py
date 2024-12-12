@@ -1,5 +1,19 @@
 from config import pygame
 
+def draw_poly_points_around_rect(surface, rect: pygame.Rect, color, radius):
+    points = [
+        (radius/2, radius/2),
+        (rect.width - radius/2, radius/2),
+        (rect.width - radius/2, rect.height - radius/2),
+        (radius/2, rect.height - radius/2)
+    ]
+    draw_poly_points(surface, points, color, radius)
+
+def draw_poly_points(surface, points, color, radius):
+    for point in points:
+        pygame.draw.circle(surface, color, point, radius)
+
+
 def aspect_scale(img, size):
     bx = size[0]
     by = size[1]

@@ -18,7 +18,7 @@ pool_ball_friction = 0.6
 pool_ball_max_force = 1000000
 
 pool_ball_draw_mode = DrawMode.RICH  # PHYSICS is treated as WIREFRAME due to space inherited from the parent
-pool_ball_draw_mode_wireframe_thickness = 2
+pool_ball_DM_WIREFRAME_outline_width = 2
 
 # Rich Drawing
 pool_ball_DM_RICH_use_identifer_as_media = True

@@ -1,111 +1,125 @@
-from re import S
 from config import pygame, pymunk, pool_ball_gutter_config
 import config
 
 from classes.pool_ball import PoolBall
 from classes.draw_mode import DrawMode
 from classes.media_manager import MediaManager
+from classes.__helpers__ import draw_poly_points_around_rect
 
 class PoolBallGutter():
     def __init__(self, position, media_manager: MediaManager):
-        # Config Values
-        size = pool_ball_gutter_config.pool_ball_gutter_size
-        DM_RAW_color = pool_ball_gutter_config.pool_ball_gutter_DM_RAW_color
-        DM_RAW_border_color = pool_ball_gutter_config.pool_ball_gutter_DM_RAW_border_color
-        border_width = pool_ball_gutter_config.pool_ball_gutter_border_width
-        draw_mode = pool_ball_gutter_config.pool_ball_gutter_draw_mode
-        space_iterations = pool_ball_gutter_config.pool_ball_gutter_space_iterations
-        space_gravity = pool_ball_gutter_config.pool_ball_gutter_space_gravity
-        space_damping = pool_ball_gutter_config.pool_ball_gutter_space_damping
-        space_sleep_time_threshold = pool_ball_gutter_config.pool_ball_gutter_space_sleep_time_threshold
-        border_elasticity = pool_ball_gutter_config.pool_ball_gutter_border_elasticity
-        border_friction = pool_ball_gutter_config.pool_ball_gutter_border_friction
+        self.draw_mode = pool_ball_gutter_config.pool_ball_gutter_draw_mode
+        self.size = pool_ball_gutter_config.pool_ball_gutter_size
+        self.gutter_RAW_color = pool_ball_gutter_config.pool_ball_gutter_DM_RAW_color
+        self.edge_barrier_RAW_color = pool_ball_gutter_config.pool_ball_gutter_edge_barrier_DM_RAW_color
+        self.edge_barrier_width = pool_ball_gutter_config.pool_ball_gutter_edge_barrier_width
+        self.space_iterations = pool_ball_gutter_config.pool_ball_gutter_space_iterations
+        self.space_gravity = pool_ball_gutter_config.pool_ball_gutter_space_gravity
+        self.space_damping = pool_ball_gutter_config.pool_ball_gutter_space_damping
+        self.space_sleep_time_threshold = pool_ball_gutter_config.pool_ball_gutter_space_sleep_time_threshold
+        self.edge_barrier_elasticity = pool_ball_gutter_config.pool_ball_gutter_edge_barrier_elasticity
+        self.edge_barrier_friction = pool_ball_gutter_config.pool_ball_gutter_edge_barrier_friction
+        self.WIREFRAME_outline_width = pool_ball_gutter_config.pool_ball_gutter_DM_WIREFRAME_outline_width
+        self.WIREFRAME_poly_point_radius = pool_ball_gutter_config.pool_ball_gutter_DM_WIREFRAME_poly_point_radius
+        self.gutter_RICH_media = pool_ball_gutter_config.pool_ball_gutter_DM_RICH_media
 
         self.media_manager = media_manager
-        self.draw_mode = draw_mode
-        self.size = size
         self.position = position
-        self.raw_color = DM_RAW_color
-        self.raw_border_color = DM_RAW_border_color
-        self.border_width = border_width
 
-        self.raw_surface = None
-        self.raw_rect = None
-        self.rich_surface = None
-        self.rich_rect = None
+        self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
+        self.rect = self.surface.get_rect(center=self.position)
+        self.gutter_surface = None
+        self.gutter_RICH_surface = None
         
-        self.space = pymunk.Space()
-        self.space.iterations = space_iterations
-        self.space.gravity = space_gravity
-        self.space.damping = space_damping
-        self.space.sleep_time_threshold = space_sleep_time_threshold
         self.space_draw_options = None
+        self.space = None
 
         self.balls = []
-        self.border_elasticity = border_elasticity
-        self.border_friction = border_friction
         self.border_shapes = []
+        self.edge_barrier_vectors = []
 
+    def setup_edge_barrier_vectors(self):
+        # left barrier
+        points = [
+            (0, 0),
+            (self.edge_barrier_width, 0),
+            (self.edge_barrier_width, self.size[1]),
+            (0, self.size[1])
+        ]
+        self.edge_barrier_vectors.append(points)
 
-    def on_init(self):
-        self.raw_surface = pygame.Surface((self.size[0], self.size[1]), pygame.SRCALPHA)
-        self.raw_rect = self.raw_surface.get_rect(center=self.position)
+        # right barrier
+        points = [
+            (self.size[0]-self.edge_barrier_width, 0),
+            (self.size[0], 0),
+            (self.size[0], self.size[1]),
+            (self.size[0]-self.edge_barrier_width, self.size[1])
+        ]
+        self.edge_barrier_vectors.append(points)
 
-        if self.draw_mode in DrawMode.RICH:
-            media_path = pool_ball_gutter_config.pool_ball_gutter_DM_RICH_media
-            rich_surface = self.media_manager.get(media_path, convert_alpha=True)
-            if not rich_surface:
+        # bottom barrier
+        points = [
+            (0, self.size[1]-self.edge_barrier_width),
+            (self.size[0], self.size[1]-self.edge_barrier_width),
+            (self.size[0], self.size[1]),
+            (0, self.size[1])
+        ]
+        self.edge_barrier_vectors.append(points)
+
+    def setup_visuals(self):
+        self.gutter_surface = self.surface.copy()
+
+        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME | DrawMode.PHYSICS:
+            if self.draw_mode in DrawMode.PHYSICS:
+                self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
+
+            outline_width = 0
+            if self.draw_mode in DrawMode.WIREFRAME:
+                outline_width = self.WIREFRAME_outline_width
+            
+            # Main gutter
+            rect = pygame.Rect(0, 0, self.size[0], self.size[1])
+            pygame.draw.rect(self.gutter_surface, self.gutter_RAW_color, rect, outline_width)
+
+            wireframe_point_color = pygame.Color('black')
+            if self.draw_mode in DrawMode.WIREFRAME:
+                draw_poly_points_around_rect(self.gutter_surface, rect, wireframe_point_color, self.WIREFRAME_poly_point_radius)
+                
+            # Edge barriers
+            for points in self.edge_barrier_vectors:
+                rect = pygame.draw.polygon(self.gutter_surface, self.edge_barrier_RAW_color, points, outline_width)
+
+            if self.draw_mode in DrawMode.WIREFRAME:
+                for points in self.edge_barrier_vectors:
+                    draw_poly_points_around_rect(self.gutter_surface, rect, wireframe_point_color, self.WIREFRAME_poly_point_radius)
+        elif self.draw_mode in DrawMode.RICH:
+            img = self.media_manager.get(self.gutter_RICH_media, convert_alpha=True)
+            if not img:
                 print('No gutter img')
                 return
             
-            self.rich_surface = pygame.transform.scale(rich_surface, self.size)
-            self.rich_rect = self.rich_surface.get_rect(center=self.position)
+            self.gutter_RICH_surface = pygame.transform.scale(img, self.size)
+            self.gutter_surface.blit(self.gutter_RICH_surface, (0, 0))
 
-        if self.draw_mode in DrawMode.PHYSICS:
-            self.space_draw_options = pymunk.pygame_util.DrawOptions(self.raw_surface)
+    def setup_physical_space(self):
+        self.space = pymunk.Space()
+        self.space.iterations = self.space_iterations
+        self.space.gravity = self.space_gravity
+        self.space.damping = self.space_damping
+        self.space.sleep_time_threshold = self.space_sleep_time_threshold
 
-        self.add_physical_borders()
-
-    def add_physical_borders(self):
         static_body = self.space.static_body
+        
+        for points in self.edge_barrier_vectors:
+            shape = pymunk.Poly(static_body, points)
+            shape.elasticity = self.edge_barrier_elasticity
+            shape.friction = self.edge_barrier_friction
+            self.space.add(shape)
 
-        # left gutter
-        points = [
-            (0, 0),
-            (self.border_width, 0),
-            (self.border_width, self.size[1]),
-            (0, self.size[1])
-        ]
-        shape = pymunk.Poly(static_body, points)
-        shape.elasticity = self.border_elasticity
-        shape.friction = self.border_friction
-        self.border_shapes.append(shape)
-
-        # right gutter
-        points = [
-            (self.size[0]-self.border_width, 0),
-            (self.size[0], 0),
-            (self.size[0], self.size[1]),
-            (self.size[0]-self.border_width, self.size[1])
-        ]
-        shape = pymunk.Poly(static_body, points)
-        shape.elasticity = self.border_elasticity
-        shape.friction = self.border_friction
-        self.border_shapes.append(shape)
-
-        # bottom gutter
-        points = [
-            (0, self.size[1]-self.border_width),
-            (self.size[0], self.size[1]-self.border_width),
-            (self.size[0], self.size[1]),
-            (0, self.size[1])
-        ]
-        shape = pymunk.Poly(static_body, points)
-        shape.elasticity = self.border_elasticity
-        shape.friction = self.border_friction
-        self.border_shapes.append(shape)
-
-        self.space.add(*self.border_shapes)
+    def on_init(self):
+        self.setup_edge_barrier_vectors()
+        self.setup_visuals()
+        self.setup_physical_space()
 
     def add_ball(self, ball: PoolBall):
         ball.shape.body.position = ((self.size[0]/2), ball.radius)
@@ -120,43 +134,18 @@ class PoolBallGutter():
 
         for _ in self.balls:
             _.update()
-            
 
     def draw(self, surface: pygame.Surface):
-        self.raw_surface.fill((0,0,0,0))
+        self.surface.fill((0,0,0,0))
 
-        outline_width = 0
-        if self.draw_mode in DrawMode.WIREFRAME:
-            outline_width = pool_ball_gutter_config.pool_ball_gutter_DM_WIREFRAME_thickness
+        self.surface.blit(self.gutter_surface, (0, 0))
 
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME | DrawMode.PHYSICS:
-            # draw gutter
-            rect = pygame.Rect(0, 0, self.size[0], self.size[1])
-            pygame.draw.rect(self.raw_surface, self.raw_color, rect, outline_width)
-
-            if self.draw_mode in DrawMode.WIREFRAME:
-                # draw gutter poly points
-                color = pygame.Color('black')
-                radius = 2
-                pygame.draw.circle(self.raw_surface, color, (0, 0), radius)
-                pygame.draw.circle(self.raw_surface, color, (self.raw_rect.width, 0), radius)
-                pygame.draw.circle(self.raw_surface, color, (self.raw_rect.width, self.raw_rect.height), radius)
-                pygame.draw.circle(self.raw_surface, color, (0, self.raw_rect.height), radius)
-
-            # draw borders
-            for shape in self.border_shapes:
-                points = shape.get_vertices()
-                pygame.draw.polygon(self.raw_surface, self.raw_border_color, points, outline_width)
+        for _ in self.balls:
+            _.draw(self.surface)
         
         if self.draw_mode in DrawMode.PHYSICS:
             self.space.debug_draw(self.space_draw_options)
-                          
-        if self.draw_mode in DrawMode.RICH:
-            surface.blit(self.rich_surface, self.rich_rect)
 
-        for _ in self.balls:
-            _.draw(self.raw_surface)
-
-        surface.blit(self.raw_surface, self.raw_rect)
+        surface.blit(self.surface, self.rect)
         
     
