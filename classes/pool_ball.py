@@ -4,42 +4,35 @@ from classes.draw_mode import DrawMode
 from classes.media_manager import MediaManager
 from classes.__helpers__ import aspect_scale
 
-POOL_BALL_TYPE_STRIPE = 1
-POOL_BALL_TYPE_SPOT = 0
-POOL_BALL_TYPE_8 = 8
-POOL_BALL_TYPE_CUE = 7
-
 class PoolBall():
-    def __init__(self, type, identifier, position, media_manager: MediaManager):
+    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media, media_manager: MediaManager):
         self.draw_mode = pool_balls_config.pool_ball_draw_mode
-        self.mass = pool_balls_config.pool_ball_mass
-        self.max_force = pool_balls_config.pool_ball_max_force
-        self.radius = pool_balls_config.pool_ball_radius
+        self.mass = mass
+        self.shape_elasticity = elasticity
+        self.shape_friction = friction
+        self.ball_RAW_color = color
+        self.ball_RICH_media = media
+        # self.max_force = pool_balls_config.pool_ball_max_force
+        self.radius = radius
+        self.position = position
         self.shape_collision_type = pool_balls_config.COLLISION_TYPE_POOL_BALL
-        self.shape_elasticity = pool_balls_config.pool_ball_elasticity
-        self.shape_friction = pool_balls_config.pool_ball_friction
+        # self.shape_elasticity = pool_balls_config.pool_ball_elasticity
+        # self.shape_friction = pool_balls_config.pool_ball_friction
         self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
 
         self.media_manager = media_manager
-        self.type = type
         self.identifier = identifier
-        self.position = position
 
-        # self.highlight_color = pygame.Color('red')
         self.angle = 0
         self.body = None
         self.shape = None
 
-        # self.is_highlighted = False
-        self.is_on_table = False
         self.is_moving = False
 
         self.surface = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
-        self.rect = self.surface.get_rect(center=position)
+        self.rect = self.surface.get_rect(center=(self.radius,self.radius))
         self.ball_surface = self.surface.copy()
         self.ball_RICH_surface = None
-
-        self.ball_RAW_color = self.get_color_by_type()
 
     def setup_visuals(self):
         if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
@@ -49,15 +42,15 @@ class PoolBall():
 
             pygame.draw.circle(self.ball_surface, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
         elif self.draw_mode in DrawMode.RICH:
-            img = self.get_rich_surface()
+            img = self.media_manager.get(self.ball_RICH_media)
             if not img:
-                print('No pool ball img:', self.type)
+                print('No pool ball img:', self.ball_RICH_media)
                 return
             
             self.ball_RICH_surface = aspect_scale(img, (self.radius*2, self.radius*2))
             self.ball_surface.blit(self.ball_RICH_surface, (0, 0))
 
-    def setup_physical_space(self, space, body_iter):
+    def setup_physical_body(self, body_iter):
         inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
         self.body = pymunk.Body(self.mass, inertia)
         self.body.position = self.position
@@ -65,31 +58,30 @@ class PoolBall():
         self.shape.collision_type = self.shape_collision_type + body_iter
         self.shape.elasticity = self.shape_elasticity
         self.shape.friction = self.shape_friction
-        space.add(self.body, self.shape)
 
-    def on_init(self, space, body_iter):
+    def on_init(self, body_iter):
         self.setup_visuals()
-        self.setup_physical_space(space, body_iter)
+        self.setup_physical_body(body_iter)
 
     def update(self):
         self.angle = self.body.angle
         self.position = self.body.position
         self.rect = self.surface.get_rect(center=self.position)
         
-        # if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
-        #     self.rect = self.surface.get_rect(center=self.body.position)
-        # elif self.draw_mode in DrawMode.RICH:
-        #     self.rich_rect = self.rich_surface.get_rect(center=self.body.position)
+        # # if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
+        # #     self.rect = self.surface.get_rect(center=self.body.position)
+        # # elif self.draw_mode in DrawMode.RICH:
+        # #     self.rich_rect = self.rich_surface.get_rect(center=self.body.position)
 
-        stop_force_margin = 3
-        x_v = self.body.velocity[0]
-        y_v = self.body.velocity[1]
-        if not self.body.is_sleeping and (x_v > -stop_force_margin and x_v < stop_force_margin) and (y_v > -stop_force_margin and y_v < stop_force_margin):
-            # force stop the ball
-            self.body._set_velocity((0, 0))
-            self.is_moving = False
-        else:
-            self.is_moving = True
+        # stop_force_margin = 3
+        # x_v = self.body.velocity[0]
+        # y_v = self.body.velocity[1]
+        # if not self.body.is_sleeping and (x_v > -stop_force_margin and x_v < stop_force_margin) and (y_v > -stop_force_margin and y_v < stop_force_margin):
+        #     # force stop the ball
+        #     self.body._set_velocity((0, 0))
+        #     self.is_moving = False
+        # else:
+        #     self.is_moving = True
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))
@@ -103,49 +95,49 @@ class PoolBall():
     #     self.is_highlighted = show
     #     self._draw()
 
-    def set_force_at_point(self, force):
-        #TODO: IF using max force, then apply at SCALE, fixing the ratio!!
-        force_x = force[0]
-        force_y = force[1]
-        if force_x > 0 and force_x > self.max_force:
-            force_x = self.max_force
-        elif force_x < 0 and force_x < -self.max_force:
-            force_x = -self.max_force
-        if force_y > 0 and force_y > self.max_force:
-            force_y = self.max_force
-        elif force_y < 0 and force_y < -self.max_force:
-            force_y = -self.max_force
-        self.body.apply_force_at_local_point((force_x, force_y))
+    # def set_force_at_point(self, force):
+    #     #TODO: IF using max force, then apply at SCALE, fixing the ratio!!
+    #     force_x = force[0]
+    #     force_y = force[1]
+    #     if force_x > 0 and force_x > self.max_force:
+    #         force_x = self.max_force
+    #     elif force_x < 0 and force_x < -self.max_force:
+    #         force_x = -self.max_force
+    #     if force_y > 0 and force_y > self.max_force:
+    #         force_y = self.max_force
+    #     elif force_y < 0 and force_y < -self.max_force:
+    #         force_y = -self.max_force
+    #     self.body.apply_force_at_local_point((force_x, force_y))
 
-    def get_rich_surface(self):
-        media_path = None
-        if pool_balls_config.pool_ball_DM_RICH_use_identifer_as_media:
-            media_path = f'ball_{self.identifier}.png'
-        else:
-            if self.type == POOL_BALL_TYPE_CUE:
-                media_path = pool_balls_config.pool_ball_DM_RICH_cue_media_path
-            elif self.type == POOL_BALL_TYPE_8:
-                media_path = pool_balls_config.pool_ball_DM_RICH_8_media_path
-            elif self.type == POOL_BALL_TYPE_SPOT:
-                media_path = pool_balls_config.pool_ball_DM_RICH_spot_media_path
-            elif self.type == POOL_BALL_TYPE_STRIPE:
-                media_path = pool_balls_config.pool_ball_DM_RICH_stripe_media_path
+    # def get_rich_surface(self):
+    #     media_path = None
+    #     if pool_balls_config.pool_ball_DM_RICH_use_identifer_as_media:
+    #         media_path = f'ball_{self.identifier}.png'
+    #     else:
+    #         if self.type == POOL_BALL_TYPE_CUE:
+    #             media_path = pool_balls_config.pool_ball_DM_RICH_cue_media_path
+    #         elif self.type == POOL_BALL_TYPE_8:
+    #             media_path = pool_balls_config.pool_ball_DM_RICH_8_media_path
+    #         elif self.type == POOL_BALL_TYPE_SPOT:
+    #             media_path = pool_balls_config.pool_ball_DM_RICH_spot_media_path
+    #         elif self.type == POOL_BALL_TYPE_STRIPE:
+    #             media_path = pool_balls_config.pool_ball_DM_RICH_stripe_media_path
         
-        if media_path is None:
-            return None
+    #     if media_path is None:
+    #         return None
         
-        media_path = f'{pool_balls_config.pool_ball_DM_RICH_media_path}/{media_path}'
-        rich_surface = self.media_manager.get(media_path, convert_alpha=True)
-        return rich_surface
+    #     media_path = f'{pool_balls_config.pool_ball_DM_RICH_media_path}/{media_path}'
+    #     rich_surface = self.media_manager.get(media_path, convert_alpha=True)
+    #     return rich_surface
 
-    def get_color_by_type(self):
-        if self.type == POOL_BALL_TYPE_CUE:
-            return pool_balls_config.pool_ball_DM_RAW_cue_color
-        elif self.type == POOL_BALL_TYPE_8:
-            return pool_balls_config.pool_ball_DM_RAW_8_color
-        elif self.type == POOL_BALL_TYPE_SPOT:
-            return pool_balls_config.pool_ball_DM_RAW_spot_color
-        elif self.type == POOL_BALL_TYPE_STRIPE:
-            return pool_balls_config.pool_ball_DM_RAW_stripe_color
-        else:
-            return (0, 255, 0)
+    # def get_color_by_type(self):
+    #     if self.type == POOL_BALL_TYPE_CUE:
+    #         return pool_balls_config.pool_ball_DM_RAW_cue_color
+    #     elif self.type == POOL_BALL_TYPE_8:
+    #         return pool_balls_config.pool_ball_DM_RAW_8_color
+    #     elif self.type == POOL_BALL_TYPE_SPOT:
+    #         return pool_balls_config.pool_ball_DM_RAW_spot_color
+    #     elif self.type == POOL_BALL_TYPE_STRIPE:
+    #         return pool_balls_config.pool_ball_DM_RAW_stripe_color
+    #     else:
+    #         return (0, 255, 0)

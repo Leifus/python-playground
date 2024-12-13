@@ -11,14 +11,54 @@ COLLISION_TYPE_POOL_TABLE_POCKET = 10
 COLLISION_TYPE_POOL_TABLE_CUSHION = 50
 
 # Ball
-pool_ball_radius = 12
-pool_ball_mass = 15
-pool_ball_elasticity = 0.9
-pool_ball_friction = 0.6
-pool_ball_max_force = 1000000
+# pool_ball_radius = 12
+# pool_ball_mass = 15
+# pool_ball_elasticity = 0.9
+# pool_ball_friction = 0.6
+# pool_ball_max_force = 1000000
 
 pool_ball_draw_mode = DrawMode.RICH  # PHYSICS is treated as WIREFRAME due to space inherited from the parent
 pool_ball_DM_WIREFRAME_outline_width = 2
+
+
+snooker_ball_active_set_index = 0
+snooker_ball_sets = [
+    [
+        12,  # ball radius
+        'balls/coloured_balls', # media folder
+        15,     # ball mass
+        0.9,    # ball elasticity
+        0.6,     # ball friction
+    ]
+]
+
+billiard_ball_active_set_index = 1
+billiard_ball_sets = [
+    [
+        12,  # ball radius
+        False,    # use ball identifer as media file name
+        'balls/coloured_balls', # media folder
+        15,     # ball mass
+        0.9,    # ball elasticity
+        0.6,     # ball friction
+        (pygame.Color('ivory'), 'white.png'),      # cue ball
+        (pygame.Color('black'), 'black.png'),      # 8 ball
+        (pygame.Color('yellow2'), 'yellow.png'), # spot ball
+        (pygame.Color('firebrick2'), 'red.png'),    # stripe ball
+    ],
+    [
+        12,  # ball radius
+        True,    # use ball identifer as media file name
+        'balls/numbered_balls', # media folder
+        15,     # ball mass
+        0.9,    # ball elasticity
+        0.6,     # ball friction
+        (pygame.Color('ivory'), None),      # cue ball
+        (pygame.Color('black'), None),      # 8 ball
+        (pygame.Color('yellow2'), None), # spot ball
+        (pygame.Color('firebrick2'), None),    # stripe ball
+    ]
+]
 
 # Rich Drawing
 pool_ball_DM_RICH_use_identifer_as_media = True
@@ -37,3 +77,4 @@ pool_ball_DM_RAW_cue_color = pygame.Color('ivory')
 pool_ball_DM_RAW_8_color = pygame.Color('black')
 pool_ball_DM_RAW_spot_color = pygame.Color('orangered3')
 pool_ball_DM_RAW_stripe_color = pygame.Color('yellow2')
+

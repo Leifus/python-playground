@@ -1,10 +1,11 @@
+from classes.pool_ball import PoolBall
 from config import pygame, pymunk, pool_table_config, pool_balls_config, random
 from pygame.locals import *
 
 import config
 from classes.pool_table_cushion import PoolTableCushion
 from classes.pool_table_pocket import PoolTablePocket
-from classes.pool_ball import PoolBall, POOL_BALL_TYPE_STRIPE, POOL_BALL_TYPE_SPOT, POOL_BALL_TYPE_8, POOL_BALL_TYPE_CUE
+from classes.ORIG_pool_ball import PoolBall, POOL_BALL_TYPE_STRIPE, POOL_BALL_TYPE_SPOT, POOL_BALL_TYPE_8, POOL_BALL_TYPE_CUE
 from classes.media_manager import MediaManager
 from classes.draw_mode import DrawMode
 from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
@@ -64,7 +65,7 @@ class PoolTable:
         
         self.setup_pockets()
         self.setup_cushions()
-        self.setup_balls()
+        # self.setup_balls()
         self.setup_table_chalk_line_positions()
         self.setup_table_chalk_dot_positions()
         
@@ -123,34 +124,33 @@ class PoolTable:
                     position = (dot_position[0], dot_position[1])
                     self.table_surface.blit(self.chalk_dot_RICH_surface, position)
                 
+            # decals
+            decals = [
+                ['spr_Decal_Scratches3.png', 255], 
+                ['spr_Decal_Scuff2.png', 200], 
+                ['spr_Decal_Scratches1.png', 255], 
+                ['spr_Decal_Scratches1.png', 255], 
+                ['spr_Decal_Scratches2.png', 255], 
+                ['spr_Decal_Scratches2.png', 255], 
+                ['spr_Decal_Scratches3.png', 255], 
+                ['spr_Decal_Scuff1.png', 200], 
+                ['spr_Decal_Scratches2.png', 255], 
+            ]
 
-
-            # # decals
-            # decals = [
-            #     ['spr_Decal_Scratches3.png', 255], 
-            #     ['spr_Decal_Scuff2.png', 200], 
-            #     ['spr_Decal_Scratches1.png', 255], 
-            #     ['spr_Decal_Scratches1.png', 255], 
-            #     ['spr_Decal_Scratches2.png', 255], 
-            #     ['spr_Decal_Scratches2.png', 255], 
-            #     ['spr_Decal_Scratches3.png', 255], 
-            #     ['spr_Decal_Scuff1.png', 200], 
-            #     ['spr_Decal_Scratches2.png', 255], 
-            # ]
-
-            # for file_name, alpha in decals:
-            #     media_path = f'table/decals/{file_name}'
-            #     decal_surface = self.media_manager.get(media_path, convert_alpha=True)
-            #     decal_surface.set_alpha(alpha)
-            #     if not decal_surface:
-            #         print('No decal_surface img', media_path)
-            #     else:
-            #         bleed = 10
-            #         rand_x = random.uniform(bleed, self.width - bleed)
-            #         rand_y = random.uniform(bleed, self.height - bleed)
-            #         position = (rand_x, rand_y)
-            #         decal_surface.get_rect(center=position)
-            #         self.rich_decals.append([decal_surface, position])
+            for file_name, alpha in decals:
+                media_path = f'table/decals/{file_name}'
+                decal_surface = self.media_manager.get(media_path, convert_alpha=True)
+                decal_surface.set_alpha(alpha)
+                if not decal_surface:
+                    print('No decal_surface img', media_path)
+                else:
+                    bleed = 10
+                    rand_x = random.uniform(bleed, self.width - bleed)
+                    rand_y = random.uniform(bleed, self.height - bleed)
+                    position = (rand_x, rand_y)
+                    rect = decal_surface.get_rect(center=position)
+                    # self.rich_decals.append([decal_surface, position])
+                    self.table_surface.blit(decal_surface, rect)
         elif self.draw_mode in DrawMode.PHYSICS:
             self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
@@ -384,10 +384,17 @@ class PoolTable:
         for i, _ in enumerate(self.pockets):
             _.on_init(self.space, i)
 
-        for i, ball in enumerate(self.balls):
-            ball.on_init(self.space, i)
+        # for i, ball in enumerate(self.balls):
+        #     ball.on_init(self.space, i)
 
-        self.setup_physical_collision_handlers()
+        # self.setup_physical_collision_handlers()
+
+    def add_ball(self, ball: PoolBall):
+        self.space.add(ball.body, ball.shape)
+        self.balls.append(ball)
+
+    def clear_table(self):
+        print('clear table')
 
     def get_ball_by_shape(self, shape: pymunk.Shape):
         for ball in self.balls:
@@ -474,8 +481,7 @@ class PoolTable:
             _.update()
 
         for _ in self.balls:
-            if _.is_on_table:
-                _.update()
+            _.update()
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))
@@ -537,8 +543,7 @@ class PoolTable:
             _.draw(self.surface)
             
         for _ in self.balls:
-            if _.is_on_table:
-                _.draw(self.surface)
+            _.draw(self.surface)
 
         if self.draw_mode in DrawMode.PHYSICS:
             self.space.debug_draw(self.space_draw_options)

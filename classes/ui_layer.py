@@ -3,6 +3,7 @@ from classes.draw_mode import DrawMode
 from classes.media_manager import MediaManager
 from classes.button import Button
 from classes.ui_change_floor_options import UIChangeFloorOptions
+from classes.ui_change_pool_table_balls_options import UIChangePoolTableBallsOptions
 
 class UILayer():
     def __init__(self, size, position, on_change_floor, media_manager: MediaManager):
@@ -23,6 +24,7 @@ class UILayer():
 
         self.options_button = None
         self.change_floor_options = None
+        self.change_balls_options = None
 
         self.is_active = False
         self.relative_mouse_position = None
@@ -59,6 +61,13 @@ class UILayer():
         self.change_floor_options = UIChangeFloorOptions(draw_mode, size, position, self.on_change_floor, self.media_manager)
         self.change_floor_options.on_init()
 
+    def setup_change_pool_table_ball_options(self):
+        size = (self.rect.width, 80)
+        position = (size[0]/2, self.change_floor_options.rect.bottom + 16 + size[1]/2)
+        draw_mode = self.draw_mode
+        self.change_balls_options = UIChangePoolTableBallsOptions(draw_mode, size, position, self.on_change_floor, self.media_manager)
+        self.change_balls_options.on_init()
+
     def setup_options_button(self):
         size = ui_layer_config.ui_layer_options_button_size
         button_RAW_color = ui_layer_config.ui_layer_options_button_DM_RAW_color
@@ -76,6 +85,7 @@ class UILayer():
     def on_init(self):
         self.setup_options_button()
         self.setup_change_floor_options()
+        self.setup_change_pool_table_ball_options()
         self.setup_visuals()
 
     def on_event(self, event: pygame.event.Event):
@@ -90,8 +100,11 @@ class UILayer():
             return
         
         self.change_floor_options.on_event(self.relative_mouse_position, event)
+        self.change_balls_options.on_event(self.relative_mouse_position, event)
         if self.change_floor_options.hovered_component is not None:
             self.hovered_component = self.change_floor_options.hovered_component
+        elif self.change_balls_options.hovered_component is not None:
+            self.hovered_component = self.change_balls_options.hovered_component
 
     def toggle_ui_layer(self):
         self.is_active = not self.is_active
@@ -100,6 +113,7 @@ class UILayer():
         self.options_button.update()
         if self.is_active:
             self.change_floor_options.update()
+            self.change_balls_options.update()
 
         if self.hovered_component is not None:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
@@ -112,6 +126,7 @@ class UILayer():
         if self.is_active:
             self.surface.blit(self.housing_surface, (0, 0))
             self.change_floor_options.draw(self.surface)
+            self.change_balls_options.draw(self.surface)
 
         self.options_button.draw(self.surface)
 
