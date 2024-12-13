@@ -8,6 +8,7 @@ from classes.pool_ball import PoolBall
 from classes.pool_ball_gutter import PoolBallGutter
 from classes.media_manager import MediaManager
 from classes.floor import Floor
+from classes.ui_layer import UILayer
 
 class App:
     def __init__(self):
@@ -23,6 +24,7 @@ class App:
         self.balls_are_in_motion = False
         self.media_manager = None
         self.floor = None
+        self.ui_layer = None
 
     def on_init(self):
         pygame.init()
@@ -33,13 +35,25 @@ class App:
         self.rect = self.surface.get_rect()
         self.clock = pygame.time.Clock()
 
+        self.setup_ui_menu()
         self.setup_floor()
         self.setup_pool_table()
         self.setup_ball_gutter()
-        self.setup_pool_cue()
+        # self.setup_pool_cue()
         self.setup_user_path_tracer()
 
         self.is_running = True
+
+    def on_change_floor(self, selected_floor_idx=None):
+        self.floor.change_floor(selected_floor_idx)
+
+    def setup_ui_menu(self):
+        display_size = self.surface.get_size()
+        size = (250, display_size[1])
+        position = (size[0]/2, size[1]/2)
+        on_change_floor = self.on_change_floor
+        self.ui_layer = UILayer(size, position, on_change_floor, self.media_manager)
+        self.ui_layer.on_init()
 
     def setup_floor(self):
         self.floor = Floor(self.rect.size, self.rect.center, self.media_manager)
@@ -78,10 +92,11 @@ class App:
         if event.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
             self.mouse_position = event.pos
         
+        self.ui_layer.on_event(event)
         self.pool_table.on_event(event)
 
         #TODO: Fix the pool cue
-        self.pool_cue.on_event(event)
+        # self.pool_cue.on_event(event)
 
         ball = self.pool_table.cue_ball
         if event.type == MOUSEBUTTONDOWN and event.button == 1:
@@ -104,6 +119,8 @@ class App:
         ball.set_force_at_point((force_x, force_y))
 
     def update(self):
+        self.ui_layer.update()
+
         self.pool_table.update()
         if len(self.pool_table.balls_to_remove_from_table) > 0:
             for ball in self.pool_table.balls_to_remove_from_table:
@@ -113,7 +130,7 @@ class App:
             self.pool_table.balls_to_remove_from_table = []
 
         self.pool_ball_gutter.update()
-        self.pool_cue.update()
+        # self.pool_cue.update()
 
         self.balls_are_in_motion = self.pool_table.check_for_moving_balls()
 
@@ -121,46 +138,46 @@ class App:
         self.path_tracer.show = self.balls_are_in_motion is False and self.pool_table.cue_ball.is_on_table
         self.path_tracer.update(cue_ball_world_position, self.mouse_position)
 
-        if self.pool_cue.is_picked_up:
-            cue_ball = self.pool_table.cue_ball
+        # if self.pool_cue.is_picked_up:
+        #     cue_ball = self.pool_table.cue_ball
             
-            #get angle from mouse to ball
-            cue_x = cue_ball.position[0]
-            cue_y = cue_ball.position[1]
-            dx = self.mouse_position[0] - (self.pool_table.rect.x + cue_x)
-            dy = self.mouse_position[1] - (self.pool_table.rect.y + cue_y)
-            mouse_to_ball_angle = math.atan2(dy, dx)
+        #     #get angle from mouse to ball
+        #     cue_x = cue_ball.position[0]
+        #     cue_y = cue_ball.position[1]
+        #     dx = self.mouse_position[0] - (self.pool_table.rect.x + cue_x)
+        #     dy = self.mouse_position[1] - (self.pool_table.rect.y + cue_y)
+        #     mouse_to_ball_angle = math.atan2(dy, dx)
 
-            cue_angle = 0
-            cue_x_offset = 0
-            if dx < 0:
-                cue_angle -= 90
-            elif dx > 0:
-                cue_angle += 90
-                cue_x_offset += cue_ball.radius*2 + self.pool_cue.length
+        #     cue_angle = 0
+        #     cue_x_offset = 0
+        #     if dx < 0:
+        #         cue_angle -= 90
+        #     elif dx > 0:
+        #         cue_angle += 90
+        #         cue_x_offset += cue_ball.radius*2 + self.pool_cue.length
             
-            self.pool_cue.angle = cue_angle + (mouse_to_ball_angle*0.3)
+        #     self.pool_cue.angle = cue_angle + (mouse_to_ball_angle*0.3)
             
-            # self.pool_cue.position = (self.pool_table.rect.x + cue_ball.rect.left + cue_x_offset - (self.pool_cue.length/2), self.pool_table.rect.y + cue_ball.rect.centery)
+        #     # self.pool_cue.position = (self.pool_table.rect.x + cue_ball.rect.left + cue_x_offset - (self.pool_cue.length/2), self.pool_table.rect.y + cue_ball.rect.centery)
 
-            # print('dx',dx,'dy',dy)
-            # print('angle',mouse_to_ball_angle)
+        #     # print('dx',dx,'dy',dy)
+        #     # print('angle',mouse_to_ball_angle)
 
             
-            # if distance < force_radius:
-            #     # Calculate force intensity based on distance
-            #     force_intensity = (force_radius - distance) / force_radius * 2000
-            #     angle = math.atan2(dy, dx)
+        #     # if distance < force_radius:
+        #     #     # Calculate force intensity based on distance
+        #     #     force_intensity = (force_radius - distance) / force_radius * 2000
+        #     #     angle = math.atan2(dy, dx)
                 
-            #     # Apply rotational impulse
-            #     triangle.body.apply_impulse_at_local_point(
-            #         (-math.sin(angle) * force_intensity, math.cos(angle) * force_intensity),
-            #         (0, 0)
-            #     )
+        #     #     # Apply rotational impulse
+        #     #     triangle.body.apply_impulse_at_local_point(
+        #     #         (-math.sin(angle) * force_intensity, math.cos(angle) * force_intensity),
+        #     #         (0, 0)
+        #     #     )
 
-            #self.mouse_position
-            # print('cue_ball.position',cue_ball.position)
-            # print('dx',dx,'dy', dy, 'angle', angle)
+        #     #self.mouse_position
+        #     # print('cue_ball.position',cue_ball.position)
+        #     # print('dx',dx,'dy', dy, 'angle', angle)
 
     def draw(self):
         bg_fill = config.display_bg_color
@@ -170,8 +187,10 @@ class App:
 
         self.pool_table.draw(self.surface)
         self.pool_ball_gutter.draw(self.surface)
-        self.pool_cue.draw(self.surface)
+        # self.pool_cue.draw(self.surface)
         self.path_tracer.draw(self.surface)
+
+        self.ui_layer.draw(self.surface)
 
         pygame.display.update()
         # pygame.display.flip()

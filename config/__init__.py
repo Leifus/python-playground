@@ -4,6 +4,7 @@ import pymunk
 import pymunk.pygame_util
 import random
 import math
+import os
 
 from config import pool_balls_config
 

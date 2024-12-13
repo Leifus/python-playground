@@ -8,8 +8,8 @@ class Floor():
     def __init__(self, size, position, media_manager: MediaManager):
         self.draw_mode = floor_config.floor_draw_mode
         self.floor_RAW_color = floor_config.floor_DM_RAW_color
-        self.floor_tile_RICH_media = floor_config.floor_tile_DM_RICH_media
-        self.floor_tile_RICH_scale = floor_config.floor_tile_DM_RICH_scale
+        self.floor_DM_RICH_medias = floor_config.floor_DM_RICH_medias
+        self.active_floor_idx = floor_config.floor_active_idx
         self.WIREFRAME_outline_width = floor_config.floor_DM_WIREFRAME_thickness
         self.WIREFRAME_poly_point_radius = floor_config.floor_DM_WIREFRAME_poly_point_radius
 
@@ -23,6 +23,13 @@ class Floor():
         self.floor_RICH_surface = None
         self.floor_tile_RICH_surface = None
     
+    def change_floor(self, selected_floor_idx):
+        if selected_floor_idx is self.active_floor_idx:
+            return
+
+        self.active_floor_idx = selected_floor_idx
+        self.setup_visuals()
+
     def setup_visuals(self):
         if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
             self.raw_surface = self.surface.copy()
@@ -41,8 +48,9 @@ class Floor():
             self.floor_RICH_surface = self.surface.copy()
 
             # Draw floor
-            img = self.media_manager.get(self.floor_tile_RICH_media)
-            size = (img.get_width() * self.floor_tile_RICH_scale, img.get_height() * self.floor_tile_RICH_scale)
+            media, scale = self.floor_DM_RICH_medias[self.active_floor_idx]
+            img = self.media_manager.get(media)
+            size = (img.get_width() * scale, img.get_height() * scale)
             self.floor_tile_RICH_surface = pygame.transform.scale(img, size)
             rect = self.floor_tile_RICH_surface.get_rect()
 
