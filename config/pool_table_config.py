@@ -29,7 +29,7 @@ pool_table_pocket_DM_WIREFRAME_outline_width = 2
 
 # Cushions
 pool_table_cushion_thickness = 10
-pool_table_cushion_gap_to_pocket = 6
+pool_table_cushion_gap_to_pocket = 3
 pool_table_cushion_bezel_short = 5
 pool_table_cushion_bezel_long = 30
 pool_table_cushion_elasticity = 0.9

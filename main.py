@@ -45,7 +45,8 @@ class App:
         self.is_running = True
 
     def on_change_floor(self, selected_floor_idx=None):
-        self.floor.change_floor(selected_floor_idx)
+        if selected_floor_idx < len(self.floor.floor_options):
+            self.floor.change_floor(selected_floor_idx)
 
     def setup_ui_menu(self):
         display_size = self.surface.get_size()

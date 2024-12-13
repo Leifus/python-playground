@@ -53,7 +53,7 @@ class UILayer():
         button.is_pressed = False
 
     def setup_change_floor_options(self):
-        size = (self.rect.width, 200)
+        size = (self.rect.width, 80)
         position = (size[0]/2, 100 + size[1]/2)
         draw_mode = self.draw_mode
         self.change_floor_options = UIChangeFloorOptions(draw_mode, size, position, self.on_change_floor, self.media_manager)

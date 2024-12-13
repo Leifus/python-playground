@@ -7,9 +7,9 @@ from classes.__helpers__ import draw_poly_points_around_rect
 class Floor():
     def __init__(self, size, position, media_manager: MediaManager):
         self.draw_mode = floor_config.floor_draw_mode
-        self.floor_RAW_color = floor_config.floor_DM_RAW_color
+        self.floor_RAW_colors = floor_config.floor_DM_RAW_colors
         self.floor_DM_RICH_medias = floor_config.floor_DM_RICH_medias
-        self.active_floor_idx = floor_config.floor_active_idx
+        self.active_floor_idx = floor_config.floor_DM_active_idx
         self.WIREFRAME_outline_width = floor_config.floor_DM_WIREFRAME_thickness
         self.WIREFRAME_poly_point_radius = floor_config.floor_DM_WIREFRAME_poly_point_radius
 
@@ -22,6 +22,7 @@ class Floor():
         self.raw_surface = None
         self.floor_RICH_surface = None
         self.floor_tile_RICH_surface = None
+        self.floor_options = None
     
     def change_floor(self, selected_floor_idx):
         if selected_floor_idx is self.active_floor_idx:
@@ -33,19 +34,23 @@ class Floor():
     def setup_visuals(self):
         if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
             self.raw_surface = self.surface.copy()
+            self.floor_options = self.floor_RAW_colors
+
             outline_width = 0
             if self.draw_mode in DrawMode.WIREFRAME:
                 outline_width = self.WIREFRAME_outline_width
 
             # Draw floor
+            color = self.floor_RAW_colors[self.active_floor_idx]
             rect = pygame.Rect(0, 0, self.size[0], self.size[1])
-            rect = pygame.draw.rect(self.raw_surface, self.floor_RAW_color, rect, outline_width)
+            rect = pygame.draw.rect(self.raw_surface, color, rect, outline_width)
 
             if self.draw_mode in DrawMode.WIREFRAME:
                 color = pygame.Color('black')
                 draw_poly_points_around_rect(self.raw_surface, rect, color, self.WIREFRAME_poly_point_radius)
         elif self.draw_mode in DrawMode.RICH:
             self.floor_RICH_surface = self.surface.copy()
+            self.floor_options = self.floor_DM_RICH_medias
 
             # Draw floor
             media, scale = self.floor_DM_RICH_medias[self.active_floor_idx]

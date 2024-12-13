@@ -12,10 +12,16 @@ class UIChangeFloorOptions():
         self.on_change_floor = on_change_floor
         self.WIREFRAME_outline_width = 2
         self.housing_RAW_color = pygame.Color('white')
+        self.housing_RICH_media = 'UI/spr_UI_Popup.png'
         self.floor_button_size = (30, 30)
+        self.outer_margin = 10
         self.floor_button_spacing = 5
         self.floor_button_RAW_color = pygame.Color('black')
         self.floor_DM_RICH_medias = floor_config.floor_DM_RICH_medias
+        self.font = pygame.font.Font('freesansbold.ttf', 16)
+        self.font_color = pygame.Color('white')
+        self.title = 'Change Floor'
+        self.title_height = 18
 
         self.floor_RAW_color_options = [
             pygame.Color('black'),
@@ -35,12 +41,17 @@ class UIChangeFloorOptions():
         self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=self.position)
         self.housing_surface = self.surface.copy()
+        self.housing_RICH_surface = None
         self.floor_button_surface = self.surface.copy()
         self.change_floor_buttons = []
         self.relative_mouse_position = None
         self.hovered_component = None
+        self.title_rect = None
 
     def setup_visuals(self):
+        title = self.font.render(self.title, True, self.font_color)
+        self.title_rect = title.get_rect(topleft=(self.outer_margin, 0))
+
         if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
             outline_width = 0
             if self.draw_mode in DrawMode.WIREFRAME:
@@ -50,11 +61,16 @@ class UIChangeFloorOptions():
             rect = pygame.Rect(0, 0, self.size[0], self.size[1])
             pygame.draw.rect(self.housing_surface, self.housing_RAW_color, rect, outline_width)
         elif self.draw_mode in DrawMode.RICH:
-            pass
+            img = self.media_manager.get(self.housing_RICH_media)
+            size = (self.size[0], self.size[1] - self.title_rect.height)
+            self.housing_RICH_surface = pygame.transform.scale(img, size)
+            rect = self.housing_RICH_surface.get_rect(topleft=(0, self.title_rect.height))
+
+            self.housing_surface.blit(self.housing_RICH_surface, rect)
+
+        self.housing_surface.blit(title, self.title_rect)
 
     def setup_change_floor_buttons(self):
-        row = 0
-        col = 0
         font_family = ui_layer_config.ui_layer_options_button_DM_RAW_font_family
         font_size = ui_layer_config.ui_layer_options_button_DM_RAW_font_size
         font_color = ui_layer_config.ui_layer_options_button_DM_RAW_font_color
@@ -73,11 +89,13 @@ class UIChangeFloorOptions():
                     color, media
                 ])
 
+        row = 0
+        col = 0
         for i, data in enumerate(button_protos):
             color, media = data
-            x = 0 + self.floor_button_size[0]*col + self.floor_button_spacing + self.floor_button_spacing*col
-            y = 0 + self.floor_button_size[1]*row + self.floor_button_spacing + self.floor_button_spacing*row
-            if x > self.size[1]:
+            x = self.outer_margin + self.floor_button_size[0]*col + self.floor_button_spacing + self.floor_button_spacing*col
+            y = self.title_height + self.outer_margin + self.floor_button_size[1]*row + self.floor_button_spacing + self.floor_button_spacing*row
+            if x > self.size[0]:
                 col = 0
                 row += 1
             else:
