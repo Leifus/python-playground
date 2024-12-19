@@ -6,6 +6,8 @@ from classes.draw_mode import DrawMode
 # ----------------------------------------------------
 
 # Collision Types
+COLLISION_TYPE_LINE_OF_SIGHT = 5
+COLLISION_TYPE_CUE_BALL = 1000      # NOT USED YET
 COLLISION_TYPE_POOL_BALL = 100
 COLLISION_TYPE_POOL_TABLE_POCKET = 10
 COLLISION_TYPE_POOL_TABLE_CUSHION = 50
@@ -15,7 +17,7 @@ COLLISION_TYPE_POOL_TABLE_CUSHION = 50
 # pool_ball_mass = 15
 # pool_ball_elasticity = 0.9
 # pool_ball_friction = 0.6
-# pool_ball_max_force = 1000000
+pool_ball_max_force = 1000000
 
 pool_ball_draw_mode = DrawMode.RICH  # PHYSICS is treated as WIREFRAME due to space inherited from the parent
 pool_ball_DM_WIREFRAME_outline_width = 2
@@ -32,15 +34,15 @@ snooker_ball_sets = [
     ]
 ]
 
-billiard_ball_active_set_index = 1
+billiard_ball_active_set_index = 0
 billiard_ball_sets = [
     [
-        12,  # ball radius
+        6,  # ball radius
         False,    # use ball identifer as media file name
         'balls/coloured_balls', # media folder
-        15,     # ball mass
-        0.9,    # ball elasticity
-        0.6,     # ball friction
+        6,     # ball mass
+        0.8,    # ball elasticity
+        0.1,     # ball friction
         (pygame.Color('ivory'), 'white.png'),      # cue ball
         (pygame.Color('black'), 'black.png'),      # 8 ball
         (pygame.Color('yellow2'), 'yellow.png'), # spot ball
@@ -78,3 +80,6 @@ pool_ball_DM_RAW_8_color = pygame.Color('black')
 pool_ball_DM_RAW_spot_color = pygame.Color('orangered3')
 pool_ball_DM_RAW_stripe_color = pygame.Color('yellow2')
 
+
+# Sounds
+sound_ball_collide_with_ball = 'ball_collide.mp3'

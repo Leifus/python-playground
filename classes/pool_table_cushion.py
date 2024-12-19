@@ -48,7 +48,7 @@ class PoolTableCushion():
             media_path = self.cushion_RICH_media
             rich_surface = self.media_manager.get(media_path, convert_alpha=True)
             if not rich_surface:
-                print('No cushion img')
+                print('No cushion img', media_path)
                 return
             
             self.cushion_RICH_surface = pygame.transform.scale(rich_surface, self.size)

@@ -4,15 +4,17 @@ from classes.draw_mode import DrawMode
 from classes.media_manager import MediaManager
 from classes.__helpers__ import aspect_scale
 
-class PoolBall():
+class PoolBall(pygame.sprite.Sprite):
     def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media, media_manager: MediaManager):
+        pygame.sprite.Sprite.__init__(self)
+        
         self.draw_mode = pool_balls_config.pool_ball_draw_mode
         self.mass = mass
         self.shape_elasticity = elasticity
         self.shape_friction = friction
         self.ball_RAW_color = color
         self.ball_RICH_media = media
-        # self.max_force = pool_balls_config.pool_ball_max_force
+        self.max_force = pool_balls_config.pool_ball_max_force
         self.radius = radius
         self.position = position
         self.shape_collision_type = pool_balls_config.COLLISION_TYPE_POOL_BALL
@@ -29,10 +31,12 @@ class PoolBall():
 
         self.is_moving = False
 
+        self.image = None
+        self.mask = None
         self.surface = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=(self.radius,self.radius))
         self.ball_surface = self.surface.copy()
-        self.ball_RICH_surface = None
+        self.orig_image = None
 
     def setup_visuals(self):
         if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
@@ -42,22 +46,31 @@ class PoolBall():
 
             pygame.draw.circle(self.ball_surface, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
         elif self.draw_mode in DrawMode.RICH:
-            img = self.media_manager.get(self.ball_RICH_media)
-            if not img:
+            image = self.media_manager.get(self.ball_RICH_media)
+            if not image:
                 print('No pool ball img:', self.ball_RICH_media)
                 return
             
-            self.ball_RICH_surface = aspect_scale(img, (self.radius*2, self.radius*2))
-            self.ball_surface.blit(self.ball_RICH_surface, (0, 0))
+            self.orig_image = aspect_scale(image, (self.radius*2, self.radius*2))
+            self.image = self.orig_image
+            self.ball_surface.blit(self.orig_image, (0, 0))
+
+        self.mask = pygame.mask.from_surface(self.ball_surface)
 
     def setup_physical_body(self, body_iter):
         inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
         self.body = pymunk.Body(self.mass, inertia)
         self.body.position = self.position
         self.shape = pymunk.Circle(self.body, self.radius)
-        self.shape.collision_type = self.shape_collision_type + body_iter
+
+        # IGNORE THIS FOR NOW......
+        # self.shape.collision_type = self.shape_collision_type + body_iter
+        self.shape.collision_type = self.shape_collision_type
+        # self.shape.filter = pymunk.ShapeFilter()
+
         self.shape.elasticity = self.shape_elasticity
         self.shape.friction = self.shape_friction
+
 
     def on_init(self, body_iter):
         self.setup_visuals()
@@ -95,19 +108,20 @@ class PoolBall():
     #     self.is_highlighted = show
     #     self._draw()
 
-    # def set_force_at_point(self, force):
-    #     #TODO: IF using max force, then apply at SCALE, fixing the ratio!!
-    #     force_x = force[0]
-    #     force_y = force[1]
-    #     if force_x > 0 and force_x > self.max_force:
-    #         force_x = self.max_force
-    #     elif force_x < 0 and force_x < -self.max_force:
-    #         force_x = -self.max_force
-    #     if force_y > 0 and force_y > self.max_force:
-    #         force_y = self.max_force
-    #     elif force_y < 0 and force_y < -self.max_force:
-    #         force_y = -self.max_force
-    #     self.body.apply_force_at_local_point((force_x, force_y))
+    def set_force_at_point(self, force):
+        #TODO: IF using max force, then apply at SCALE, fixing the ratio!!
+        force_x = force[0]
+        force_y = force[1]
+        # if force_x > 0 and force_x > self.max_force:
+        #     force_x = self.max_force
+        # elif force_x < 0 and force_x < -self.max_force:
+        #     force_x = -self.max_force
+        # if force_y > 0 and force_y > self.max_force:
+        #     force_y = self.max_force
+        # elif force_y < 0 and force_y < -self.max_force:
+        #     force_y = -self.max_force
+        # print('force applied', force_x, force_y)
+        self.body.apply_force_at_local_point((force_x, force_y))
 
     # def get_rich_surface(self):
     #     media_path = None

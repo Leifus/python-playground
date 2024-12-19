@@ -1,17 +1,18 @@
-from classes.pool_ball import PoolBall
-from config import pygame, pymunk, pool_table_config, pool_balls_config, random
+from classes.sound_manager import SoundManager
+from config import pygame, pymunk, pool_table_config, pool_balls_config, random, math
 from pygame.locals import *
-
 import config
+
+from classes.pool_ball import PoolBall
 from classes.pool_table_cushion import PoolTableCushion
 from classes.pool_table_pocket import PoolTablePocket
-from classes.ORIG_pool_ball import PoolBall, POOL_BALL_TYPE_STRIPE, POOL_BALL_TYPE_SPOT, POOL_BALL_TYPE_8, POOL_BALL_TYPE_CUE
 from classes.media_manager import MediaManager
 from classes.draw_mode import DrawMode
 from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
 
 class PoolTable:
-    def __init__(self, position, media_manager: MediaManager):
+    def __init__(self, position, media_manager: MediaManager, sound_manager: SoundManager):
+        self.sound_manager = sound_manager
         self.draw_mode = pool_table_config.pool_table_draw_mode
         self.raw_color = pool_table_config.pool_table_DM_RAW_color
         self.size = pool_table_config.pool_table_size
@@ -42,8 +43,9 @@ class PoolTable:
         self.pockets = []
         self.cushions = []
         self.balls = []
+        self.ball_group = pygame.sprite.Group()
         self.cue_ball = None
-        self.mouse_pos = None
+        self.relative_mouse_position = None
         self.balls_to_remove_from_table = []
         
         self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
@@ -65,11 +67,18 @@ class PoolTable:
         
         self.setup_pockets()
         self.setup_cushions()
-        # self.setup_balls()
         self.setup_table_chalk_line_positions()
         self.setup_table_chalk_dot_positions()
         
         self.handlers = []
+
+        self.line_of_sight = None
+        self.hit_point = None
+        self.hit_shape = None
+        self.rays = None
+        self.ball_collisions = dict()
+        self.time_lapsed = 0
+
         
     def setup_visuals(self):
         if self.draw_mode in DrawMode.WIREFRAME | DrawMode.RAW:
@@ -161,13 +170,36 @@ class PoolTable:
         self.space.damping = self.space_damping
         self.space.sleep_time_threshold = self.space_sleep_time_threshold
 
+        for i, _ in enumerate(self.cushions):
+            _.on_init(self.space, i)
+
+        for i, _ in enumerate(self.pockets):
+            _.on_init(self.space, i)
+        
+
+        
+        # # SHOULD ONLY NEED TO SET THIS UP ONCE I WOULD HAVE THOUGHT...BUT THATS NOT SEEMINGLY SO CLEAR-CUT!
+        # # MEETHINkS THIS IS A ME SITUATION - I HAVE CUSTOM BALL COLLISION TYPES...
+        # # Check for what shapes have collided with the LOS
+        # handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_LINE_OF_SIGHT)
+        # handler.pre_solve = self.line_of_sight_collision_handler
+
+        # for i, ball in enumerate(self.balls):
+        #     ball.on_init(self.space, i)
+
+        self.setup_physical_collision_handlers()
+
     def setup_physical_collision_handlers(self):
-        for pocket in self.pockets:
-            for ball in self.balls:
-                handler = self.space.add_collision_handler(ball.shape.collision_type, pocket.shape.collision_type)
-                handler.pre_solve = self.on_ball_collide_with_pocket
-                handler.separate = self.on_ball_separate_from_pocket
-                self.handlers.append(handler)
+        handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_POOL_BALL)
+        handler.post_solve = self.on_ball_post_solve_collide_with_ball
+        self.handlers.append(handler)
+        
+        # for pocket in self.pockets:
+        #     for ball in self.balls:
+        #         handler = self.space.add_collision_handler(ball.shape.collision_type, pocket.shape.collision_type)
+        #         handler.pre_solve = self.on_ball_collide_with_pocket
+        #         handler.separate = self.on_ball_separate_from_pocket
+        #         self.handlers.append(handler)
 
     def setup_table_chalk_dot_positions(self):
         position = (self.width - self.width/4, self.height/2)
@@ -181,79 +213,6 @@ class PoolTable:
         end_pos = (self.width/5, self.height)
         table_third = (start_pos, end_pos)
         self.chalk_line_positions.append(table_third)
-
-    def setup_balls(self):
-        position = (120, self.height/2)
-        cue_ball = PoolBall(POOL_BALL_TYPE_CUE, 16, position, self.media_manager)
-        self.balls.append(cue_ball)
-        self.cue_ball = cue_ball
-
-        #triangle setup
-        #      9
-        #     1 10
-        #    11 8 2
-        #   3 12 4 13
-        #  14 5 15 6 7
-
-        #1
-        position = ((self.width/2) + 150, self.height/2)
-        ball1 = PoolBall(POOL_BALL_TYPE_STRIPE, 9, position, self.media_manager)
-        self.balls.append(ball1)
-
-        next_x_position_offset = pool_balls_config.pool_ball_radius * 2
-
-        #2
-        position = (position[0] + next_x_position_offset, position[1] + pool_balls_config.pool_ball_radius)
-        ball2 = PoolBall(POOL_BALL_TYPE_SPOT, 1, position, self.media_manager)
-        self.balls.append(ball2)
-        position = (position[0], position[1] - (pool_balls_config.pool_ball_radius*2))
-        ball3 = PoolBall(POOL_BALL_TYPE_STRIPE, 10, position, self.media_manager)
-        self.balls.append(ball3)
-
-        #3
-        position = (position[0] + (pool_balls_config.pool_ball_radius*2), position[1] + pool_balls_config.pool_ball_radius*3)
-        ball4 = PoolBall(POOL_BALL_TYPE_STRIPE, 11, position, self.media_manager)
-        self.balls.append(ball4)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball5 = PoolBall(POOL_BALL_TYPE_8, 8, position, self.media_manager)
-        self.balls.append(ball5)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball6 = PoolBall(POOL_BALL_TYPE_SPOT, 2, position, self.media_manager)
-        self.balls.append(ball6)
-
-        #4
-        position = (position[0] + (pool_balls_config.pool_ball_radius*2), position[1] + pool_balls_config.pool_ball_radius*5)
-        ball7 = PoolBall(POOL_BALL_TYPE_SPOT, 3, position, self.media_manager)
-        self.balls.append(ball7)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball8 = PoolBall(POOL_BALL_TYPE_STRIPE, 12, position, self.media_manager)
-        self.balls.append(ball8)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball9 = PoolBall(POOL_BALL_TYPE_SPOT, 4, position, self.media_manager)
-        self.balls.append(ball9)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball10 = PoolBall(POOL_BALL_TYPE_STRIPE, 13, position, self.media_manager)
-        self.balls.append(ball10)
-
-        #5
-        position = (position[0] + (pool_balls_config.pool_ball_radius*2), position[1] + pool_balls_config.pool_ball_radius*7)
-        ball11 = PoolBall(POOL_BALL_TYPE_STRIPE, 14, position, self.media_manager)
-        self.balls.append(ball11)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball12 = PoolBall(POOL_BALL_TYPE_SPOT, 5, position, self.media_manager)
-        self.balls.append(ball12)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball13 = PoolBall(POOL_BALL_TYPE_SPOT, 15, position, self.media_manager)
-        self.balls.append(ball13)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball14 = PoolBall(POOL_BALL_TYPE_SPOT, 6, position, self.media_manager)
-        self.balls.append(ball14)
-        position = (position[0], position[1] - pool_balls_config.pool_ball_radius*2)
-        ball15 = PoolBall(POOL_BALL_TYPE_SPOT, 7, position, self.media_manager)
-        self.balls.append(ball15)
-
-        for _ in self.balls:
-            _.is_on_table = True
 
     def setup_pockets(self):
         radius = pool_table_config.pool_table_pocket_radius
@@ -378,20 +337,11 @@ class PoolTable:
         self.setup_visuals()
         self.setup_physical_space()
 
-        for i, _ in enumerate(self.cushions):
-            _.on_init(self.space, i)
-
-        for i, _ in enumerate(self.pockets):
-            _.on_init(self.space, i)
-
-        # for i, ball in enumerate(self.balls):
-        #     ball.on_init(self.space, i)
-
-        # self.setup_physical_collision_handlers()
-
     def add_ball(self, ball: PoolBall):
         self.space.add(ball.body, ball.shape)
         self.balls.append(ball)
+        self.ball_group.add(ball)
+        #TODO: Ensure we remove the ball from the ball_group when ever we do that!
 
     def clear_table(self):
         print('clear table')
@@ -402,6 +352,20 @@ class PoolTable:
                 return ball
         
         return None
+
+    def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
+        # shape0 = arbiter.shapes[0]
+        # initial_force = 700000      #TODO: Resolve where this is set and gotten
+        # impact = arbiter.total_impulse / initial_force
+        # min_impact_allowed = 0.01
+        # # print(impact, arbiter.total_ke, initial_force)
+
+        # if impact < min_impact_allowed:
+        #     return True
+        
+        volume = 0.4
+        sound_length = self.sound_manager.play_sound(pool_balls_config.sound_ball_collide_with_ball, volume)
+        return True
 
     def on_ball_collide_with_pocket(self, arbiter: pymunk.Arbiter, space, data):
         ball_shape = arbiter.shapes[0]
@@ -415,13 +379,13 @@ class PoolTable:
 
         return True
 
-    def on_ball_separate_from_pocket(self, arbiter, space, data):
+    def on_ball_separate_from_pocket(self, arbiter: pymunk.Arbiter, space, data):
         return True
     
     def check_for_hovered_ball(self):
         hovered_ball = None
         max_distance = 3
-        hit = self.space.point_query_nearest(self.mouse_pos, max_distance, pymunk.ShapeFilter())
+        hit = self.space.point_query_nearest(self.relative_mouse_position, max_distance, pymunk.ShapeFilter())
         if hit is not None:
             if hit.shape.collision_type >= pool_balls_config.COLLISION_TYPE_POOL_BALL:
                 idx = hit.shape.collision_type - pool_balls_config.COLLISION_TYPE_POOL_BALL
@@ -458,7 +422,7 @@ class PoolTable:
             return
         
         mouse_pos = event.pos
-        self.mouse_pos = (mouse_pos[0] - self.rect.left, mouse_pos[1] - self.rect.top)
+        self.relative_mouse_position = (mouse_pos[0] - self.rect.left, mouse_pos[1] - self.rect.top)
         
         # check if we're hovering over a ball
         # self.check_for_hovered_ball()
@@ -470,24 +434,210 @@ class PoolTable:
     def remove_ball(self, ball: PoolBall):
         self.space.remove(ball.shape, ball.shape.body)
 
-    def update(self):
+    def set_cue_ball(self, ball: PoolBall):
+        # ball.filter = pymunk.ShapeFilter()
+        self.cue_ball = ball
+
+    def ray_cast_ball_path(self):
+        if not self.relative_mouse_position or not self.cue_ball:       #bit lame but better than no check
+            return
+        
+        ball = self.cue_ball
+
+        # The plan here is to cast two paths from either side of the ball in the direction toward the angle of the mouse.
+        # I don't think we'll need a center path but it might be a nice-to-have.
+
+        ball_x = ball.position[0]
+        ball_y = ball.position[1]
+
+        # 1: Get the angle to the mouse position.
+        dx = self.relative_mouse_position[0] - ball_x
+        dy = self.relative_mouse_position[1] - ball_y
+        angle_to_mouse_position = math.atan2(dy, dx)
+
+        # 2: Find the points for the ray cast paths offset from the ball.
+        perpendicular_angle = angle_to_mouse_position + math.pi/2
+        offset_x = ball.radius * math.cos(perpendicular_angle)
+        offset_y = ball.radius * math.sin(perpendicular_angle)
+        
+        center_point = ball.position
+        left_point = (ball_x - offset_x, ball_y - offset_y)
+        right_point = (ball_x + offset_x, ball_y + offset_y)
+        
+        # 3: Create the ray cast paths
+        max_length = self.size[0] if self.size[0] > self.size[1] else self.size[1]
+        ray_length = max_length
+        end_x = math.cos(angle_to_mouse_position) * ray_length
+        end_y = math.sin(angle_to_mouse_position) * ray_length
+        
+        self.rays = [
+            (center_point, (center_point[0] + end_x, center_point[1] + end_y)),
+            (left_point, (left_point[0] + end_x, left_point[1] + end_y)),
+            (right_point, (right_point[0] + end_x, right_point[1] + end_y))
+        ]
+        
+
+
+
+    # def get_ball_raycast(self):
+    #     if not self.relative_mouse_position or not self.cue_ball:       #bit lame but better than no check
+    #         return
+        
+    #     cue_x = self.cue_ball.position[0]
+    #     cue_y = self.cue_ball.position[1]
+
+    #     # Calculate the LOS start and end points
+    #     dx = self.relative_mouse_position[0] - cue_x
+    #     dy = self.relative_mouse_position[1] - cue_y
+    #     mouse_distance = math.sqrt(dx*dx + dy*dy)
+    #     mouse_angle = math.atan2(dy, dx)
+
+    #     ray_length = 2000
+    #     ray_dir_x = math.cos(mouse_angle)
+    #     ray_dir_y = math.sin(mouse_angle)
+    #     ray_end = (self.cue_ball.position[0] + ray_dir_x * ray_length,
+    #             self.cue_ball.position[1] + ray_dir_y * ray_length)
+
+    #     # Use segment_query_first for all collisions
+    #     query = self.space.segment_query_first(self.cue_ball.position, ray_end, self.cue_ball.radius, pymunk.ShapeFilter())
+        
+    #     if query:
+    #         # Calculate the hit normal
+    #         if isinstance(query.shape, pymunk.Circle):
+    #             # For balls, normal is from ball center to hit point
+    #             normal_x = query.point.x - query.shape.body.position.x
+    #             normal_y = query.point.y - query.shape.body.position.y
+    #         else:
+    #             # Use the segment normal provided by Pymunk
+    #             normal_x = query.normal.x
+    #             normal_y = query.normal.y
+                
+    #         # Normalize the normal vector
+    #         normal_length = math.sqrt(normal_x * normal_x + normal_y * normal_y)
+    #         if normal_length > 0:
+    #             normal_x /= normal_length
+    #             normal_y /= normal_length
+                
+    #             # Move the hit point back by ball_radius along the normal
+    #             hit_point = pymunk.Vec2d(
+    #                 query.point.x + normal_x * self.cue_ball.radius,
+    #                 query.point.y + normal_y * self.cue_ball.radius
+    #             )
+                
+    #             return hit_point, query.shape, [(self.cue_ball.position, ray_end)]
+
+    #     return None, None, [(self.cue_ball.position, ray_end)]
+
+    # def find_physical_line_of_sight_collision(self):
+    #     if not self.relative_mouse_position or not self.cue_ball:       #bit lame but better than no check
+    #         return
+
+    #     # # Calculate the LOS start and end points
+    #     # dx = self.relative_mouse_position[0] - self.cue_ball.position[0]
+    #     # dy = self.relative_mouse_position[1] - self.cue_ball.position[1]
+    #     # mouse_distance = math.sqrt(dx*dx + dy*dy)
+    #     # mouse_angle = math.atan2(dy, dx)
+        
+    #     # starting_x = self.cue_ball.position[0] + math.cos(mouse_angle) * (self.cue_ball.radius + 2)
+    #     # starting_y = self.cue_ball.position[1] + math.sin(mouse_angle) * (self.cue_ball.radius + 2)
+    #     # start_point = (starting_x, starting_y)
+
+    #     # max_length = self.size[0] if self.size[0] > self.size[1] else self.size[1]
+    #     # ending_x = self.cue_ball.position[0] + math.cos(mouse_angle) * max_length
+    #     # ending_y = self.cue_ball.position[1] + math.sin(mouse_angle) * max_length
+    #     # end_point = (ending_x, ending_y)
+
+
+    #     cue_x = self.cue_ball.position[0]
+    #     cue_y = self.cue_ball.position[1]
+
+    #     # Calculate the LOS start and end points
+    #     dx = self.relative_mouse_position[0] - cue_x
+    #     dy = self.relative_mouse_position[1] - cue_y
+    #     mouse_distance = math.sqrt(dx*dx + dy*dy)
+    #     mouse_angle = math.atan2(dy, dx)
+
+    #     # print(mouse_angle)
+
+    #     # cue_x = self.cue_ball.position[0] + math.cos(mouse_angle) * (self.cue_ball.radius + 5)
+    #     # cue_y = self.cue_ball.position[1] + math.sin(mouse_angle) * (self.cue_ball.radius + 5)
+
+    #     # # Calculate the LOS start and end points AGAIN!!?!?!
+    #     # dx = self.relative_mouse_position[0] - cue_x
+    #     # dy = self.relative_mouse_position[1] - cue_y
+    #     # mouse_distance = math.sqrt(dx*dx + dy*dy)
+    #     # mouse_angle = math.atan2(dy, dx)
+
+    #     starting_x = self.cue_ball.position[0] + math.cos(mouse_angle) * (self.cue_ball.radius + 5)
+    #     starting_y = self.cue_ball.position[1] + math.sin(mouse_angle) * (self.cue_ball.radius + 5)
+    #     self.los_start_point = (starting_x, starting_y)
+    #     # self.los_start_point = (cue_x, cue_y)
+
+    #     max_length = self.size[0] if self.size[0] > self.size[1] else self.size[1]
+    #     # max_length = mouse_distance
+    #     ending_x = cue_x + math.cos(mouse_angle) * max_length
+    #     ending_y = cue_y + math.sin(mouse_angle) * max_length
+    #     self.los_end_point = (ending_x, ending_y)
+
+
+    #     # This doesnt work as clear-cut as you'd expect using the radius..            
+    #     # I think we'll need to check from the edges of the cue ball - not only the center.
+    #     segment_radius = self.cue_ball.radius   #this makes sense - yes.no?!!! APPARENTLY NOT.
+    #     segment_radius = 1
+    #     self.physical_line_of_sight_hit = self.space.segment_query_first(self.los_start_point, self.los_end_point, segment_radius, pymunk.ShapeFilter(group=1))
+
+    #     # Remove and recreate the LOS
+    #     if self.physical_line_of_sight_hit:
+    #         print(self.physical_line_of_sight_hit.point, self.physical_line_of_sight_hit.normal, self.physical_line_of_sight_hit.shape)
+    #         if self.line_of_sight:
+    #             self.space.remove(self.line_of_sight)
+
+    #         body = self.space.static_body
+    #         radius = 1
+    #         self.line_of_sight = pymunk.Segment(body, self.los_start_point, self.los_end_point, radius)
+    #         self.line_of_sight.sensor = True
+    #         self.line_of_sight.collision_type = pool_balls_config.COLLISION_TYPE_LINE_OF_SIGHT
+    #         self.space.add(self.line_of_sight)
+
+    # def line_of_sight_collision_handler(self, arbiter: pymunk.Arbiter, space, data):
+    #     print('LOS collides with things')
+    #     return True
+
+    def update(self, time_lapsed):
+        self.time_lapsed = time_lapsed
+
         for _ in range(config.time_dt_steps):
             self.space.step(config.time_dt / config.time_dt_steps)
-            
+        
+        self.ray_cast_ball_path()
+        # self.hit_point, self.hit_shape, self.rays = self.get_ball_raycast()
+        # self.find_physical_line_of_sight_collision()
+
         for _ in self.pockets:
             _.update()
 
         for _ in self.cushions:
             _.update()
 
-        for _ in self.balls:
-            _.update()
+        self.ball_group.update()
+        # for _ in self.balls:
+        #     _.update()
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))
 
         self.surface.blit(self.table_surface, (0, 0))
         
+        # # Cast rays
+        for ray_start, ray_end in self.rays:
+            pygame.draw.line(self.surface, pygame.Color('blue'), ray_start, ray_end, 1)
+        
+        # # Draw hit point
+        # if self.hit_point:
+        #     pygame.draw.circle(self.surface, pygame.Color('red'), (int(self.hit_point.x), int(self.hit_point.y)), self.cue_ball.radius, 2)
+        #     pygame.draw.line(self.surface, pygame.Color('white'), self.cue_ball.position, (self.hit_point.x, self.hit_point.y), 2)
+        
+
         # wireframe_thickness = pool_table_config.pool_table_draw_mode_wireframe_thickness
 
         # if self.draw_mode in DrawMode.RICH:
@@ -542,8 +692,9 @@ class PoolTable:
         for _ in self.cushions:
             _.draw(self.surface)
             
-        for _ in self.balls:
-            _.draw(self.surface)
+        self.ball_group.draw(self.surface)
+        # for _ in self.balls:
+        #     _.draw(self.surface)
 
         if self.draw_mode in DrawMode.PHYSICS:
             self.space.debug_draw(self.space_draw_options)

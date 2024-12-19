@@ -1,7 +1,6 @@
 from config import pygame, pymunk, pool_ball_gutter_config
 import config
-
-from classes.ORIG_pool_ball import PoolBall
+from classes.pool_ball import PoolBall
 from classes.draw_mode import DrawMode
 from classes.media_manager import MediaManager
 from classes.__helpers__ import draw_poly_points_around_rect
