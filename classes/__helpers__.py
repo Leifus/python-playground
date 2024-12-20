@@ -1,11 +1,11 @@
 from config import pygame
 
-def draw_poly_points_around_rect(surface, rect: pygame.Rect, color, radius):
+def draw_poly_points_around_rect(surface, rect: pygame.Rect, color, radius, offset=(0,0)):
     points = [
-        (radius/2, radius/2),
-        (rect.width - radius/2, radius/2),
-        (rect.width - radius/2, rect.height - radius/2),
-        (radius/2, rect.height - radius/2)
+        (offset[0] + radius/2, offset[1] + radius/2),
+        (offset[0] + rect.width - radius/2, offset[1] + radius/2),
+        (offset[0] + rect.width - radius/2, offset[1] + rect.height - radius/2),
+        (offset[0] + radius/2, offset[1] + rect.height - radius/2)
     ]
     draw_poly_points(surface, points, color, radius)
 

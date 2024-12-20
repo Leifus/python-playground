@@ -39,7 +39,7 @@ billiard_ball_sets = [
         13,  # ball radius
         False,    # use ball identifer as media file name
         'balls/coloured_balls', # media folder
-        8,     # ball mass
+        6,     # ball mass
         0.8,    # ball elasticity
         0.9,     # ball friction
         (pygame.Color('ivory'), 'white.png'),      # cue ball
@@ -52,9 +52,9 @@ billiard_ball_sets = [
         13,  # ball radius
         True,    # use ball identifer as media file name
         'balls/numbered_balls', # media folder
-        8,     # ball mass
+        6,     # ball mass
         0.8,    # ball elasticity
-        0.99,     # ball friction
+        0.9,     # ball friction
         (pygame.Color('ivory'), None),      # cue ball
         (pygame.Color('black'), None),      # 8 ball
         (pygame.Color('yellow2'), None), # spot ball

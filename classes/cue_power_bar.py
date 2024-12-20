@@ -11,15 +11,17 @@ class CuePowerBar():
         self.draw_mode = draw_mode
         self.size = size
         self.media_manager = media_manager
-        self.max_power = 2400000
-        self.power = self.max_power - self.max_power / 3
+        self.max_power = cue_power_bar_config.cue_power_bar_max_power
+        self.power = cue_power_bar_config.cue_power_bar_default_power
 
         self.position = position
         self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=self.position)
         self.housing_surface = self.surface.copy()
+        self.housing_overlay_surface = self.surface.copy()
         self.cue_surface = self.surface.copy()
         self.housing_RAW_color = cue_power_bar_config.cue_power_bar_DM_RAW_color
+        self.cue_button_RAW_color = cue_power_bar_config.cue_power_bar_cue_button_DM_RAW_color
         self.housing_RICH_media = cue_power_bar_config.cue_power_bar_DM_RICH_media
         self.housing_overlay_RICH_media = cue_power_bar_config.cue_power_bar_overlay_DM_RICH_media
         self.housing_overlay_RICH_surface = None
@@ -31,10 +33,12 @@ class CuePowerBar():
         self.is_hovered = False
         self.relative_mouse_position = None
         self.cue_tip_size_buffer = 8
+        self.is_active = False
 
     def on_init(self):
         self.setup_visuals()
         self.setup_cue_button()
+        self.is_active = True
 
     def on_cue_button_hover(self, button: ButtonNew):
         # print('on_cue_button_hover', button.is_pressed)
@@ -68,6 +72,21 @@ class CuePowerBar():
             if self.draw_mode in DrawMode.WIREFRAME:
                 color = pygame.Color('black')
                 draw_poly_points_around_rect(self.housing_surface, rect, color, self.WIREFRAME_outline_width)
+
+
+            # Draw Cue
+            width = 10
+            left_pos = self.rect.width/2 - width/2
+            rect = pygame.Rect(left_pos, 0, width, self.size[1] - 10)
+            rect = pygame.draw.rect(self.cue_surface, self.cue_button_RAW_color, rect, outline_width)
+            
+            if self.draw_mode in DrawMode.WIREFRAME:
+                color = pygame.Color('black')
+                draw_poly_points_around_rect(self.cue_surface, rect, color, self.WIREFRAME_outline_width, offset=(left_pos,0))
+            
+            # position = (self.rect.width/2 - rect.width/2, 6)
+            # self.cue_surface.blit(self.cue_RICH_surface, position)
+            
         elif self.draw_mode in DrawMode.RICH:
             # Housing
             img = self.media_manager.get(self.housing_RICH_media)
@@ -79,7 +98,7 @@ class CuePowerBar():
             img = self.media_manager.get(self.housing_overlay_RICH_media)
             img = pygame.transform.scale(img, self.size)
             self.housing_overlay_RICH_surface = img
-            self.housing_surface.blit(self.housing_overlay_RICH_surface, (0,0))
+            self.housing_overlay_surface.blit(self.housing_overlay_RICH_surface, (0,0))
 
             # TODO: TURN THIS INTO A BUTTON YES!?
             # THIS WOULD REQURE US TO FEED A BUTTON A BAKED SURFACE...
@@ -93,6 +112,9 @@ class CuePowerBar():
             self.cue_surface.blit(self.cue_RICH_surface, position)
 
     def on_event(self, event: pygame.event.Event):
+        if not self.is_active:
+            return
+        
         if event.type not in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION]:
             return
         
@@ -113,6 +135,7 @@ class CuePowerBar():
 
         self.surface.blit(self.housing_surface, (0, 0))
         self.surface.blit(self.cue_button.surface, self.cue_button.position)
+        self.surface.blit(self.housing_overlay_surface, (0, 0))
 
         surface.blit(self.surface, self.rect)
         

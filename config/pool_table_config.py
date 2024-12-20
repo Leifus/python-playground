@@ -10,7 +10,7 @@ from classes.draw_mode import DrawMode
 pool_table_size = (800, 400)
 pool_table_space_iterations = 10
 pool_table_space_gravity = (0, 0)
-pool_table_space_damping = 0.24
+pool_table_space_damping = 0.23
 pool_table_space_sleep_time_threshold = 0.1 #math.inf
 pool_table_draw_mode = DrawMode.RICH
 pool_table_DM_WIREFRAME_outline_width = 2

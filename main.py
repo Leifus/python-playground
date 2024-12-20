@@ -426,8 +426,10 @@ class App:
         if event.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
             self.mouse_position = event.pos
         
-        self.cue_power_bar.on_event(event)
         self.ui_layer.on_event(event)
+        if not self.ui_layer.is_active:
+            self.cue_power_bar.on_event(event)
+            
         self.pool_table.on_event(event)
 
         # Hit the cue ball
