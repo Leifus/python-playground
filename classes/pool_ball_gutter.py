@@ -33,19 +33,19 @@ class PoolBallGutter():
         self.space_draw_options = None
         self.space = None
 
-        self.balls = []
+        self.ball_group = pygame.sprite.Group()
         self.border_shapes = []
         self.edge_barrier_vectors = []
 
     def setup_edge_barrier_vectors(self):
-        # left barrier
-        points = [
-            (0, 0),
-            (self.edge_barrier_width, 0),
-            (self.edge_barrier_width, self.size[1]),
-            (0, self.size[1])
-        ]
-        self.edge_barrier_vectors.append(points)
+        # # left barrier
+        # points = [
+        #     (0, 0),
+        #     (self.edge_barrier_width, 0),
+        #     (self.edge_barrier_width, self.size[1]),
+        #     (0, self.size[1])
+        # ]
+        # self.edge_barrier_vectors.append(points)
 
         # right barrier
         points = [
@@ -62,6 +62,16 @@ class PoolBallGutter():
             (self.size[0], self.size[1]-self.edge_barrier_width),
             (self.size[0], self.size[1]),
             (0, self.size[1])
+        ]
+        self.edge_barrier_vectors.append(points)
+
+
+        # top barrier
+        points = [
+            (0, 0),
+            (self.size[0], 0),
+            (self.size[0], self.edge_barrier_width),
+            (0, self.edge_barrier_width)
         ]
         self.edge_barrier_vectors.append(points)
 
@@ -120,27 +130,32 @@ class PoolBallGutter():
         self.setup_visuals()
         self.setup_physical_space()
 
+    def clear_balls(self):
+        for ball in self.ball_group:
+            self.space.remove(ball.shape.body, ball.shape)
+        self.ball_group.empty()
+
     def add_ball(self, ball: PoolBall):
-        ball.shape.body.position = ((self.size[0]/2), ball.radius)
+        ball.is_in_active_play = False
+        ball.shape.body.position = (ball.radius + self.edge_barrier_width, ball.radius + self.edge_barrier_width)
         ball.body.velocity = (0, 0)
         ball.body.angular_velocity = 0
         self.space.add(ball.shape.body, ball.shape)
-        self.balls.append(ball)
+        self.ball_group.add(ball)
+
 
     def update(self):
         for _ in range(config.time_dt_steps):
             self.space.step(config.time_dt / config.time_dt_steps)
 
-        for _ in self.balls:
-            _.update()
+        self.ball_group.update()
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))
 
         self.surface.blit(self.gutter_surface, (0, 0))
 
-        for _ in self.balls:
-            _.draw(self.surface)
+        self.ball_group.draw(self.surface)
         
         if self.draw_mode in DrawMode.PHYSICS:
             self.space.debug_draw(self.space_draw_options)

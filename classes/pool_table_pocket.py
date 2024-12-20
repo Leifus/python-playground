@@ -42,7 +42,7 @@ class PoolTablePocket():
         self.body.position = self.position
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.sensor = True
-        self.shape.collision_type = pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET + body_iter
+        self.shape.collision_type = pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET# + body_iter
         space.add(self.body, self.shape)
 
     def on_init(self, space: pymunk.Space, body_iter):

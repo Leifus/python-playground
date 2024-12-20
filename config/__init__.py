@@ -16,7 +16,7 @@ from config import pool_balls_config
 # Time Config
 time_fps = 60
 time_dt = 1.0 / 60
-time_dt_steps = 1
+time_dt_steps = 3
 
 # Display Config
 display_size = (1400, 800)
@@ -28,6 +28,7 @@ media_root_path = 'media'
 sounds_root_path = 'sounds'
 
 active_game_type_index = 0
+active_ball_set_index = 0
 game_types = [
     'Billiards',
     'Snooker'

@@ -18,8 +18,6 @@ class PoolBall(pygame.sprite.Sprite):
         self.radius = radius
         self.position = position
         self.shape_collision_type = pool_balls_config.COLLISION_TYPE_POOL_BALL
-        # self.shape_elasticity = pool_balls_config.pool_ball_elasticity
-        # self.shape_friction = pool_balls_config.pool_ball_friction
         self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
 
         self.media_manager = media_manager
@@ -30,6 +28,7 @@ class PoolBall(pygame.sprite.Sprite):
         self.shape = None
 
         self.is_moving = False
+        self.is_in_active_play = False
 
         self.image = None
         self.mask = None
@@ -122,36 +121,3 @@ class PoolBall(pygame.sprite.Sprite):
         #     force_y = -self.max_force
         # print('force applied', force_x, force_y)
         self.body.apply_force_at_local_point((force_x, force_y))
-
-    # def get_rich_surface(self):
-    #     media_path = None
-    #     if pool_balls_config.pool_ball_DM_RICH_use_identifer_as_media:
-    #         media_path = f'ball_{self.identifier}.png'
-    #     else:
-    #         if self.type == POOL_BALL_TYPE_CUE:
-    #             media_path = pool_balls_config.pool_ball_DM_RICH_cue_media_path
-    #         elif self.type == POOL_BALL_TYPE_8:
-    #             media_path = pool_balls_config.pool_ball_DM_RICH_8_media_path
-    #         elif self.type == POOL_BALL_TYPE_SPOT:
-    #             media_path = pool_balls_config.pool_ball_DM_RICH_spot_media_path
-    #         elif self.type == POOL_BALL_TYPE_STRIPE:
-    #             media_path = pool_balls_config.pool_ball_DM_RICH_stripe_media_path
-        
-    #     if media_path is None:
-    #         return None
-        
-    #     media_path = f'{pool_balls_config.pool_ball_DM_RICH_media_path}/{media_path}'
-    #     rich_surface = self.media_manager.get(media_path, convert_alpha=True)
-    #     return rich_surface
-
-    # def get_color_by_type(self):
-    #     if self.type == POOL_BALL_TYPE_CUE:
-    #         return pool_balls_config.pool_ball_DM_RAW_cue_color
-    #     elif self.type == POOL_BALL_TYPE_8:
-    #         return pool_balls_config.pool_ball_DM_RAW_8_color
-    #     elif self.type == POOL_BALL_TYPE_SPOT:
-    #         return pool_balls_config.pool_ball_DM_RAW_spot_color
-    #     elif self.type == POOL_BALL_TYPE_STRIPE:
-    #         return pool_balls_config.pool_ball_DM_RAW_stripe_color
-    #     else:
-    #         return (0, 255, 0)

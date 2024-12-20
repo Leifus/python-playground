@@ -91,6 +91,8 @@ class UIChangeFloorOptions():
 
         row = 0
         col = 0
+        on_hover = self.on_change_floor_button_hover
+        on_press = self.on_change_floor_button_press
         for i, data in enumerate(button_protos):
             color, media = data
             x = self.outer_margin + self.floor_button_size[0]*col + self.floor_button_spacing + self.floor_button_spacing*col
@@ -103,8 +105,6 @@ class UIChangeFloorOptions():
             
             position = (x + self.floor_button_size[0]/2, y + self.floor_button_size[1]/2)
             label = f'{i}'
-            on_hover = self.on_change_floor_button_hover
-            on_press = self.on_change_floor_button_press
             button = Button(self.floor_button_size, color, label, i, self.draw_mode, position, font_family, font_size, font_color, media, on_hover, on_press, self.media_manager)
             self.change_floor_buttons.append(button)
                  

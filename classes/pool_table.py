@@ -42,7 +42,6 @@ class PoolTable:
         
         self.pockets = []
         self.cushions = []
-        self.balls = []
         self.ball_group = pygame.sprite.Group()
         self.cue_ball = None
         self.relative_mouse_position = None
@@ -75,7 +74,7 @@ class PoolTable:
         self.line_of_sight = None
         self.hit_point = None
         self.hit_shape = None
-        self.rays = None
+        self.rays = []
         self.ball_collisions = dict()
         self.time_lapsed = 0
 
@@ -133,6 +132,7 @@ class PoolTable:
                     position = (dot_position[0], dot_position[1])
                     self.table_surface.blit(self.chalk_dot_RICH_surface, position)
                 
+            # TODO: Move this some where more configurable 
             # decals
             decals = [
                 ['spr_Decal_Scratches3.png', 255], 
@@ -184,9 +184,6 @@ class PoolTable:
         # handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_LINE_OF_SIGHT)
         # handler.pre_solve = self.line_of_sight_collision_handler
 
-        # for i, ball in enumerate(self.balls):
-        #     ball.on_init(self.space, i)
-
         self.setup_physical_collision_handlers()
 
     def setup_physical_collision_handlers(self):
@@ -195,11 +192,10 @@ class PoolTable:
         self.handlers.append(handler)
         
         # for pocket in self.pockets:
-        #     for ball in self.balls:
-        #         handler = self.space.add_collision_handler(ball.shape.collision_type, pocket.shape.collision_type)
-        #         handler.pre_solve = self.on_ball_collide_with_pocket
-        #         handler.separate = self.on_ball_separate_from_pocket
-        #         self.handlers.append(handler)
+        handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET)
+        handler.pre_solve = self.on_ball_collide_with_pocket
+        handler.separate = self.on_ball_separate_from_pocket
+        self.handlers.append(handler)
 
     def setup_table_chalk_dot_positions(self):
         position = (self.width - self.width/4, self.height/2)
@@ -339,19 +335,13 @@ class PoolTable:
 
     def add_ball(self, ball: PoolBall):
         self.space.add(ball.body, ball.shape)
-        self.balls.append(ball)
         self.ball_group.add(ball)
-        #TODO: Ensure we remove the ball from the ball_group when ever we do that!
+        ball.is_in_active_play = True
 
-    def clear_table(self):
-        print('clear table')
-
-    def get_ball_by_shape(self, shape: pymunk.Shape):
-        for ball in self.balls:
-            if ball.shape == shape:
-                return ball
-        
-        return None
+    def clear_balls(self):
+        for ball in self.ball_group:
+            self.space.remove(ball.shape.body, ball.shape)
+        self.ball_group.empty()
 
     def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         # shape0 = arbiter.shapes[0]
@@ -369,47 +359,64 @@ class PoolTable:
 
     def on_ball_collide_with_pocket(self, arbiter: pymunk.Arbiter, space, data):
         ball_shape = arbiter.shapes[0]
+
+        #This is to handle multiple space stepping before resolving any game changes made.
+        collision_handled = self.ball_collisions.get(arbiter.shapes)
+        if collision_handled:
+            return False
+
+        self.ball_collisions[arbiter.shapes] = True
+
         distance = 0 - arbiter.contact_point_set.points[0].distance
         buffer = 2
 
-        ball = self.get_ball_by_shape(ball_shape)
-        if ball.is_on_table and distance > ball.radius + buffer: #fallen into the pocket
-            self.balls_to_remove_from_table.append(ball)
-            ball.is_on_table = False
+        ball = None
+        for _ in self.ball_group:
+            if _.shape == ball_shape:
+                ball = _
+                break
+
+        if ball:
+            if distance > ball.radius + buffer: #ball has fallen into the pocket
+                ball_shape.body.velocity = (0, 0) #stop the ball moving
+                self.balls_to_remove_from_table.append(ball)
+                return False
+        else:
+            print('_!!_ UNHANDLED: PoolTable.on_ball_collide_with_pocket: NO BALL')
 
         return True
 
     def on_ball_separate_from_pocket(self, arbiter: pymunk.Arbiter, space, data):
         return True
     
-    def check_for_hovered_ball(self):
-        hovered_ball = None
-        max_distance = 3
-        hit = self.space.point_query_nearest(self.relative_mouse_position, max_distance, pymunk.ShapeFilter())
-        if hit is not None:
-            if hit.shape.collision_type >= pool_balls_config.COLLISION_TYPE_POOL_BALL:
-                idx = hit.shape.collision_type - pool_balls_config.COLLISION_TYPE_POOL_BALL
-                ball = self.balls[idx]
-                if not ball.is_moving:
-                    hovered_ball = ball
+    # def check_for_hovered_ball(self):
+    #     hovered_ball = None
+    #     max_distance = 3
+    #     hit = self.space.point_query_nearest(self.relative_mouse_position, max_distance, pymunk.ShapeFilter())
+    #     if hit is not None:
+    #         if hit.shape.collision_type >= pool_balls_config.COLLISION_TYPE_POOL_BALL:
+    #             idx = hit.shape.collision_type - pool_balls_config.COLLISION_TYPE_POOL_BALL
+    #             ball = self.balls[idx]
+    #             if not ball.is_moving:
+    #                 hovered_ball = ball
 
-        if hovered_ball is None:
-            if self.hovered_ball is not None:
-                self.hovered_ball.highlight_position(show=False)
-                self.hovered_ball = None
+    #     if hovered_ball is None:
+    #         if self.hovered_ball is not None:
+    #             self.hovered_ball.highlight_position(show=False)
+    #             self.hovered_ball = None
             
-            return
+    #         return
         
-        if hovered_ball != self.hovered_ball:
-            if self.hovered_ball is not None:
-                self.hovered_ball.highlight_position(show=False)
+    #     if hovered_ball != self.hovered_ball:
+    #         if self.hovered_ball is not None:
+    #             self.hovered_ball.highlight_position(show=False)
 
-            self.hovered_ball = hovered_ball
-            self.hovered_ball.highlight_position(show=True)
+    #         self.hovered_ball = hovered_ball
+    #         self.hovered_ball.highlight_position(show=True)
 
-    def check_for_moving_balls(self):
+    def check_balls_are_moving(self):
         margin = 0.1
-        for _ in self.balls:
+        for _ in self.ball_group:
             x_v = _.shape.body.velocity[0]
             y_v = _.shape.body.velocity[1]
             if not _.shape.body.is_sleeping and ((x_v < -margin or x_v > margin) or (y_v < -margin or y_v > margin)):
@@ -432,7 +439,8 @@ class PoolTable:
         #         self.selected_ball = self.hovered_ball
 
     def remove_ball(self, ball: PoolBall):
-        self.space.remove(ball.shape, ball.shape.body)
+        self.ball_group.remove(ball)
+        self.space.remove(ball.shape.body, ball.shape)
 
     def set_cue_ball(self, ball: PoolBall):
         # ball.filter = pymunk.ShapeFilter()
@@ -465,7 +473,7 @@ class PoolTable:
         right_point = (ball_x + offset_x, ball_y + offset_y)
         
         # 3: Create the ray cast paths
-        max_length = self.size[0] if self.size[0] > self.size[1] else self.size[1]
+        max_length = 2000
         ray_length = max_length
         end_x = math.cos(angle_to_mouse_position) * ray_length
         end_y = math.sin(angle_to_mouse_position) * ray_length
@@ -599,11 +607,8 @@ class PoolTable:
     #         self.line_of_sight.collision_type = pool_balls_config.COLLISION_TYPE_LINE_OF_SIGHT
     #         self.space.add(self.line_of_sight)
 
-    # def line_of_sight_collision_handler(self, arbiter: pymunk.Arbiter, space, data):
-    #     print('LOS collides with things')
-    #     return True
-
     def update(self, time_lapsed):
+        self.ball_collisions.clear()
         self.time_lapsed = time_lapsed
 
         for _ in range(config.time_dt_steps):
@@ -620,17 +625,16 @@ class PoolTable:
             _.update()
 
         self.ball_group.update()
-        # for _ in self.balls:
-        #     _.update()
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))
 
         self.surface.blit(self.table_surface, (0, 0))
         
-        # # Cast rays
-        for ray_start, ray_end in self.rays:
-            pygame.draw.line(self.surface, pygame.Color('blue'), ray_start, ray_end, 1)
+        if not self.check_balls_are_moving() and self.cue_ball.is_in_active_play:
+            # Cast rays from cue ball
+            for ray_start, ray_end in self.rays:
+                pygame.draw.line(self.surface, pygame.Color('blue'), ray_start, ray_end, 1)
         
         # # Draw hit point
         # if self.hit_point:
@@ -693,8 +697,6 @@ class PoolTable:
             _.draw(self.surface)
             
         self.ball_group.draw(self.surface)
-        # for _ in self.balls:
-        #     _.draw(self.surface)
 
         if self.draw_mode in DrawMode.PHYSICS:
             self.space.debug_draw(self.space_draw_options)
