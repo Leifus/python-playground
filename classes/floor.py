@@ -1,11 +1,11 @@
 from config import pygame, math
 import config.floor_config as floor_config
-from classes.media_manager import MediaManager
 from classes.draw_mode import DrawMode
 from classes.__helpers__ import draw_poly_points_around_rect
+from globals import media_manager
 
 class Floor():
-    def __init__(self, size, position, media_manager: MediaManager):
+    def __init__(self, size, position):
         self.draw_mode = floor_config.floor_draw_mode
         self.floor_RAW_colors = floor_config.floor_DM_RAW_colors
         self.floor_DM_RICH_medias = floor_config.floor_DM_RICH_medias
@@ -15,7 +15,6 @@ class Floor():
 
         self.size = size
         self.position = position
-        self.media_manager = media_manager
 
         self.surface = pygame.Surface(size, pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=position)
@@ -54,7 +53,7 @@ class Floor():
 
             # Draw floor
             media, scale = self.floor_DM_RICH_medias[self.active_floor_idx]
-            img = self.media_manager.get(media)
+            img = media_manager.get(media)
             size = (img.get_width() * scale, img.get_height() * scale)
             self.floor_tile_RICH_surface = pygame.transform.scale(img, size)
             rect = self.floor_tile_RICH_surface.get_rect()

@@ -10,20 +10,19 @@ class UIChangePoolTableBallsOptions():
         self.media_manager = media_manager
         self.position = position
         self.size = size
-        self.button_size = (40, 40)
+        self.button_size = (100, 40)
         self.on_change_balls = on_change_balls
         self.WIREFRAME_outline_width = 2
-        self.housing_RAW_color = pygame.Color('white')
+        self.housing_RAW_color = pygame.Color('gray45')
         self.housing_RICH_media = 'UI/spr_UI_Popup.png'
-        self.button_size = (40, 40)
         self.outer_margin = 10
-        self.button_spacing = 5
+        self.button_spacing = 10
         self.font = pygame.font.Font('freesansbold.ttf', 16)
         self.font_color = pygame.Color('white')
         self.title = 'Change Balls'
         self.title_height = 18
         self.ball_RAW_color_options = []
-        self.buttons = []
+        self.buttons_group = pygame.sprite.Group()
 
         floor_DM_RAW_colors = [
             pygame.Color('black'),
@@ -58,9 +57,10 @@ class UIChangePoolTableBallsOptions():
                 outline_width = self.WIREFRAME_outline_width
 
             # Housing
-            rect = pygame.Rect(0, 0, self.size[0], self.size[1])
+            rect = self.housing_surface.get_rect(topleft=(0, self.title_rect.height))
             pygame.draw.rect(self.housing_surface, self.housing_RAW_color, rect, outline_width)
         elif self.draw_mode in DrawMode.RICH:
+            # Housing
             img = self.media_manager.get(self.housing_RICH_media)
             size = (self.size[0], self.size[1] - self.title_rect.height)
             self.housing_RICH_surface = pygame.transform.scale(img, size)
@@ -72,8 +72,9 @@ class UIChangePoolTableBallsOptions():
 
     def setup_change_balls_buttons(self):
         font_family = 'freesansbold.ttf'
-        font_size = 10
+        font_size = 12
         font_color = pygame.Color('black')
+        font = pygame.font.Font(font_family, font_size)
 
         ball_sets = []
 
@@ -89,9 +90,12 @@ class UIChangePoolTableBallsOptions():
         col = 0
         on_hover = self.on_button_hover
         on_press = self.on_button_press
-        color = pygame.Color('white')
+        on_release = None
+        button_color = pygame.Color('white')
         media = None
-        draw_mode = DrawMode.RAW
+        
+        #TODO: Fix this for RICH AND OTHER DRAW MODES
+        button_surface = pygame.Surface(self.button_size, pygame.SRCALPHA)
         for i, ball_set_config in enumerate(ball_sets):
             title, radius, use_ball_identifier_as_media, media_folder, mass, elasticity, friction, cue_ball_config, eight_ball_config, spot_ball_config, stripe_ball_config = ball_set_config
             
@@ -102,11 +106,20 @@ class UIChangePoolTableBallsOptions():
                 row += 1
             else:
                 col += 1
-            
-            position = (x + self.button_size[0]/2, y + self.button_size[1]/2)
+
+            value = i
+            position = (x, y)
             label = title
-            button = Button(self.button_size, color, label, i, draw_mode, position, font_family, font_size, font_color, media, on_hover, on_press, self.media_manager)
-            self.buttons.append(button)
+            
+            surface = button_surface.copy()
+            surface.fill(button_color)
+
+            text = font.render(label, True, font_color)
+            text_rect = text.get_rect(center=surface.get_rect().center)
+            surface.blit(text, text_rect)
+
+            button = Button(surface, position, value, on_hover, on_press, on_release)
+            self.buttons_group.add(button)
                  
     def on_init(self):
         self.setup_change_balls_buttons()
@@ -120,7 +133,7 @@ class UIChangePoolTableBallsOptions():
         
         self.relative_mouse_position = (parent_mouse_position[0] - self.rect.left, parent_mouse_position[1] - self.rect.top)
         
-        for button in self.buttons:
+        for button in self.buttons_group:
             button.on_event(self.relative_mouse_position, event)
 
     def on_button_hover(self, button: Button):
@@ -137,7 +150,8 @@ class UIChangePoolTableBallsOptions():
 
         self.surface.blit(self.housing_surface, (0,0))
 
-        for button in self.buttons:
-            button.draw(self.surface)
+        #TODO: Use .blits()
+        for button in self.buttons_group:
+            self.surface.blit(button.image, button.position)
 
         surface.blit(self.surface, self.rect)

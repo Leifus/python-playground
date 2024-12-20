@@ -1,4 +1,3 @@
-from classes import ui_layer
 from config import *
 import config
 import config.pool_ball_gutter_config as pool_ball_gutter_config
@@ -6,12 +5,12 @@ import config.cue_power_bar_config as cue_power_bar_config
 from classes.pool_table import PoolTable
 from classes.pool_ball import PoolBall
 from classes.pool_ball_gutter import PoolBallGutter
-from classes.media_manager import MediaManager
 from classes.floor import Floor
 from classes.ui_layer import UILayer
-from classes.sound_manager import SoundManager
 from classes.cue_power_bar import CuePowerBar
 from classes.draw_mode import DrawMode
+from globals import media_manager, sound_manager
+
 
 class App:
     def __init__(self):
@@ -23,7 +22,6 @@ class App:
         self.pool_ball_gutter = None
         self.mouse_position = None
         self.balls_are_in_motion = False
-        self.media_manager = None
         self.floor = None
         self.ui_layer = None
         self.active_game_type_index = active_game_type_index
@@ -32,12 +30,10 @@ class App:
 
         self.cue_power_bar = None
         self.balls = []
+        self.cue_hitting_ball_sound = 'cue_hit_ball_1.wav'
 
     def on_init(self):
         pygame.init()
-
-        self.media_manager = MediaManager()
-        self.sound_manager = SoundManager()
 
         self.surface = pygame.display.set_mode(config.display_size, config.display_flags, config.display_depth)
         self.rect = self.surface.get_rect()
@@ -80,7 +76,7 @@ class App:
         identifier = 'white'
         media_path = f'{media_folder}/{identifier}.png'
         position = (100, 170)
-        cue_ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        cue_ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(cue_ball)
         self.pool_table.set_cue_ball(cue_ball)
 
@@ -88,35 +84,35 @@ class App:
         identifier = 'yellow'
         media_path = f'{media_folder}/{identifier}.png'
         position = (160, self.pool_table.height - self.pool_table.height/3)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
 
         color = pygame.Color('brown')
         identifier = 'brown'
         media_path = f'{media_folder}/{identifier}.png'
         position = (160, self.pool_table.height/2)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
 
         color = pygame.Color('green')
         identifier = 'green'
         media_path = f'{media_folder}/{identifier}.png'
         position = (160, self.pool_table.height/3)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
 
         color = pygame.Color('blue')
         identifier = 'blue'
         media_path = f'{media_folder}/{identifier}.png'
         position = (self.pool_table.width/2, self.pool_table.height/2)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
 
         color = pygame.Color('pink')
         identifier = 'pink'
         media_path = f'{media_folder}/{identifier}.png'
         position = ((self.pool_table.width/2) + 146 - radius*2, self.pool_table.height/2)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
 
         color = pygame.Color('red')
@@ -125,53 +121,53 @@ class App:
         x_pos = position[0] + radius*2 + 6
         y_pos = position[1]
         position = (x_pos, y_pos)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         x_pos += radius*2
         position = (x_pos, y_pos - radius)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos + radius)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         x_pos += radius*2
         position = (x_pos, y_pos)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos - radius*2)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos + radius*2)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         x_pos += radius*2
         position = (x_pos, y_pos - radius)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos - radius*3)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos + radius)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos + radius*3)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         x_pos += radius*2
         position = (x_pos, y_pos)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos - radius*2)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos - radius*4)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos + radius*2)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
         position = (x_pos, y_pos + radius*4)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
 
         color = pygame.Color('black')
@@ -179,7 +175,7 @@ class App:
         media_path = f'{media_folder}/{identifier}.png'
         x_pos += radius*2 + 6
         position = (x_pos, y_pos)
-        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
 
         self.pool_table.clear_balls()
@@ -200,7 +196,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (120, self.pool_table.height/2)
-        cue_ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        cue_ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(cue_ball)
         self.pool_table.set_cue_ball(cue_ball)
 
@@ -219,7 +215,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = ((self.pool_table.width/2) + 150, self.pool_table.height/2)
-        ball9 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball9 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball9)
 
         next_x_position_offset = radius * 2
@@ -232,7 +228,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0] + next_x_position_offset, position[1] + radius)
-        ball1 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball1 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball1)
 
         color, media = stripe_ball_config
@@ -242,7 +238,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball10 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball10 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball10)
 
         #3
@@ -253,7 +249,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0] + (radius*2), position[1] + radius*3)
-        ball11 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball11 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball11)
 
         color, media = eight_ball_config
@@ -263,7 +259,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball8 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball8 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball8)
 
         color, media = spot_ball_config
@@ -273,7 +269,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball2 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball2 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball2)
 
         #4
@@ -284,7 +280,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0] + (radius*2), position[1] + radius*5)
-        ball3 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball3 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball3)
 
         color, media = stripe_ball_config
@@ -294,7 +290,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball12 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball12 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball12)
 
         color, media = spot_ball_config
@@ -304,7 +300,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball4 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball4 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball4)
 
         color, media = stripe_ball_config
@@ -314,7 +310,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball13 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball13 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball13)
 
         #5
@@ -325,7 +321,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0] + (radius*2), position[1] + radius*7)
-        ball14 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball14 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball14)
 
         color, media = spot_ball_config
@@ -335,7 +331,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball5 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball5 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball5)
 
         color, media = stripe_ball_config
@@ -345,7 +341,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball15 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball15 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball15)
 
         color, media = spot_ball_config
@@ -355,7 +351,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball6 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball6 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball6)
 
         color, media = spot_ball_config
@@ -365,7 +361,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (position[0], position[1] - radius*2)
-        ball7 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path, self.media_manager)
+        ball7 = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball7)
 
         self.pool_table.clear_balls()
@@ -386,17 +382,17 @@ class App:
         position = (size[0]/2, size[1]/2)
         on_change_floor = self.on_change_floor
         on_change_ball_set = self.on_change_ball_set
-        self.ui_layer = UILayer(size, position, on_change_floor, on_change_ball_set, self.media_manager)
+        self.ui_layer = UILayer(size, position, on_change_floor, on_change_ball_set)
         self.ui_layer.on_init()
 
     def setup_floor(self):
-        self.floor = Floor(self.rect.size, self.rect.center, self.media_manager)
+        self.floor = Floor(self.rect.size, self.rect.center)
         self.floor.on_init()
 
     def setup_pool_table(self):
         surface_size = self.surface.get_size()
         position = (surface_size[0]/2, surface_size[1]/2)
-        self.pool_table = PoolTable(position, self.media_manager, self.sound_manager)
+        self.pool_table = PoolTable(position)
         self.pool_table.on_init()
 
     def setup_ball_gutter(self):
@@ -405,14 +401,14 @@ class App:
         y_buffer = 40
 
         position = (self.pool_table.rect.right - size[0]/2 - x_buffer, self.pool_table.rect.bottom + size[1]/2 + y_buffer)
-        self.pool_ball_gutter = PoolBallGutter(position, self.media_manager)
+        self.pool_ball_gutter = PoolBallGutter(position)
         self.pool_ball_gutter.on_init()
 
     def setup_cue_power_bar(self):
         size = cue_power_bar_config.cue_power_bar_size
         position = (100, self.rect.height/2)
         draw_mode = cue_power_bar_config.cue_power_bar_draw_mode
-        self.cue_power_bar = CuePowerBar(draw_mode, size, position, self.media_manager)
+        self.cue_power_bar = CuePowerBar(draw_mode, size, position)
         self.cue_power_bar.on_init()
 
     def on_event(self, event: pygame.event.Event):
@@ -429,7 +425,7 @@ class App:
         self.ui_layer.on_event(event)
         if not self.ui_layer.is_active:
             self.cue_power_bar.on_event(event)
-            
+
         self.pool_table.on_event(event)
 
         # Hit the cue ball
@@ -451,6 +447,9 @@ class App:
         force_y = force_magnitude * math.sin(angle - ball.angle)
         
         ball.set_force_at_point((force_x, force_y))
+        max_volume = 0.5    #hack for my cheap sounds
+        volume = self.cue_power_bar.power_percent * max_volume
+        sound_manager.play_sound(self.cue_hitting_ball_sound, volume)
 
     def update(self, time_lapsed):
         self.ui_layer.update()

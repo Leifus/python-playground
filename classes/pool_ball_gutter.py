@@ -4,9 +4,10 @@ from classes.pool_ball import PoolBall
 from classes.draw_mode import DrawMode
 from classes.media_manager import MediaManager
 from classes.__helpers__ import draw_poly_points_around_rect
+from globals import media_manager
 
 class PoolBallGutter():
-    def __init__(self, position, media_manager: MediaManager):
+    def __init__(self, position):
         self.draw_mode = pool_ball_gutter_config.pool_ball_gutter_draw_mode
         self.size = pool_ball_gutter_config.pool_ball_gutter_size
         self.gutter_RAW_color = pool_ball_gutter_config.pool_ball_gutter_DM_RAW_color
@@ -22,7 +23,6 @@ class PoolBallGutter():
         self.WIREFRAME_poly_point_radius = pool_ball_gutter_config.pool_ball_gutter_DM_WIREFRAME_poly_point_radius
         self.gutter_RICH_media = pool_ball_gutter_config.pool_ball_gutter_DM_RICH_media
 
-        self.media_manager = media_manager
         self.position = position
 
         self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
@@ -102,7 +102,7 @@ class PoolBallGutter():
                 for points in self.edge_barrier_vectors:
                     draw_poly_points_around_rect(self.gutter_surface, rect, wireframe_point_color, self.WIREFRAME_poly_point_radius)
         elif self.draw_mode in DrawMode.RICH:
-            img = self.media_manager.get(self.gutter_RICH_media, convert_alpha=True)
+            img = media_manager.get(self.gutter_RICH_media, convert_alpha=True)
             if not img:
                 print('No gutter img')
                 return

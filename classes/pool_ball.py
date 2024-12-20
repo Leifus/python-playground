@@ -1,11 +1,11 @@
 from config import pool_balls_config, pygame, pymunk
 
 from classes.draw_mode import DrawMode
-from classes.media_manager import MediaManager
 from classes.__helpers__ import aspect_scale
+from globals import media_manager
 
 class PoolBall(pygame.sprite.Sprite):
-    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media, media_manager: MediaManager):
+    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media):
         pygame.sprite.Sprite.__init__(self)
         
         self.draw_mode = pool_balls_config.pool_ball_draw_mode
@@ -20,7 +20,6 @@ class PoolBall(pygame.sprite.Sprite):
         self.shape_collision_type = pool_balls_config.COLLISION_TYPE_POOL_BALL
         self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
 
-        self.media_manager = media_manager
         self.identifier = identifier
 
         self.angle = 0
@@ -45,7 +44,7 @@ class PoolBall(pygame.sprite.Sprite):
 
             pygame.draw.circle(self.ball_surface, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
         elif self.draw_mode in DrawMode.RICH:
-            image = self.media_manager.get(self.ball_RICH_media)
+            image = media_manager.get(self.ball_RICH_media)
             if not image:
                 print('No pool ball img:', self.ball_RICH_media)
                 return

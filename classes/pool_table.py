@@ -1,4 +1,3 @@
-from classes.sound_manager import SoundManager
 from config import pygame, pymunk, pool_table_config, pool_balls_config, random, math
 from pygame.locals import *
 import config
@@ -6,13 +5,12 @@ import config
 from classes.pool_ball import PoolBall
 from classes.pool_table_cushion import PoolTableCushion
 from classes.pool_table_pocket import PoolTablePocket
-from classes.media_manager import MediaManager
 from classes.draw_mode import DrawMode
 from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
+from globals import media_manager, sound_manager
 
 class PoolTable:
-    def __init__(self, position, media_manager: MediaManager, sound_manager: SoundManager):
-        self.sound_manager = sound_manager
+    def __init__(self, position):
         self.draw_mode = pool_table_config.pool_table_draw_mode
         self.raw_color = pool_table_config.pool_table_DM_RAW_color
         self.size = pool_table_config.pool_table_size
@@ -30,9 +28,6 @@ class PoolTable:
         self.chalk_line_RICH_media = pool_table_config.pool_table_chalk_line_DM_RICH_media
         self.chalk_dot_RICH_media = pool_table_config.pool_table_chalk_dot_DM_RICH_media
         self.chalk_dot_radius = pool_table_config.pool_table_chalk_dot_radius
-
-
-        self.media_manager = media_manager
         self.position = position
         self.width = self.size[0]
         self.height = self.size[1]
@@ -103,7 +98,7 @@ class PoolTable:
                 pygame.draw.circle(self.table_surface, self.chalk_dot_RAW_color, position, self.chalk_dot_radius, outline_width)
         if self.draw_mode in DrawMode.RICH:
             # Table
-            table_surface = self.media_manager.get(self.table_RICH_media, convert_alpha=True)
+            table_surface = media_manager.get(self.table_RICH_media, convert_alpha=True)
             if not table_surface:
                 print('No table img')
                 return
@@ -112,7 +107,7 @@ class PoolTable:
             self.table_surface.blit(self.table_RICH_surface, (0, 0))
 
             # Chalk Lines
-            chalk_line_surface = self.media_manager.get(self.chalk_line_RICH_media, convert_alpha=True)
+            chalk_line_surface = media_manager.get(self.chalk_line_RICH_media, convert_alpha=True)
             if not chalk_line_surface:
                 print('No chalk line img')
             else:
@@ -123,7 +118,7 @@ class PoolTable:
 
             # Chalk Dots
             position_offset = (3, 0)
-            chalk_dot = self.media_manager.get(self.chalk_dot_RICH_media, convert_alpha=True)
+            chalk_dot = media_manager.get(self.chalk_dot_RICH_media, convert_alpha=True)
             if not chalk_dot:
                 print('No black chalk dot img')
             else:
@@ -148,7 +143,7 @@ class PoolTable:
 
             for file_name, alpha in decals:
                 media_path = f'table/decals/{file_name}'
-                decal_surface = self.media_manager.get(media_path, convert_alpha=True)
+                decal_surface = media_manager.get(media_path, convert_alpha=True)
                 decal_surface.set_alpha(alpha)
                 if not decal_surface:
                     print('No decal_surface img', media_path)
@@ -215,32 +210,32 @@ class PoolTable:
 
         #top left
         position = (0, 0)
-        pocket = PoolTablePocket(position, self.media_manager)
+        pocket = PoolTablePocket(position, media_manager)
         self.pockets.append(pocket)
 
         #top mid
         position = (self.width/2, -radius/2)
-        pocket = PoolTablePocket(position, self.media_manager)
+        pocket = PoolTablePocket(position, media_manager)
         self.pockets.append(pocket)
 
         #top right
         position = (self.width, 0)
-        pocket = PoolTablePocket(position, self.media_manager)
+        pocket = PoolTablePocket(position, media_manager)
         self.pockets.append(pocket)
 
         #bottom right
         position = (self.width, self.height)
-        pocket = PoolTablePocket(position, self.media_manager)
+        pocket = PoolTablePocket(position, media_manager)
         self.pockets.append(pocket)
 
         #bottom mid
         position = (self.width/2, self.height + (radius/2))
-        pocket = PoolTablePocket(position, self.media_manager)
+        pocket = PoolTablePocket(position, media_manager)
         self.pockets.append(pocket)
 
         #bottom left
         position = (0, self.height)
-        pocket = PoolTablePocket(position, self.media_manager)
+        pocket = PoolTablePocket(position, media_manager)
         self.pockets.append(pocket)
 
     def setup_cushions(self):
@@ -265,7 +260,7 @@ class PoolTable:
             (width - bezel_short, height),
             (0, height)
         ]
-        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
+        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
         self.cushions.append(cushion)
 
         #right
@@ -280,7 +275,7 @@ class PoolTable:
             (bezel_short/2, bezel_long/2),
             (bezel_short, 0)
         ]
-        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
+        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
         self.cushions.append(cushion)
 
         #top left
@@ -298,12 +293,12 @@ class PoolTable:
             (bezel_long/2, height - bezel_short/2),
             (0, height - bezel_short)
         ]
-        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
+        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
         self.cushions.append(cushion)
 
         #top right
         position = ((self.width/2) + (width/2) + pocket_radius + cushion_gap, height/2)
-        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
+        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
         self.cushions.append(cushion)
 
         #bottom left
@@ -321,12 +316,12 @@ class PoolTable:
             (0, bezel_short),
             (bezel_long/2, bezel_short/2),
         ]
-        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
+        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
         self.cushions.append(cushion)
 
         #bottom right
         position = ((self.width/2) + (width/2) + pocket_radius + cushion_gap, self.height - (height/2))
-        cushion = PoolTableCushion((width, height), position, poly_points, self.media_manager)
+        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
         self.cushions.append(cushion)
 
     def on_init(self):
@@ -354,7 +349,7 @@ class PoolTable:
         #     return True
         
         volume = 0.4
-        sound_length = self.sound_manager.play_sound(pool_balls_config.sound_ball_collide_with_ball, volume)
+        sound_length = sound_manager.play_sound(pool_balls_config.sound_ball_collide_with_ball, volume)
         return True
 
     def on_ball_collide_with_pocket(self, arbiter: pymunk.Arbiter, space, data):
