@@ -201,7 +201,7 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (120, self.pool_table.height/2)
-        cue_ball = PoolBall(identifier, radius*4, mass, elasticity, friction, position, color, media_path)
+        cue_ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(cue_ball)
         self.pool_table.set_cue_ball_in_play(cue_ball)
 
@@ -392,11 +392,12 @@ class App:
         self.ui_layer.on_init()
 
     def setup_lighting(self):
-        radius = 120
-        position = (self.rect.right- 100, self.rect.centery)
+        radius = 50
+        position = (self.rect.centerx, self.rect.centery)
         z_position = 300    #distance from table in cm (ish)
-        lumens = 120  #255 max at the moment.
-        self.light_source = LightSource(lumens, radius, position, z_position)
+        lumens = 30  #255 max at the moment.
+        show_light = False
+        self.light_source = LightSource(lumens, radius, position, z_position, show_light)
 
     def setup_floor(self):
         self.floor = Floor(self.rect.size, self.rect.center)
@@ -467,6 +468,7 @@ class App:
     def update(self, time_lapsed):
         self.ui_layer.update()
         self.cue_power_bar.update()
+        self.light_source.update(self.ui_layer.light_options, self.mouse_position)
         self.pool_table.update(time_lapsed, self.light_source)
 
         if len(self.pool_table.balls_to_remove_from_table) > 0:

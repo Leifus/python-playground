@@ -36,7 +36,7 @@ class PoolBall(pygame.sprite.Sprite):
         self.rect = self.surface.get_rect(center=(self.radius,self.radius))
         self.ball_surface = self.surface.copy()
         self.orig_image = None
-        self.z_position = 0
+        self.z_distance_from_floor = 0.01
 
     def setup_visuals(self):
         if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
@@ -88,6 +88,7 @@ class PoolBall(pygame.sprite.Sprite):
         scale = 2.1
         self.image = aspect_scale(self.orig_image, (self.radius*scale, self.radius*scale))
         self.ball_surface = self.image
+        self.z_distance_from_floor = 1.0
 
     def update(self):
         if not self.is_picked_up:

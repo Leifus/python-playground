@@ -42,7 +42,7 @@ billiard_ball_sets = [
         6,     # ball mass
         0.8,    # ball elasticity
         0.9,     # ball friction
-        (pygame.Color('ivory'), 'test_complex_sprite.png'),      # cue ball
+        (pygame.Color('ivory'), 'white.png'),      # cue ball
         (pygame.Color('black'), 'black.png'),      # 8 ball
         (pygame.Color('yellow2'), 'yellow.png'), # spot ball
         (pygame.Color('firebrick2'), 'red.png'),    # stripe ball

@@ -1,4 +1,4 @@
-from classes.ui_user_control_options import UIUserControlOptions
+from classes.ui_light_control_options import UILightControlOptions
 from config import pygame, ui_layer_config
 from classes.draw_mode import DrawMode
 from classes.button import Button
@@ -31,7 +31,7 @@ class UILayer():
         self.options_button = None
         self.change_floor_options = None
         self.change_balls_options = None
-        self.user_control_options = None
+        self.light_options = None
 
         self.is_active = False
         self.is_hovered = False
@@ -118,8 +118,8 @@ class UILayer():
         size = (self.rect.width, 140)
         position = (size[0]/2, self.change_balls_options.rect.bottom + 16 + size[1]/2)
         draw_mode = self.draw_mode
-        self.user_control_options = UIUserControlOptions(draw_mode, size, position, media_manager)
-        self.user_control_options.on_init()
+        self.light_options = UILightControlOptions(draw_mode, size, position)
+        self.light_options.on_init()
 
     def on_init(self):
         self.setup_visuals()
@@ -146,11 +146,13 @@ class UILayer():
         
         self.change_floor_options.on_event(self.relative_mouse_position, event)
         self.change_balls_options.on_event(self.relative_mouse_position, event)
-        self.user_control_options.on_event(self.relative_mouse_position, event)
+        self.light_options.on_event(self.relative_mouse_position, event)
         if self.change_floor_options.hovered_component is not None:
             self.hovered_component = self.change_floor_options.hovered_component
         elif self.change_balls_options.hovered_component is not None:
             self.hovered_component = self.change_balls_options.hovered_component
+        elif self.light_options.hovered_component is not None:
+            self.hovered_component = self.light_options.hovered_component
 
         if self.hovered_component is not None:
             self.is_hovered = True
@@ -165,7 +167,7 @@ class UILayer():
         
         self.change_floor_options.update()
         self.change_balls_options.update()
-        self.user_control_options.update()
+        self.light_options.update()
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))
@@ -174,7 +176,7 @@ class UILayer():
             self.surface.blit(self.housing_surface, (0, 0))
             self.change_floor_options.draw(self.surface)
             self.change_balls_options.draw(self.surface)
-            self.user_control_options.draw(self.surface)
+            self.light_options.draw(self.surface)
 
         self.surface.blit(self.options_button.image, self.options_button.position)
 
