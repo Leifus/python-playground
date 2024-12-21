@@ -6,6 +6,7 @@ class LightSource(pygame.sprite.Sprite):
         # TODO: Implement types better!
         # lumens: int     #range from 0 to 255
         # radius: float
+        self.mask: pygame.mask.Mask
 
         pygame.sprite.Sprite.__init__(self)
         
@@ -16,6 +17,7 @@ class LightSource(pygame.sprite.Sprite):
         self.show_light = show_light
         self.orig_image = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
         self.rect = self.orig_image.get_rect(center=self.position)
+        self.mask = None
         self.image = None
         self.lumens = lumens
         self.alpha = lumens/2
@@ -28,18 +30,23 @@ class LightSource(pygame.sprite.Sprite):
         color = pygame.Color('lightyellow1')
         pygame.draw.circle(self.orig_image, color, (self.radius,self.radius), self.radius)
         self.image = self.orig_image
+        pygame.mask.from_surface(self.image)
         self.image.set_alpha(self.alpha)
 
+        self.mask = pygame.mask.from_surface(self.image)
+        
     def update(self, light_options: UILightControlOptions, mouse_position, *args, **kwargs):
         if light_options.light_size != self.light_size:
             self.light_size = light_options.light_size
             self.radius = self.base_radius * self.light_size
             self.image = pygame.transform.scale(self.orig_image, (self.radius*2, self.radius*2))
+            self.mask = pygame.mask.from_surface(self.image)
+            self.rect = self.image.get_rect(center=self.position)
 
         if light_options.move_light:
             self.position = mouse_position
-        
-        self.rect = self.image.get_rect(center=self.position)
+            self.rect = self.image.get_rect(center=self.position)
+
 
         return super().update(*args, **kwargs)
 

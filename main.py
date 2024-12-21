@@ -392,10 +392,10 @@ class App:
         self.ui_layer.on_init()
 
     def setup_lighting(self):
-        radius = 50
-        position = (self.rect.centerx, self.rect.centery)
+        radius = 80
+        position = (self.rect.centerx-200, self.rect.centery)
         z_position = 300    #distance from table in cm (ish)
-        lumens = 30  #255 max at the moment.
+        lumens = 55  #255 max at the moment.
         show_light = False
         self.light_source = LightSource(lumens, radius, position, z_position, show_light)
 
@@ -501,7 +501,7 @@ class App:
         self.surface.fill(bg_fill)
         
         self.floor.draw(self.surface)
-        self.pool_table.draw(self.surface)
+        self.pool_table.draw(self.surface, self.light_source)
         self.pool_ball_gutter.draw(self.surface)
         self.cue_power_bar.draw(self.surface)
         self.light_source.draw(self.surface)

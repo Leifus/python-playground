@@ -1,3 +1,6 @@
+from turtle import left
+
+from pygame import Vector2
 from config import pygame, pymunk, pool_table_config, pool_balls_config, random, math
 from pygame.locals import *
 import config
@@ -11,8 +14,10 @@ from classes.draw_mode import DrawMode
 from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
 from globals import media_manager, sound_manager
 
-class PoolTable:
+class PoolTable(pygame.sprite.Sprite):
     def __init__(self, position):
+        pygame.sprite.Sprite.__init__(self)
+
         self.draw_mode = pool_table_config.pool_table_draw_mode
         self.raw_color = pool_table_config.pool_table_DM_RAW_color
         self.size = pool_table_config.pool_table_size
@@ -46,6 +51,7 @@ class PoolTable:
         
         self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=self.position)
+        self.image = None
         self.table_surface = self.surface.copy()
         self.table_RICH_surface = None
         self.chalk_line_RICH_surface = None
@@ -80,6 +86,10 @@ class PoolTable:
         self.shadow_orig_image = None
         # self.shadow_surface = None
         # self.shadow_rect = None
+        
+        #TODO: Implement types better everywhere!
+        self.mask: pygame.mask.Mask = None
+        self.light_source_overlap_mask: pygame.mask.Mask = None
 
 
         
@@ -114,6 +124,9 @@ class PoolTable:
             
             self.table_RICH_surface = pygame.transform.scale(table_surface, self.size)
             self.table_surface.blit(self.table_RICH_surface, (0, 0))
+            overlay = self.table_surface.copy()
+            overlay.fill((0,0,0,50))
+            self.table_surface.blit(overlay, (0,0))
 
             # Chalk Lines
             chalk_line_surface = media_manager.get(self.chalk_line_RICH_media, convert_alpha=True)
@@ -172,6 +185,7 @@ class PoolTable:
             image = media_manager.get(media, convert_alpha=True)
             image.set_alpha(150)
             self.shadow_orig_image = aspect_scale(image, max_size)
+
             # size = (100, 10)
             # self.shadow_surface = pygame.transform.scale(self.shadow_orig_image, size)
             # self.shadow_rect = self.shadow_surface.get_rect(midbottom=self.rect.midbottom)
@@ -179,6 +193,9 @@ class PoolTable:
             
         elif self.draw_mode in DrawMode.PHYSICS:
             self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
+
+        self.image = self.table_surface
+        self.mask = pygame.mask.from_surface(self.image)
 
     def setup_physical_space(self):
         self.space = pymunk.Space()
@@ -368,6 +385,7 @@ class PoolTable:
         for ball in self.ball_group:
             self.space.remove(ball.shape.body, ball.shape)
         self.ball_group.empty()
+        self.shadow_group.empty()
 
     def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         # shape0 = arbiter.shapes[0]
@@ -470,6 +488,15 @@ class PoolTable:
 
     def remove_ball(self, ball: PoolBall):
         self.ball_group.remove(ball)
+        shadow = None
+        for _ in self.shadow_group:
+            if _.parent_obj is ball:
+                shadow = _
+                break
+        
+        if shadow is not None:
+            self.shadow_group.remove(shadow)
+
         self.space.remove(ball.shape.body, ball.shape)
 
     def set_cue_ball_in_play(self, ball: PoolBall):
@@ -675,10 +702,28 @@ class PoolTable:
         # if self.cue_ball.is_picked_up:
 
 
-    def draw(self, surface: pygame.Surface):
+    def draw(self, surface: pygame.Surface, light_source: LightSource):
         self.surface.fill((0,0,0,0))
 
         self.surface.blit(self.table_surface, (0, 0))
+
+        #TODO: Bake this and change only when needed
+        self.light_source_overlap_mask = light_source.mask.overlap_mask(self.mask, (0,0))
+        if self.light_source_overlap_mask:            
+            fade_steps = 6
+            initial_lumens = light_source.lumens * 0.18
+            for i in range(fade_steps):
+                fade_step = fade_steps - i
+                scale = fade_step * 1.1
+                alpha = initial_lumens / fade_step
+                light_surface = self.light_source_overlap_mask.to_surface(unsetcolor=None, setcolor=(255,255,190,alpha))
+                rect = light_surface.get_rect()
+                size = (rect.width*scale, rect.height*scale)
+                light_surface = pygame.transform.scale(light_surface, size)
+                position = (light_source.rect.left - self.rect.left + rect.width/2, light_source.rect.top - self.rect.top + rect.height/2)
+                rect = light_surface.get_rect(center=position)
+                self.surface.blit(light_surface, rect)
+
 
         # Cast shadows
         self.shadow_group.draw(self.surface)
