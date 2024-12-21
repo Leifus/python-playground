@@ -2,6 +2,7 @@ from config import *
 import config
 import config.pool_ball_gutter_config as pool_ball_gutter_config
 import config.cue_power_bar_config as cue_power_bar_config
+from globals import media_manager, sound_manager
 from classes.pool_table import PoolTable
 from classes.pool_ball import PoolBall
 from classes.pool_ball_gutter import PoolBallGutter
@@ -9,7 +10,7 @@ from classes.floor import Floor
 from classes.ui_layer import UILayer
 from classes.cue_power_bar import CuePowerBar
 from classes.draw_mode import DrawMode
-from globals import media_manager, sound_manager
+from classes.light_source import LightSource
 
 
 class App:
@@ -31,6 +32,8 @@ class App:
         self.cue_power_bar = None
         self.balls = []
         self.cue_hitting_ball_sound = 'cue_hit_ball_1.wav'
+        self.cue_ball_out_of_play_time_to_reset = 2000
+        self.cue_ball_reset_ttl = None
 
     def on_init(self):
         pygame.init()
@@ -41,6 +44,7 @@ class App:
 
         self.setup_ui_menu()
         self.setup_floor()
+        self.setup_lighting()
         self.setup_pool_table()
         self.setup_ball_gutter()
         self.setup_cue_power_bar()
@@ -78,7 +82,7 @@ class App:
         position = (100, 170)
         cue_ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(cue_ball)
-        self.pool_table.set_cue_ball(cue_ball)
+        self.pool_table.set_cue_ball_in_play(cue_ball)
 
         color = pygame.Color('yellow')
         identifier = 'yellow'
@@ -181,6 +185,7 @@ class App:
         self.pool_table.clear_balls()
         for i, ball in enumerate(self.balls):
             ball.on_init(i)
+            ball.is_in_active_play = True
             self.pool_table.add_ball(ball)
 
     def set_table_layout_as_billiards(self):
@@ -196,9 +201,9 @@ class App:
         else:
             media_path = f'{media_folder}/{media}'
         position = (120, self.pool_table.height/2)
-        cue_ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
+        cue_ball = PoolBall(identifier, radius*4, mass, elasticity, friction, position, color, media_path)
         self.balls.append(cue_ball)
-        self.pool_table.set_cue_ball(cue_ball)
+        self.pool_table.set_cue_ball_in_play(cue_ball)
 
         #triangle setup
         #      9
@@ -367,6 +372,7 @@ class App:
         self.pool_table.clear_balls()
         for i, ball in enumerate(self.balls):
             ball.on_init(i)
+            ball.is_in_active_play = True
             self.pool_table.add_ball(ball)
 
     def set_table_layout(self):
@@ -384,6 +390,13 @@ class App:
         on_change_ball_set = self.on_change_ball_set
         self.ui_layer = UILayer(size, position, on_change_floor, on_change_ball_set)
         self.ui_layer.on_init()
+
+    def setup_lighting(self):
+        radius = 120
+        position = (self.rect.right- 100, self.rect.centery)
+        z_position = 300    #distance from table in cm (ish)
+        lumens = 120  #255 max at the moment.
+        self.light_source = LightSource(lumens, radius, position, z_position)
 
     def setup_floor(self):
         self.floor = Floor(self.rect.size, self.rect.center)
@@ -453,12 +466,12 @@ class App:
 
     def update(self, time_lapsed):
         self.ui_layer.update()
-
         self.cue_power_bar.update()
-        self.pool_table.update(time_lapsed)
+        self.pool_table.update(time_lapsed, self.light_source)
 
         if len(self.pool_table.balls_to_remove_from_table) > 0:
             for ball in self.pool_table.balls_to_remove_from_table:
+                ball.stop_moving()
                 self.pool_table.remove_ball(ball)
                 self.pool_ball_gutter.add_ball(ball)
             
@@ -467,12 +480,19 @@ class App:
         self.pool_ball_gutter.update()
 
         self.balls_are_in_motion = self.pool_table.check_balls_are_moving()
+        cue_ball = self.pool_table.cue_ball
+        if not self.balls_are_in_motion and not cue_ball.is_in_active_play and not cue_ball.is_picked_up and self.cue_ball_reset_ttl is None:
+            self.cue_ball_reset_ttl = time_lapsed + self.cue_ball_out_of_play_time_to_reset
+
+        if self.cue_ball_reset_ttl is not None and time_lapsed > self.cue_ball_reset_ttl:
+            self.pool_ball_gutter.remove_ball(cue_ball)
+            self.pool_table.free_place_cue_ball(cue_ball)
+            self.cue_ball_reset_ttl = None
 
         if self.ui_layer.hovered_component is not None or (self.cue_power_bar.is_hovered and not self.ui_layer.is_active):
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
         else:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-
 
     def draw(self):
         bg_fill = config.display_bg_color
@@ -482,6 +502,7 @@ class App:
         self.pool_table.draw(self.surface)
         self.pool_ball_gutter.draw(self.surface)
         self.cue_power_bar.draw(self.surface)
+        self.light_source.draw(self.surface)
 
         self.ui_layer.draw(self.surface)
 

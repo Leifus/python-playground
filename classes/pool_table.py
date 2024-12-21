@@ -2,6 +2,8 @@ from config import pygame, pymunk, pool_table_config, pool_balls_config, random,
 from pygame.locals import *
 import config
 
+from classes.light_source import LightSource
+from classes.shadow import Shadow
 from classes.pool_ball import PoolBall
 from classes.pool_table_cushion import PoolTableCushion
 from classes.pool_table_pocket import PoolTablePocket
@@ -72,6 +74,13 @@ class PoolTable:
         self.rays = []
         self.ball_collisions = dict()
         self.time_lapsed = 0
+        
+        self.shadow_group = pygame.sprite.Group()
+        # self.shadows = []
+        self.shadow_orig_image = None
+        # self.shadow_surface = None
+        # self.shadow_rect = None
+
 
         
     def setup_visuals(self):
@@ -155,6 +164,19 @@ class PoolTable:
                     rect = decal_surface.get_rect(center=position)
                     # self.rich_decals.append([decal_surface, position])
                     self.table_surface.blit(decal_surface, rect)
+
+            
+            # Ball Shadow
+            media = 'balls/ball_shadow.png'
+            max_size = (100, 100)
+            image = media_manager.get(media, convert_alpha=True)
+            image.set_alpha(150)
+            self.shadow_orig_image = aspect_scale(image, max_size)
+            # size = (100, 10)
+            # self.shadow_surface = pygame.transform.scale(self.shadow_orig_image, size)
+            # self.shadow_rect = self.shadow_surface.get_rect(midbottom=self.rect.midbottom)
+            # self.shadow_surface.fill((0,0,0,100))
+            
         elif self.draw_mode in DrawMode.PHYSICS:
             self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
@@ -331,7 +353,16 @@ class PoolTable:
     def add_ball(self, ball: PoolBall):
         self.space.add(ball.body, ball.shape)
         self.ball_group.add(ball)
-        ball.is_in_active_play = True
+        
+        shadow = Shadow(ball)
+        self.shadow_group.add(shadow)
+
+        # shadow_surface = self.shadow_orig_image.copy()
+        # size = (ball.radius*3.5, ball.radius*1.5)
+        # shadow_surface = pygame.transform.scale(self.shadow_orig_image, size)
+        # # shadow_rect = shadow_surface.get_rect(midbottom=ball.rect.midbottom)
+        # shadow_surface.fill((0,0,0,100))
+        # self.shadows.append(shadow_surface)
 
     def clear_balls(self):
         for ball in self.ball_group:
@@ -373,7 +404,7 @@ class PoolTable:
 
         if ball:
             if distance > ball.radius + buffer: #ball has fallen into the pocket
-                ball_shape.body.velocity = (0, 0) #stop the ball moving
+                ball.stop_moving()
                 self.balls_to_remove_from_table.append(ball)
                 return False
         else:
@@ -433,11 +464,15 @@ class PoolTable:
         #     if self.hovered_ball is not None:
         #         self.selected_ball = self.hovered_ball
 
+    def free_place_cue_ball(self, ball: PoolBall):
+        self.add_ball(ball)
+        self.cue_ball.pick_up_ball()
+
     def remove_ball(self, ball: PoolBall):
         self.ball_group.remove(ball)
         self.space.remove(ball.shape.body, ball.shape)
 
-    def set_cue_ball(self, ball: PoolBall):
+    def set_cue_ball_in_play(self, ball: PoolBall):
         # ball.filter = pymunk.ShapeFilter()
         self.cue_ball = ball
 
@@ -602,13 +637,14 @@ class PoolTable:
     #         self.line_of_sight.collision_type = pool_balls_config.COLLISION_TYPE_LINE_OF_SIGHT
     #         self.space.add(self.line_of_sight)
 
-    def update(self, time_lapsed):
+    def update(self, time_lapsed, light_source: LightSource):
         self.ball_collisions.clear()
         self.time_lapsed = time_lapsed
 
         for _ in range(config.time_dt_steps):
             self.space.step(config.time_dt / config.time_dt_steps)
         
+        self.shadow_group.update(self.rect.topleft, light_source)
         self.ray_cast_ball_path()
         # self.hit_point, self.hit_shape, self.rays = self.get_ball_raycast()
         # self.find_physical_line_of_sight_collision()
@@ -619,13 +655,34 @@ class PoolTable:
         for _ in self.cushions:
             _.update()
 
+        if self.cue_ball.is_picked_up:
+            x, y = self.relative_mouse_position
+            min_x = 30
+            min_y = 30
+            if x < min_x:
+                x = min_x
+            elif x > self.rect.width-min_x:
+                x = self.rect.width-min_x
+            if y < min_y:
+                y = min_y
+            elif y > self.rect.height-min_y:
+                y = self.rect.height-min_y
+            position = (x, y)
+            self.cue_ball.position = position
+
         self.ball_group.update()
+        
+        # if self.cue_ball.is_picked_up:
+
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))
 
         self.surface.blit(self.table_surface, (0, 0))
-        
+
+        # Cast shadows
+        self.shadow_group.draw(self.surface)
+
         if not self.check_balls_are_moving() and self.cue_ball.is_in_active_play:
             # Cast rays from cue ball
             for ray_start, ray_end in self.rays:
@@ -690,7 +747,7 @@ class PoolTable:
             
         for _ in self.cushions:
             _.draw(self.surface)
-            
+
         self.ball_group.draw(self.surface)
 
         if self.draw_mode in DrawMode.PHYSICS:

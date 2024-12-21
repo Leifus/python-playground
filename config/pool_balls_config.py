@@ -11,7 +11,7 @@ COLLISION_TYPE_CUE_BALL = 1000      # NOT USED YET
 COLLISION_TYPE_POOL_BALL = 100
 COLLISION_TYPE_POOL_TABLE_POCKET = 10
 COLLISION_TYPE_POOL_TABLE_CUSHION = 50
-
+COLLISION_TYPE_FLOATING_BALL = 0
 # Ball
 # pool_ball_radius = 12
 # pool_ball_mass = 15
@@ -42,7 +42,7 @@ billiard_ball_sets = [
         6,     # ball mass
         0.8,    # ball elasticity
         0.9,     # ball friction
-        (pygame.Color('ivory'), 'white.png'),      # cue ball
+        (pygame.Color('ivory'), 'test_complex_sprite.png'),      # cue ball
         (pygame.Color('black'), 'black.png'),      # 8 ball
         (pygame.Color('yellow2'), 'yellow.png'), # spot ball
         (pygame.Color('firebrick2'), 'red.png'),    # stripe ball

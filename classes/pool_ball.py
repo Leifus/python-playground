@@ -1,4 +1,4 @@
-from config import pool_balls_config, pygame, pymunk
+from config import pool_balls_config, pygame, pymunk, math
 
 from classes.draw_mode import DrawMode
 from classes.__helpers__ import aspect_scale
@@ -28,6 +28,7 @@ class PoolBall(pygame.sprite.Sprite):
 
         self.is_moving = False
         self.is_in_active_play = False
+        self.is_picked_up = False
 
         self.image = None
         self.mask = None
@@ -35,6 +36,7 @@ class PoolBall(pygame.sprite.Sprite):
         self.rect = self.surface.get_rect(center=(self.radius,self.radius))
         self.ball_surface = self.surface.copy()
         self.orig_image = None
+        self.z_position = 0
 
     def setup_visuals(self):
         if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
@@ -44,16 +46,19 @@ class PoolBall(pygame.sprite.Sprite):
 
             pygame.draw.circle(self.ball_surface, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
         elif self.draw_mode in DrawMode.RICH:
-            image = media_manager.get(self.ball_RICH_media)
-            if not image:
+            # Ball
+            self.orig_image = media_manager.get(self.ball_RICH_media)
+            if not self.orig_image:
                 print('No pool ball img:', self.ball_RICH_media)
                 return
             
-            self.orig_image = aspect_scale(image, (self.radius*2, self.radius*2))
-            self.image = self.orig_image
-            self.ball_surface.blit(self.orig_image, (0, 0))
+            self.image = pygame.transform.scale(self.orig_image, (self.radius*2, self.radius*2))
+            # self.image.set_alpha(50)
+            # self.image.set_colorkey((0,0,0))
+            # self.ball_surface.blit(self.image, (0, 0))
 
-        self.mask = pygame.mask.from_surface(self.ball_surface)
+        #TODO: FiX for working with wireframe/RAW
+        self.mask = pygame.mask.from_surface(self.image)
 
     def setup_physical_body(self, body_iter):
         inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
@@ -69,21 +74,31 @@ class PoolBall(pygame.sprite.Sprite):
         self.shape.elasticity = self.shape_elasticity
         self.shape.friction = self.shape_friction
 
+    def stop_moving(self):
+        self.body.velocity = (0,0)
 
     def on_init(self, body_iter):
         self.setup_visuals()
         self.setup_physical_body(body_iter)
 
+    def pick_up_ball(self):
+        self.stop_moving()
+        self.is_picked_up = True
+        self.shape.sensor = True
+        scale = 2.1
+        self.image = aspect_scale(self.orig_image, (self.radius*scale, self.radius*scale))
+        self.ball_surface = self.image
+
     def update(self):
-        self.angle = self.body.angle
-        self.position = self.body.position
+        if not self.is_picked_up:
+            self.angle = self.body.angle
+            self.position = self.body.position
+        elif self.is_picked_up:
+            self.body.position = self.position  #Wont collide if its a sensor
+        
         self.rect = self.surface.get_rect(center=self.position)
         
-        # # if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
-        # #     self.rect = self.surface.get_rect(center=self.body.position)
-        # # elif self.draw_mode in DrawMode.RICH:
-        # #     self.rich_rect = self.rich_surface.get_rect(center=self.body.position)
-
+        #TODO: Consider the 'is_moving' again - am I checking already for this?
         # stop_force_margin = 3
         # x_v = self.body.velocity[0]
         # y_v = self.body.velocity[1]
@@ -94,12 +109,6 @@ class PoolBall(pygame.sprite.Sprite):
         # else:
         #     self.is_moving = True
 
-    def draw(self, surface: pygame.Surface):
-        self.surface.fill((0,0,0,0))
-        
-        self.surface.blit(self.ball_surface, (0,0))
-
-        surface.blit(self.surface, self.rect)
 
 
     # def highlight_position(self, show=True):

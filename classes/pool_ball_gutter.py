@@ -135,6 +135,12 @@ class PoolBallGutter():
             self.space.remove(ball.shape.body, ball.shape)
         self.ball_group.empty()
 
+    def remove_ball(self, ball: PoolBall):
+        if not self.ball_group.has(ball):
+            return
+        self.ball_group.remove(ball)
+        self.space.remove(ball.shape.body, ball.shape)
+
     def add_ball(self, ball: PoolBall):
         ball.is_in_active_play = False
         ball.shape.body.position = (ball.radius + self.edge_barrier_width, ball.radius + self.edge_barrier_width)
