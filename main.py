@@ -1,3 +1,5 @@
+from classes.camera import Camera
+from classes.camera_screen import CameraScreen
 from classes.game_lobby import GameLobby
 from classes.game_mode_enum import GameModeEnum
 from classes.game_session import GameSession
@@ -43,6 +45,8 @@ class App:
 
         self.active_player: Player = None
 
+        self.camera_screens = pygame.sprite.Group()
+
     def on_init(self):
         pygame.init()
 
@@ -54,10 +58,8 @@ class App:
         self.setup_ui_menu()
         self.setup_floor()
         self.setup_lighting()
-        # self.setup_pool_table()
-        # self.setup_ball_gutter()
         self.setup_cue_power_bar()
-        # self.set_table_layout()
+        self.setup_camera_screen() # TODO: MOVE THIS FIX THIS
 
         self.app_is_running = True
 
@@ -77,7 +79,6 @@ class App:
     def reset_table(self):
         self.pool_table.clear_balls()
         self.pool_ball_gutter.clear_balls()
-        
 
     def set_table_layout_as_snooker(self):
         self.balls = []
@@ -404,7 +405,6 @@ class App:
         position = (self.rect.centerx, self.rect.top)
         self.players_gui = PlayersGui(size, position)
 
-
     def setup_ui_menu(self):
         display_size = self.surface.get_size()
         size = (250, display_size[1])
@@ -461,6 +461,17 @@ class App:
         draw_mode = cue_power_bar_config.cue_power_bar_draw_mode
         self.cue_power_bar = CuePowerBar(draw_mode, size, position)
         self.cue_power_bar.on_init()
+
+    def setup_camera_screen(self):
+        # size = (200, 200)
+        # position = self.rect.center
+        # camera = Camera(size, position)
+
+        # size = (200, 200)
+        # position = (size[0]/2 + 20, self.rect.height - size[1]/2 - 20)
+        # camera_screen = CameraScreen(size, position, camera)
+        # self.camera_screens.add(camera_screen)
+        pass
 
     def quit_to_menu(self):
         if self.game_session is not None:
@@ -534,6 +545,9 @@ class App:
         self.light_source.update(self.ui_layer.light_options, self.mouse_position)
         
         self.pool_table.update(self.game_session.time_lapsed, self.active_player, self.light_source)
+        for camera_screen in self.camera_screens:
+            camera_screen.update(self.surface)
+
         self.balls_are_in_motion = self.pool_table.check_balls_are_moving()
 
         if self.pool_table.cue_ball_first_hit_ball is not None and self.active_player.is_taking_shot:
@@ -590,7 +604,6 @@ class App:
             
         return True
 
-
     def create_new_game_session(self, game_mode: str):
         # TODO: End existing game session (if exists)
 
@@ -635,6 +648,8 @@ class App:
         self.pool_ball_gutter.draw(self.surface)
         self.cue_power_bar.draw(self.surface)
         self.light_source.draw(self.surface)
+        for camera_screen in self.camera_screens:
+            camera_screen.draw(self.surface)
         self.ui_layer.draw(self.surface)
         self.players_gui.draw(self.surface)
 

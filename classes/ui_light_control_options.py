@@ -1,10 +1,13 @@
 from classes.button import Button
+from classes.game_sprite import GameSprite
 from config import pygame
 from classes.draw_mode_enum import DrawModeEnum
 from globals import media_manager
 
-class UILightControlOptions():
+class UILightControlOptions(GameSprite):
     def __init__(self, draw_mode, size, position):
+        super(GameSprite, self).__init__()
+
         self.draw_mode = draw_mode
         self.position = position
         self.size = size
@@ -20,52 +23,49 @@ class UILightControlOptions():
         self.ball_RAW_color_options = []
         self.buttons_group = pygame.sprite.Group()
 
-        self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
-        self.rect = self.surface.get_rect(center=self.position)
-        self.housing_surface = self.surface.copy()
-        self.housing_RICH_surface = None
+        self.image = pygame.Surface(self.size, pygame.SRCALPHA)
+        self.rect = self.image.get_rect(center=self.position)
+
+        self.title_orig_image: pygame.Surface | None = None
+        self.housing_orig_image: pygame.Surface | None = None
+
         self.relative_mouse_position = None
         self.hovered_component = None
-        self.title_rect = None
 
         self.move_light = False
         self.light_size = 1.0
 
-    def setup_visuals(self):
-        title = self.font.render(self.title, True, self.font_color)
-        self.title_rect = title.get_rect(topleft=(self.outer_margin, 0))
+        self.setup_visuals()
+        self.setup_buttons()
+        self.redraw()
 
-        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
-            outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
-                outline_width = self.WIREFRAME_outline_width
+    def redraw(self):
+        self.image.fill((0,0,0,0))
 
-            # Housing
-            rect = self.housing_surface.get_rect(topleft=(0, self.title_rect.height))
-            pygame.draw.rect(self.housing_surface, self.housing_RAW_color, rect, outline_width)
-        elif self.draw_mode in DrawModeEnum.RICH:
-            # Housing
-            img = media_manager.get(self.housing_RICH_media)
-            size = (self.size[0], self.size[1] - self.title_rect.height)
-            self.housing_RICH_surface = pygame.transform.scale(img, size)
-            rect = self.housing_RICH_surface.get_rect(topleft=(0, self.title_rect.height))
-            self.housing_surface.blit(self.housing_RICH_surface, rect)
-
-        self.housing_surface.blit(title, self.title_rect)
+        # Title
+        title_image = self.title_orig_image
+        title_rect = title_image.get_rect(topleft=(self.outer_margin, 0))
         
-    def on_button_hover(self, button: Button):
-        self.hovered_component = button
-         
-    def on_change_light_size_button_press(self, button: Button):
-        self.light_size = self.light_size / 2
-        if self.light_size < 0.25:
-            self.light_size = 2.0
+        # Housing
+        size = (self.size[0], self.size[1] - title_rect.height)
+        housing_image = pygame.transform.scale(self.housing_orig_image, size)
+        housing_rect = housing_image.get_rect(topleft=(0, title_rect.height))
 
-    def on_move_light_button_press(self, button: Button):
-        self.move_light = button.value
-        button.value = not button.value
+        # Buttons
+        for button in self.buttons_group:
+            housing_image.blit(button.image, button.rect)
 
-    def setup_options(self):
+        self.image.blit(housing_image, housing_rect)
+        self.image.blit(title_image, title_rect)
+     
+    def setup_visuals(self):
+        self.title_orig_image = self.font.render(self.title, True, self.font_color)
+
+        if self.draw_mode in DrawModeEnum.RICH:
+            # Housing
+            self.housing_orig_image = media_manager.get(self.housing_RICH_media)
+
+    def setup_buttons(self):
         # Control light with mouse
         font_family = 'freesansbold.ttf'
         font_size = 12
@@ -93,35 +93,43 @@ class UILightControlOptions():
         position = (x, y)
         label = 'Move Light'
         
-        surface = button_surface.copy()
-        surface.fill(button_color)
+        button_image = button_surface.copy()
+        button_image.fill(button_color)
 
         text = font.render(label, True, font_color)
-        text_rect = text.get_rect(center=surface.get_rect().center)
-        surface.blit(text, text_rect)
-        rect = surface.get_rect()
+        text_rect = text.get_rect(center=button_image.get_rect().center)
+        button_image.blit(text, text_rect)
+        button_rect = button_image.get_rect()
 
         position = (x, y)
-        button = Button(surface, position, value, on_hover, on_press, on_release)
+        button = Button(button_image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(button)
 
         # Change Light Size
         label = 'Resize Light'
-        surface = button_surface.copy()
-        surface.fill(button_color)
+        button_image = button_surface.copy()
+        button_image.fill(button_color)
         text = font.render(label, True, font_color)
-        text_rect = text.get_rect(center=surface.get_rect().center)
-        surface.blit(text, text_rect)
+        text_rect = text.get_rect(center=button_image.get_rect().center)
+        button_image.blit(text, text_rect)
 
-        x = x + rect.right + self.button_spacing*2
+        x = x + button_rect.right + self.button_spacing*2
         position = (x, y)
         on_press = self.on_change_light_size_button_press
-        button = Button(surface, position, value, on_hover, on_press, on_release)
+        button = Button(button_image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(button)
 
-    def on_init(self):
-        self.setup_options()
-        self.setup_visuals()
+    def on_button_hover(self, button: Button):
+        self.hovered_component = button
+         
+    def on_change_light_size_button_press(self, button: Button):
+        self.light_size = self.light_size / 2
+        if self.light_size < 0.25:
+            self.light_size = 2.0
+
+    def on_move_light_button_press(self, button: Button):
+        self.move_light = button.value
+        button.value = not button.value
 
     def on_event(self, parent_mouse_position, event: pygame.event.Event):
         self.hovered_component = None
@@ -131,17 +139,6 @@ class UILightControlOptions():
         
         self.relative_mouse_position = (parent_mouse_position[0] - self.rect.left, parent_mouse_position[1] - self.rect.top)
         
+        relative_button_mouse_pos = (self.relative_mouse_position[0], self.relative_mouse_position[1] - self.title_height)
         for button in self.buttons_group:
-            button.on_event(self.relative_mouse_position, event)
-
-    def update(self):
-        pass
-        
-    def draw(self, surface: pygame.Surface):
-        self.surface.fill((0,0,0,0))
-
-        self.surface.blit(self.housing_surface, (0,0))
-
-        self.buttons_group.draw(self.surface)
-
-        surface.blit(self.surface, self.rect)
+            button.on_event(relative_button_mouse_pos, event)

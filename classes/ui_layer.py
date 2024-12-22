@@ -19,6 +19,8 @@ class UILayer():
         self.on_change_floor = on_change_floor
         self.on_change_ball_set = on_change_ball_set
 
+        self.components_group = pygame.sprite.Group()
+
         self.surface = pygame.Surface(size, pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=self.position)
 
@@ -29,10 +31,10 @@ class UILayer():
         self.button_size = ui_layer_config.ui_layer_options_button_size
         self.button_surface = pygame.Surface(self.button_size, pygame.SRCALPHA)
 
-        self.options_button = None
-        self.change_floor_options = None
-        self.change_balls_options = None
-        self.light_options = None
+        self.options_button: Button | None = None
+        self.change_floor_options: UIChangeFloorOptions | None = None
+        self.change_balls_options: UIChangePoolTableBallsOptions | None = None
+        self.light_options: UILightControlOptions | None = None
 
         self.is_active = False
         self.is_hovered = False
@@ -96,14 +98,14 @@ class UILayer():
         position = (size[0]/2, 100 + size[1]/2)
         draw_mode = self.draw_mode
         self.change_floor_options = UIChangeFloorOptions(draw_mode, size, position, self.on_change_floor)
-        self.change_floor_options.on_init()
+        self.components_group.add(self.change_floor_options)
 
     def setup_change_pool_table_ball_options(self):
         size = (self.rect.width, 100)
         position = (size[0]/2, self.change_floor_options.rect.bottom + 16 + size[1]/2)
         draw_mode = self.draw_mode
         self.change_balls_options = UIChangePoolTableBallsOptions(draw_mode, size, position, self.on_change_ball_set)
-        self.change_balls_options.on_init()
+        self.components_group.add(self.change_balls_options)
 
     def setup_options_button(self):
         position = self.options_button_position
@@ -113,14 +115,13 @@ class UILayer():
         draw_mode = self.draw_mode
         value = 0
         self.options_button = Button(self.button_surface, position, value, on_hover, on_press, on_release)
-        # self.options_button = Button(size, button_RAW_color, label, 0, draw_mode, position, font_family, font_size, font_color, rich_media, on_hover, on_press, media_manager)
         
     def setup_user_control_options(self):
         size = (self.rect.width, 140)
         position = (size[0]/2, self.change_balls_options.rect.bottom + 16 + size[1]/2)
         draw_mode = self.draw_mode
         self.light_options = UILightControlOptions(draw_mode, size, position)
-        self.light_options.on_init()
+        self.components_group.add(self.light_options)
 
     def on_init(self):
         self.setup_visuals()
@@ -175,9 +176,7 @@ class UILayer():
 
         if self.is_active:
             self.surface.blit(self.housing_surface, (0, 0))
-            self.change_floor_options.draw(self.surface)
-            self.change_balls_options.draw(self.surface)
-            self.light_options.draw(self.surface)
+            self.components_group.draw(self.surface)
 
         self.surface.blit(self.options_button.image, self.options_button.position)
 
