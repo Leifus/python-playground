@@ -5,5 +5,5 @@ class Player(GameSprite):
         super(GameSprite, self).__init__()
         
         self.name = name
-        
+        self.is_playing = False
     

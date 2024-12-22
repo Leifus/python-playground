@@ -1,7 +1,7 @@
 from classes.button import Button
 from classes.game_mode_enum import GameModeEnum
 from classes.game_sprite import GameSprite
-from config import pygame
+from config import pygame, random
 from globals import media_manager
 
 class GameLobby(GameSprite):
@@ -15,6 +15,14 @@ class GameLobby(GameSprite):
         self.start_new_game = False
         self.selected_game_mode: GameModeEnum = GameModeEnum.NONE
 
+        self.button_size = (200, 80)
+        self.button_gray_orig_image = None
+        self.button_green_orig_image = None
+        self.button_red_orig_image = None
+        self.button_hover_image = None
+        self.button_default_image = None
+        self.hovered_component = None
+
         self.setup_visuals()
 
     def setup_visuals(self):
@@ -27,48 +35,73 @@ class GameLobby(GameSprite):
         self.rect = self.image.get_rect(center=self.position)
 
         #Buttons
+        media = 'UI/Menu UI/spr_UI_Button_Green.png'
+        img = media_manager.get(media)
+        img = pygame.transform.scale(img, self.size)
+        self.button_green_orig_image = img
+        media = 'UI/Menu UI/spr_UI_Button_Grey.png'
+        img = media_manager.get(media)
+        img = pygame.transform.scale(img, self.size)
+        self.button_gray_orig_image = img
+        media = 'UI/Menu UI/spr_UI_Button_Red.png'
+        img = media_manager.get(media)
+        img = pygame.transform.scale(img, self.size)
+        self.button_red_orig_image = img
+
         outer_margin_x = 40
         outer_margin_y = 50
-        button_size = (200, 80)
         button_spacing = 10
-        button_surface = pygame.Surface(button_size, pygame.SRCALPHA)
+        # button_surface = pygame.Surface(button_size, pygame.SRCALPHA)
         
         row = 0
         col = 0
+        on_hover = self.on_button_hover
+        on_press = self.on_button_press
+        on_release = None
+        
+        self.button_hover_image = pygame.transform.scale(self.button_green_orig_image, self.button_size)
+        self.button_default_image = pygame.transform.scale(self.button_gray_orig_image, self.button_size)
+
         for i, game_mode in enumerate(GameModeEnum):
             if game_mode == GameModeEnum.NONE:
                 continue
 
-            x = outer_margin_x + button_size[0]*col + button_spacing + button_spacing*col
-            y = outer_margin_y + button_size[1]*row + button_spacing + button_spacing*row
+            x = outer_margin_x + self.button_size[0]*col + button_spacing + button_spacing*col
+            y = outer_margin_y + self.button_size[1]*row + button_spacing + button_spacing*row
             if x > self.size[0]:
                 col = 0
                 row += 1
             else:
                 col += 1
 
-            button_color = pygame.Color('cadetblue1')
-            font_family = 'freesansbold.ttf'
-            font_size = 20
-            font_color = pygame.Color('black')
-            font = pygame.font.Font(font_family, font_size)
             value = game_mode.name
             position = (x, y)
-            label = value
-            on_hover = self.on_button_hover
-            on_press = self.on_button_press
-            on_release = None
-            
-            surface = button_surface.copy()
-            surface.fill(button_color)
-
-            text = font.render(label, True, font_color)
-            text_rect = text.get_rect(center=surface.get_rect().center)
-            surface.blit(text, text_rect)
-
-            button = Button(surface, position, value, on_hover, on_press, on_release)
+            button = Button(self.button_default_image.copy(), position, value, on_hover, on_press, on_release)
             self.button_group.add(button)
+        
+        self.redraw()
 
+    def redraw(self):
+        for button in self.button_group:
+            if self.hovered_component is not None and button.is_hovered:
+                button.image = self.button_hover_image.copy()
+            else:
+                button.image = self.button_default_image.copy()
+
+            font_family = 'freesansbold.ttf'
+            font_size = 18
+            default_font_color = pygame.Color('white')
+            hover_font_color = pygame.Color('black')
+            font = pygame.font.Font(font_family, font_size)
+            label = button.value
+            
+            font_color = hover_font_color if button.is_hovered else default_font_color
+            text = font.render(label, True, font_color)
+            text_rect = text.get_rect(center=button.image.get_rect().center)
+            button.image.blit(text, text_rect)
+
+            self.image.blit(button.image, button.position)
+    
     def on_event(self, parent_mouse_position, event: pygame.event.Event):
         self.hovered_component = None
 
@@ -82,6 +115,7 @@ class GameLobby(GameSprite):
 
     def on_button_hover(self, button: Button):
         self.hovered_component = button
+        self.redraw()
          
     def on_button_press(self, button: Button):
         self.start_new_game = True
@@ -91,7 +125,4 @@ class GameLobby(GameSprite):
         return super().update(*args, **kwargs)
 
     def draw(self, surface: pygame.Surface):
-        for button in self.button_group:
-            self.image.blit(button.image, button.position)
-
         surface.blit(self.image, self.rect)

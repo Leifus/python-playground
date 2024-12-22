@@ -40,6 +40,8 @@ class App:
         self.game_lobby: GameLobby = None
         self.game_session: GameSession = None
 
+        self.player_shot_was_taken = False
+
     def on_init(self):
         pygame.init()
 
@@ -397,8 +399,8 @@ class App:
         self.game_lobby.is_active = True
 
     def setup_players_gui(self):
-        size = (600, 200)
-        position = self.rect.midtop
+        size = (self.rect.width/2, 200)
+        position = (self.rect.centerx, self.rect.top)
         self.players_gui = PlayersGui(size, position)
 
 
@@ -480,13 +482,16 @@ class App:
 
         self.pool_table.on_event(event)
 
-        # Hit the cue ball
-
+        # Player takes a shot
         if event.type == MOUSEBUTTONDOWN and event.button == 1:
-            if self.pool_table.cue_ball.is_in_active_play and not self.balls_are_in_motion:
-                if not self.ui_layer.is_hovered and not self.cue_power_bar.is_hovered:
-                    self.apply_force_to_ball(self.pool_table.cue_ball)
-                    self.balls_are_in_motion = True
+            if not self.ui_layer.is_hovered and not self.cue_power_bar.is_hovered:
+                if self.pool_table.cue_ball.is_in_active_play and not self.balls_are_in_motion:
+                    self.take_player_shot()
+
+    def take_player_shot(self):
+        self.apply_force_to_ball(self.pool_table.cue_ball)
+        self.balls_are_in_motion = True
+        self.player_shot_was_taken = True
 
     def apply_force_to_ball(self, ball: PoolBall):
         dx = self.mouse_position[0] - (self.pool_table.rect.x + ball.position[0])
@@ -526,6 +531,7 @@ class App:
         self.pool_ball_gutter.update()
 
         self.balls_are_in_motion = self.pool_table.check_balls_are_moving()
+        
         cue_ball = self.pool_table.cue_ball
         if not self.balls_are_in_motion and not cue_ball.is_in_active_play and not cue_ball.is_picked_up and self.cue_ball_reset_ttl is None:
             self.cue_ball_reset_ttl = time_lapsed + self.cue_ball_out_of_play_time_to_reset
@@ -535,6 +541,12 @@ class App:
             self.pool_table.free_place_cue_ball(cue_ball)
             self.cue_ball_reset_ttl = None
 
+        # Swap player
+        if self.player_shot_was_taken and not self.balls_are_in_motion:
+            self.game_session.move_to_next_player()
+            self.players_gui.redraw()
+            self.player_shot_was_taken = False
+
     def create_new_game_session(self, game_mode: str):
         # TODO: End existing game session (if exists)
 
@@ -543,6 +555,7 @@ class App:
         game_id = f'{game_mode} Game'
         self.game_session = GameSession(game_id, game_mode_enum)
         self.active_ball_set_index = 0
+        self.players_gui.setup_players(self.game_session.players)
 
         self.reset_table()   
         self.set_table_layout()
