@@ -42,7 +42,6 @@ class App:
         self.game_session: GameSession = None
 
         self.active_player: Player = None
-        self.player_shot_was_taken = False
 
     def on_init(self):
         pygame.init()
@@ -509,7 +508,7 @@ class App:
     def take_player_shot(self):
         self.apply_force_to_ball(self.pool_table.cue_ball)
         self.balls_are_in_motion = True
-        self.player_shot_was_taken = True
+        self.active_player.has_taken_shot = True
 
     def apply_force_to_ball(self, ball: PoolBall):
         dx = self.mouse_position[0] - (self.pool_table.rect.x + ball.position[0])
@@ -535,10 +534,16 @@ class App:
         self.light_source.update(self.ui_layer.light_options, self.mouse_position)
         
         self.pool_table.update(self.game_session.time_lapsed, self.active_player, self.light_source)
-
+        self.balls_are_in_motion = self.pool_table.check_balls_are_moving()
+        
         if len(self.pool_table.balls_to_remove_from_table) > 0:
             for ball in self.pool_table.balls_to_remove_from_table:
                 ball.stop_moving()
+
+                if ball == self.pool_table.cue_ball:
+                    self.active_player.has_faulted_shot = True
+
+                self.active_player.add_potted_ball(ball)
                 self.pool_table.remove_ball(ball)
                 self.pool_ball_gutter.add_ball(ball)
             
@@ -546,7 +551,6 @@ class App:
 
         self.pool_ball_gutter.update()
 
-        self.balls_are_in_motion = self.pool_table.check_balls_are_moving()
         
         cue_ball = self.pool_table.cue_ball
         if not self.balls_are_in_motion and not cue_ball.is_in_active_play and not cue_ball.is_picked_up and self.cue_ball_reset_ttl is None:
@@ -556,16 +560,20 @@ class App:
             self.pool_ball_gutter.remove_ball(cue_ball)
             self.pool_table.free_place_cue_ball(cue_ball)
             self.cue_ball_reset_ttl = None
+        
+        if self.cue_ball_reset_ttl is None:
+            if self.active_player.has_taken_shot and not self.balls_are_in_motion:
+                self.active_player.has_taken_shot = False
+                
+                if self.active_player.has_faulted_shot or len(self.active_player.balls_potted_this_shot) == 0:
+                    self.active_player.end_turn()
+                    next_player = self.game_session.move_to_next_player()
+                    self.active_player = next_player
+                    self.active_player.can_take_shot = True
+                    self.players_gui.redraw()
 
-        # Player Turn End Check
-        # TODO: MOVE THIS TO THE PLAYER
-        if self.player_shot_was_taken and not self.balls_are_in_motion:
-            next_player = self.game_session.move_to_next_player()
-            # This will work ok for local multi-turn play
-            self.active_player = next_player
-            self.active_player.can_take_shot = True
-            self.players_gui.redraw()
-            self.player_shot_was_taken = False
+                self.active_player.balls_potted_this_shot.empty()
+                
 
     def create_new_game_session(self, game_mode: str):
         # TODO: End existing game session (if exists)
@@ -582,7 +590,6 @@ class App:
 
         self.setup_pool_table()
         self.setup_ball_gutter()
-        # self.reset_table()   
         self.set_table_layout()
 
     def update(self):
