@@ -10,7 +10,7 @@ from classes.shadow import Shadow
 from classes.pool_ball import PoolBall
 from classes.pool_table_cushion import PoolTableCushion
 from classes.pool_table_pocket import PoolTablePocket
-from classes.draw_mode import DrawMode
+from classes.draw_mode_enum import DrawModeEnum
 from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
 from globals import media_manager, sound_manager
 
@@ -94,16 +94,16 @@ class PoolTable(pygame.sprite.Sprite):
 
         
     def setup_visuals(self):
-        if self.draw_mode in DrawMode.WIREFRAME | DrawMode.RAW:
+        if self.draw_mode in DrawModeEnum.WIREFRAME | DrawModeEnum.RAW:
             outline_width = 0
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 outline_width = self.WIREFRAME_outline_width
 
             # Table
             rect = pygame.Rect(0, 0, self.rect.width, self.rect.height)
             pygame.draw.rect(self.table_surface, self.raw_color, rect, outline_width)
 
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 color = (0,0,0)
                 draw_poly_points_around_rect(self.table_surface, rect, color, self.WIREFRAME_poly_point_radius)
 
@@ -115,7 +115,7 @@ class PoolTable(pygame.sprite.Sprite):
             for position in self.chalk_dots:
                 position = (position[0], position[1])
                 pygame.draw.circle(self.table_surface, self.chalk_dot_RAW_color, position, self.chalk_dot_radius, outline_width)
-        if self.draw_mode in DrawMode.RICH:
+        if self.draw_mode in DrawModeEnum.RICH:
             # Table
             table_surface = media_manager.get(self.table_RICH_media, convert_alpha=True)
             if not table_surface:
@@ -191,7 +191,7 @@ class PoolTable(pygame.sprite.Sprite):
             # self.shadow_rect = self.shadow_surface.get_rect(midbottom=self.rect.midbottom)
             # self.shadow_surface.fill((0,0,0,100))
             
-        elif self.draw_mode in DrawMode.PHYSICS:
+        elif self.draw_mode in DrawModeEnum.PHYSICS:
             self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
         self.image = self.table_surface
@@ -664,7 +664,7 @@ class PoolTable(pygame.sprite.Sprite):
     #         self.line_of_sight.collision_type = pool_balls_config.COLLISION_TYPE_LINE_OF_SIGHT
     #         self.space.add(self.line_of_sight)
 
-    def update(self, time_lapsed, light_source: LightSource):
+    def update(self, time_lapsed, light_source: LightSource, *args, **kwargs):
         self.ball_collisions.clear()
         self.time_lapsed = time_lapsed
 
@@ -700,6 +700,7 @@ class PoolTable(pygame.sprite.Sprite):
         self.ball_group.update()
         
         # if self.cue_ball.is_picked_up:
+        return super().update(*args, **kwargs)
 
 
     def draw(self, surface: pygame.Surface, light_source: LightSource):
@@ -795,7 +796,7 @@ class PoolTable(pygame.sprite.Sprite):
 
         self.ball_group.draw(self.surface)
 
-        if self.draw_mode in DrawMode.PHYSICS:
+        if self.draw_mode in DrawModeEnum.PHYSICS:
             self.space.debug_draw(self.space_draw_options)
 
         surface.blit(self.surface, self.rect)

@@ -1,12 +1,11 @@
 from config import pygame, ui_layer_config, floor_config
-from classes.draw_mode import DrawMode
-from classes.media_manager import MediaManager
+from classes.draw_mode_enum import DrawModeEnum
 from classes.button import Button
+from globals import media_manager
 
 class UIChangeFloorOptions():
-    def __init__(self, draw_mode, size, position, on_change_floor, media_manager: MediaManager):
+    def __init__(self, draw_mode, size, position, on_change_floor):
         self.draw_mode = draw_mode
-        self.media_manager = media_manager
         self.position = position
         self.size = size
         self.on_change_floor = on_change_floor
@@ -47,9 +46,9 @@ class UIChangeFloorOptions():
         title = self.font.render(self.title, True, self.font_color)
         self.title_rect = title.get_rect(topleft=(self.outer_margin, 0))
 
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
             outline_width = 0
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 outline_width = self.WIREFRAME_outline_width
 
             # Housing
@@ -63,9 +62,9 @@ class UIChangeFloorOptions():
                 surface.fill(color)
                 self.button_surfaces.append(surface)
 
-        elif self.draw_mode in DrawMode.RICH:
+        elif self.draw_mode in DrawModeEnum.RICH:
             # Housing
-            img = self.media_manager.get(self.housing_RICH_media)
+            img = media_manager.get(self.housing_RICH_media)
             size = (self.size[0], self.size[1] - self.title_rect.height)
             self.housing_RICH_surface = pygame.transform.scale(img, size)
             rect = self.housing_RICH_surface.get_rect(topleft=(0, self.title_rect.height))
@@ -74,7 +73,7 @@ class UIChangeFloorOptions():
 
             # Buttons
             for media, scale in self.floor_DM_RICH_medias:
-                img = self.media_manager.get(media, convert=True)
+                img = media_manager.get(media, convert=True)
                 img = pygame.transform.scale(img, self.button_size)
                 self.button_surfaces.append(img)
 

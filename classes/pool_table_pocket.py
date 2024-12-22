@@ -1,6 +1,6 @@
 from config import pool_balls_config, pool_table_config, pygame, pymunk
 from classes.media_manager import MediaManager
-from classes.draw_mode import DrawMode
+from classes.draw_mode_enum import DrawModeEnum
 
 class PoolTablePocket():
     def __init__(self, position, media_manager: MediaManager):
@@ -22,13 +22,13 @@ class PoolTablePocket():
         self.shape = None
 
     def setup_visual_presentation(self):
-        if self.draw_mode in DrawMode.WIREFRAME | DrawMode.RAW:
+        if self.draw_mode in DrawModeEnum.WIREFRAME | DrawModeEnum.RAW:
             outline_width = 0
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 outline_width = self.WIREFRAME_outline_width
 
             pygame.draw.circle(self.pocket_surface, self.pocket_RAW_color, (self.radius, self.radius), self.radius, outline_width)
-        elif self.draw_mode in DrawMode.RICH:
+        elif self.draw_mode in DrawModeEnum.RICH:
             rich_surface = self.media_manager.get(self.pocket_RICH_media, convert_alpha=True)
             if not rich_surface:
                 print('No pocket img', self.pocket_RICH_media)

@@ -26,10 +26,3 @@ display_bg_color = pygame.Color('gray75')
 
 media_root_path = 'media'
 sounds_root_path = 'sounds'
-
-active_game_type_index = 0
-active_ball_set_index = 0
-game_types = [
-    'Billiards',
-    'Snooker'
-]

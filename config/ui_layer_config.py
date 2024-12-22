@@ -1,11 +1,11 @@
 from config import pygame
-from classes.draw_mode import DrawMode
+from classes.draw_mode_enum import DrawModeEnum
 
 # ----------------------------------------------------
 # FLOOR CONFIG
 # ----------------------------------------------------
 
-ui_layer_draw_mode = DrawMode.RICH
+ui_layer_draw_mode = DrawModeEnum.RICH
 ui_layer_DM_WIREFRAME_outline_width = 2
 
 ui_layer_housing_DM_RAW_color = (0, 0, 0, 100)

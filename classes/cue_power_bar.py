@@ -1,12 +1,15 @@
 from classes.button import Button
-from classes.draw_mode import DrawMode
+from classes.draw_mode_enum import DrawModeEnum
+from classes.game_sprite import GameSprite
 from config import cue_power_bar_config, pygame
 from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
 from globals import media_manager
 
 
-class CuePowerBar():
+class CuePowerBar(GameSprite):
     def __init__(self, draw_mode, size, position):
+        super(GameSprite, self).__init__()
+
         self.draw_mode = draw_mode
         self.size = size
         self.max_power = cue_power_bar_config.cue_power_bar_max_power
@@ -14,11 +17,11 @@ class CuePowerBar():
         self.power_percent = self.power / self.max_power
 
         self.position = position
-        self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
-        self.rect = self.surface.get_rect(center=self.position)
-        self.housing_surface = self.surface.copy()
-        self.housing_overlay_surface = self.surface.copy()
-        self.cue_surface = self.surface.copy()
+        self.image = pygame.Surface(self.size, pygame.SRCALPHA)
+        self.rect = self.image.get_rect(center=self.position)
+        self.housing_surface = self.image.copy()
+        self.housing_overlay_surface = self.image.copy()
+        self.cue_surface = self.image.copy()
         self.housing_RAW_color = cue_power_bar_config.cue_power_bar_DM_RAW_color
         self.cue_button_RAW_color = cue_power_bar_config.cue_power_bar_cue_button_DM_RAW_color
         self.housing_RICH_media = cue_power_bar_config.cue_power_bar_DM_RICH_media
@@ -61,16 +64,16 @@ class CuePowerBar():
         self.cue_button.position = (0, y_pos)
 
     def setup_visuals(self):
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
             outline_width = 0
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 outline_width = self.WIREFRAME_outline_width
 
             # Draw housing
             rect = pygame.Rect(0, 0, self.size[0], self.size[1])
             rect = pygame.draw.rect(self.housing_surface, self.housing_RAW_color, rect, outline_width)
 
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 color = pygame.Color('black')
                 draw_poly_points_around_rect(self.housing_surface, rect, color, self.WIREFRAME_outline_width)
 
@@ -81,14 +84,14 @@ class CuePowerBar():
             rect = pygame.Rect(left_pos, 0, width, self.size[1] - 10)
             rect = pygame.draw.rect(self.cue_surface, self.cue_button_RAW_color, rect, outline_width)
             
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 color = pygame.Color('black')
                 draw_poly_points_around_rect(self.cue_surface, rect, color, self.WIREFRAME_outline_width, offset=(left_pos,0))
             
             # position = (self.rect.width/2 - rect.width/2, 6)
             # self.cue_surface.blit(self.cue_RICH_surface, position)
             
-        elif self.draw_mode in DrawMode.RICH:
+        elif self.draw_mode in DrawModeEnum.RICH:
             # Housing
             img = media_manager.get(self.housing_RICH_media)
             img = pygame.transform.scale(img, self.size)
@@ -125,16 +128,17 @@ class CuePowerBar():
         self.cue_button.on_event(self.relative_mouse_position, event)
 
 
-    def update(self):
+    def update(self, *args, **kwargs):
         self.is_hovered = self.cue_button.is_hovered
+        return super().update(*args, **kwargs)
 
     def draw(self, surface: pygame.Surface):
-        self.surface.fill((0,0,0,0))
+        self.image.fill((0,0,0,0))
 
-        self.surface.blit(self.housing_surface, (0, 0))
-        self.surface.blit(self.cue_button.image, self.cue_button.position)
-        self.surface.blit(self.housing_overlay_surface, (0, 0))
+        self.image.blit(self.housing_surface, (0, 0))
+        self.image.blit(self.cue_button.image, self.cue_button.position)
+        self.image.blit(self.housing_overlay_surface, (0, 0))
 
-        surface.blit(self.surface, self.rect)
+        surface.blit(self.image, self.rect)
         
     

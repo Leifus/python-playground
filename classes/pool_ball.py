@@ -1,12 +1,13 @@
 from config import pool_balls_config, pygame, pymunk, math
-
-from classes.draw_mode import DrawMode
-from classes.__helpers__ import aspect_scale
 from globals import media_manager
 
-class PoolBall(pygame.sprite.Sprite):
+from classes.draw_mode_enum import DrawModeEnum
+from classes.__helpers__ import aspect_scale
+from classes.game_sprite import GameSprite
+
+class PoolBall(GameSprite):
     def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media):
-        pygame.sprite.Sprite.__init__(self)
+        super(GameSprite, self).__init__()
         
         self.draw_mode = pool_balls_config.pool_ball_draw_mode
         self.mass = mass
@@ -30,8 +31,6 @@ class PoolBall(pygame.sprite.Sprite):
         self.is_in_active_play = False
         self.is_picked_up = False
 
-        self.image = None
-        self.mask = None
         self.surface = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=(self.radius,self.radius))
         self.ball_surface = self.surface.copy()
@@ -39,13 +38,13 @@ class PoolBall(pygame.sprite.Sprite):
         self.z_distance_from_floor = 0.01
 
     def setup_visuals(self):
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
             outline_width = 0
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 outline_width = self.WIREFRAME_outline_width
 
             pygame.draw.circle(self.ball_surface, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
-        elif self.draw_mode in DrawMode.RICH:
+        elif self.draw_mode in DrawModeEnum.RICH:
             # Ball
             self.orig_image = media_manager.get(self.ball_RICH_media)
             if not self.orig_image:
@@ -90,7 +89,7 @@ class PoolBall(pygame.sprite.Sprite):
         self.ball_surface = self.image
         self.z_distance_from_floor = 1.0
 
-    def update(self):
+    def update(self, *args, **kwargs):
         if not self.is_picked_up:
             self.angle = self.body.angle
             self.position = self.body.position
@@ -109,6 +108,8 @@ class PoolBall(pygame.sprite.Sprite):
         #     self.is_moving = False
         # else:
         #     self.is_moving = True
+        
+        return super().update(*args, **kwargs)
 
 
 

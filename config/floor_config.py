@@ -1,11 +1,11 @@
 from config import pygame
-from classes.draw_mode import DrawMode
+from classes.draw_mode_enum import DrawModeEnum
 
 # ----------------------------------------------------
 # FLOOR CONFIG
 # ----------------------------------------------------
 
-floor_draw_mode = DrawMode.RICH
+floor_draw_mode = DrawModeEnum.RICH
 floor_DM_WIREFRAME_thickness = 5
 floor_DM_WIREFRAME_poly_point_radius = 5
 floor_DM_active_idx = 0

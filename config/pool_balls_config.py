@@ -1,5 +1,5 @@
 from config import pygame
-from classes.draw_mode import DrawMode
+from classes.draw_mode_enum import DrawModeEnum
 
 # ----------------------------------------------------
 # POOL BALLS CONFIG
@@ -19,7 +19,7 @@ COLLISION_TYPE_FLOATING_BALL = 0
 # pool_ball_friction = 0.6
 pool_ball_max_force = 1000000
 
-pool_ball_draw_mode = DrawMode.RICH  # PHYSICS is treated as WIREFRAME due to space inherited from the parent
+pool_ball_draw_mode = DrawModeEnum.RICH  # PHYSICS is treated as WIREFRAME due to space inherited from the parent
 pool_ball_DM_WIREFRAME_outline_width = 2
 
 snooker_ball_sets = [

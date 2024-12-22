@@ -1,3 +1,7 @@
+from classes.game_lobby import GameLobby
+from classes.game_mode_enum import GameModeEnum
+from classes.game_session import GameSession
+from classes.players_gui import PlayersGui
 from config import *
 import config
 import config.pool_ball_gutter_config as pool_ball_gutter_config
@@ -9,7 +13,7 @@ from classes.pool_ball_gutter import PoolBallGutter
 from classes.floor import Floor
 from classes.ui_layer import UILayer
 from classes.cue_power_bar import CuePowerBar
-from classes.draw_mode import DrawMode
+from classes.draw_mode_enum import DrawModeEnum
 from classes.light_source import LightSource
 
 
@@ -17,17 +21,15 @@ class App:
     def __init__(self):
         self.surface = None
         self.rect = None
-        self.clock = None
-        self.is_running = False
-        self.pool_table = None
+        self.app_is_running = False
+        self.pool_table: PoolTable = None
         self.pool_ball_gutter = None
         self.mouse_position = None
         self.balls_are_in_motion = False
-        self.floor = None
-        self.ui_layer = None
-        self.active_game_type_index = active_game_type_index
-        self.game_types = game_types
-        self.active_ball_set_index = active_ball_set_index
+        self.floor: Floor = None
+        self.ui_layer: UILayer = None
+        self.players_gui: PlayersGui = None
+        self.active_ball_set_index = 0
 
         self.cue_power_bar = None
         self.balls = []
@@ -35,26 +37,30 @@ class App:
         self.cue_ball_out_of_play_time_to_reset = 2000
         self.cue_ball_reset_ttl = None
 
+        self.game_lobby: GameLobby = None
+        self.game_session: GameSession = None
+
     def on_init(self):
         pygame.init()
 
         self.surface = pygame.display.set_mode(config.display_size, config.display_flags, config.display_depth)
         self.rect = self.surface.get_rect()
-        self.clock = pygame.time.Clock()
 
+        self.setup_game_lobby()
+        self.setup_players_gui()
         self.setup_ui_menu()
         self.setup_floor()
         self.setup_lighting()
         self.setup_pool_table()
         self.setup_ball_gutter()
         self.setup_cue_power_bar()
-        self.set_table_layout()
+        # self.set_table_layout()
 
-        self.is_running = True
+        self.app_is_running = True
 
     def on_change_floor(self, selected_floor_idx=None):
         if selected_floor_idx < len(self.floor.floor_options):
-            self.floor.change_floor(selected_floor_idx)
+            self.floor.update(selected_floor_idx)
 
     def on_change_ball_set(self, selected_ball_set_idx=None):
         if self.active_ball_set_index == selected_ball_set_idx:
@@ -62,8 +68,8 @@ class App:
         
         self.active_ball_set_index = selected_ball_set_idx
         
-        self.reset_table()   
-        self.set_table_layout()     
+        self.reset_table()
+        self.set_table_layout()
 
     def reset_table(self):
         self.pool_table.clear_balls()
@@ -376,11 +382,25 @@ class App:
             self.pool_table.add_ball(ball)
 
     def set_table_layout(self):
-        game_type = self.game_types[self.active_game_type_index]
-        if game_type == 'Billiards':
+        if self.game_session is None:
+            return
+        
+        if self.game_session.game_mode == GameModeEnum.BILLIARDS:
             self.set_table_layout_as_billiards()
-        elif game_type == 'Snooker':
+        elif self.game_session.game_mode == GameModeEnum.SNOOKER:
             self.set_table_layout_as_snooker()
+
+    def setup_game_lobby(self):
+        size = (self.rect.width*0.9, self.rect.height*0.9)
+        position = self.rect.center
+        self.game_lobby = GameLobby(size, position)
+        self.game_lobby.is_active = True
+
+    def setup_players_gui(self):
+        size = (600, 200)
+        position = self.rect.midtop
+        self.players_gui = PlayersGui(size, position)
+
 
     def setup_ui_menu(self):
         display_size = self.surface.get_size()
@@ -393,9 +413,9 @@ class App:
 
     def setup_lighting(self):
         radius = 80
-        position = (self.rect.centerx-200, self.rect.centery)
+        position = (self.rect.centerx, self.rect.centery)
         z_position = 300    #distance from table in cm (ish)
-        lumens = 55  #255 max at the moment.
+        lumens = 25  #255 max at the moment.
         show_light = False
         self.light_source = LightSource(lumens, radius, position, z_position, show_light)
 
@@ -425,16 +445,34 @@ class App:
         self.cue_power_bar = CuePowerBar(draw_mode, size, position)
         self.cue_power_bar.on_init()
 
+    def quit_to_menu(self):
+        if self.game_session is not None:
+            self.game_session.is_running = False
+            #TODO: Gentle tear down (and reporting/logging)
+        
+        self.game_session = None
+        self.game_lobby.is_active = True
+
+
     def on_event(self, event: pygame.event.Event):
         if event.type == QUIT:
-            self.is_running = False
+            self.app_is_running = False
             return
         elif event.type == KEYDOWN and event.key == K_ESCAPE:
-            self.is_running = False
-            return
+            if not self.game_lobby.is_active:
+                self.quit_to_menu()
+            else:
+                self.app_is_running = False
+                return
         
         if event.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
             self.mouse_position = event.pos
+        
+        if self.game_lobby.is_active:
+            self.game_lobby.on_event(self.mouse_position, event)
+
+        if self.game_session is None or not self.game_session.is_running:
+            return
         
         self.ui_layer.on_event(event)
         if not self.ui_layer.is_active:
@@ -465,8 +503,14 @@ class App:
         volume = self.cue_power_bar.power_percent * max_volume
         sound_manager.play_sound(self.cue_hitting_ball_sound, volume)
 
-    def update(self, time_lapsed):
-        self.ui_layer.update()
+    def update_active_game_session(self):
+        if self.game_session is None or not self.game_session.is_running:
+            return
+
+        self.game_session.update()
+        time_lapsed = self.game_session.time_lapsed
+        self.players_gui.update()
+        self.ui_layer.update(self.game_session.game_mode)
         self.cue_power_bar.update()
         self.light_source.update(self.ui_layer.light_options, self.mouse_position)
         self.pool_table.update(time_lapsed, self.light_source)
@@ -491,22 +535,56 @@ class App:
             self.pool_table.free_place_cue_ball(cue_ball)
             self.cue_ball_reset_ttl = None
 
-        if self.ui_layer.hovered_component is not None or (self.cue_power_bar.is_hovered and not self.ui_layer.is_active):
+    def create_new_game_session(self, game_mode: str):
+        # TODO: End existing game session (if exists)
+
+        # Create new game and session
+        game_mode_enum = GameModeEnum[game_mode]
+        game_id = f'{game_mode} Game'
+        self.game_session = GameSession(game_id, game_mode_enum)
+        self.active_ball_set_index = 0
+
+        self.reset_table()   
+        self.set_table_layout()
+
+    def update(self):
+        self.game_lobby.update()
+        if self.game_lobby.is_active:
+            if self.game_session is not None:
+                self.game_session.is_running = False    #Force this for now
+
+            if self.game_lobby.start_new_game:
+                self.game_lobby.start_new_game = False
+                self.create_new_game_session(self.game_lobby.selected_game_mode)
+                self.game_lobby.is_active = False
+                self.game_lobby.hovered_component = None
+                self.game_session.is_running = True
+
+        self.update_active_game_session()
+
+        if self.game_lobby.hovered_component is not None or self.ui_layer.hovered_component is not None or (self.cue_power_bar.is_hovered and not self.ui_layer.is_active):
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
         else:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
-    def draw(self):
-        bg_fill = config.display_bg_color
-        self.surface.fill(bg_fill)
-        
+    def draw_running_game(self):
         self.floor.draw(self.surface)
         self.pool_table.draw(self.surface, self.light_source)
         self.pool_ball_gutter.draw(self.surface)
         self.cue_power_bar.draw(self.surface)
         self.light_source.draw(self.surface)
-
         self.ui_layer.draw(self.surface)
+        self.players_gui.draw(self.surface)
+
+    def draw(self):
+        bg_fill = config.display_bg_color
+        self.surface.fill(bg_fill)
+
+        if self.game_lobby.is_active:
+            self.game_lobby.draw(self.surface)
+                    
+        if self.game_session is not None and self.game_session.is_running:
+            self.draw_running_game()
 
         pygame.display.update()
  
@@ -515,18 +593,25 @@ class App:
 
     def on_execute(self):
         if self.on_init() == False:
-            self.is_running = False
+            self.app_is_running = False
  
-        while( self.is_running ):
+        pygame.display.set_caption("Pwl Arcade")
+
+        while( self.app_is_running ):
             for event in pygame.event.get():
                 self.on_event(event)
 
-            time_lapsed = pygame.time.get_ticks()
-            self.update(time_lapsed)
+            self.update()
             self.draw()
+
+            # if self.game_session is not None:
+            #     self.game_session.update()
+
+            # time_lapsed = pygame.time.get_ticks()
+            # self.update(time_lapsed)
             
-            self.clock.tick(config.time_fps)
-            pygame.display.set_caption(f"Pool Table: {round(self.clock.get_fps(),3)} fps | {round(time_lapsed / 1000)} secs")
+            # self.clock.tick(config.time_fps)
+            # pygame.display.set_caption(f"Pool Table: {round(self.clock.get_fps(),3)} fps | {round(time_lapsed / 1000)} secs")
 
         self.on_cleanup()
 

@@ -1,6 +1,7 @@
+from classes.game_mode_enum import GameModeEnum
 from classes.ui_light_control_options import UILightControlOptions
 from config import pygame, ui_layer_config
-from classes.draw_mode import DrawMode
+from classes.draw_mode_enum import DrawModeEnum
 from classes.button import Button
 from classes.ui_change_floor_options import UIChangeFloorOptions
 from classes.ui_change_pool_table_balls_options import UIChangePoolTableBallsOptions
@@ -39,9 +40,9 @@ class UILayer():
         self.hovered_component = None
 
     def setup_visuals(self):
-        if self.draw_mode in DrawMode.RAW | DrawMode.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
             outline_width = 0
-            if self.draw_mode in DrawMode.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.WIREFRAME:
                 outline_width = self.WIREFRAME_outline_width
 
             # Housing
@@ -61,7 +62,7 @@ class UILayer():
             self.button_surface.blit(text, text_rect)
 
 
-        elif self.draw_mode in DrawMode.RICH:
+        elif self.draw_mode in DrawModeEnum.RICH:
             # Housing
             housing = media_manager.get(self.housing_RICH_media, convert_alpha=True)
             if not housing:
@@ -94,14 +95,14 @@ class UILayer():
         size = (self.rect.width, 80)
         position = (size[0]/2, 100 + size[1]/2)
         draw_mode = self.draw_mode
-        self.change_floor_options = UIChangeFloorOptions(draw_mode, size, position, self.on_change_floor, media_manager)
+        self.change_floor_options = UIChangeFloorOptions(draw_mode, size, position, self.on_change_floor)
         self.change_floor_options.on_init()
 
     def setup_change_pool_table_ball_options(self):
         size = (self.rect.width, 100)
         position = (size[0]/2, self.change_floor_options.rect.bottom + 16 + size[1]/2)
         draw_mode = self.draw_mode
-        self.change_balls_options = UIChangePoolTableBallsOptions(draw_mode, size, position, self.on_change_ball_set, media_manager)
+        self.change_balls_options = UIChangePoolTableBallsOptions(draw_mode, size, position, self.on_change_ball_set)
         self.change_balls_options.on_init()
 
     def setup_options_button(self):
@@ -160,13 +161,13 @@ class UILayer():
     def toggle_ui_layer(self):
         self.is_active = not self.is_active
 
-    def update(self):
+    def update(self, game_mode: GameModeEnum):
         self.options_button.update()
         if not self.is_active:
             return
         
         self.change_floor_options.update()
-        self.change_balls_options.update()
+        self.change_balls_options.update(game_mode)
         self.light_options.update()
 
     def draw(self, surface: pygame.Surface):

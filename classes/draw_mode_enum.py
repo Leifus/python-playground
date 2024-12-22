@@ -1,6 +1,6 @@
 from enum import Flag, auto
 
-class DrawMode(Flag):
+class DrawModeEnum(Flag):
     WIREFRAME = auto()
     RAW = auto()
     RICH = auto()
