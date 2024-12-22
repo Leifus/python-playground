@@ -1,5 +1,6 @@
 from classes.__helpers__ import aspect_scale
-from config import pygame
+from classes.player import Player
+from config import pygame, Dict
 from classes.game_sprite import GameSprite
 from globals import media_manager
 
@@ -9,7 +10,7 @@ class PlayersGui(GameSprite):
 
         self.size = size
         self.position = position
-        self.players = []
+        self.players: Dict[str, Player] = dict()
         self.player_surfaces = []
         self.image = pygame.Surface(self.size, pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=self.position)
@@ -37,7 +38,7 @@ class PlayersGui(GameSprite):
         self.player_avatar_orig_image = aspect_scale(img, self.size)
 
 
-    def setup_players(self, players):
+    def setup_players(self, players: Dict[str, Player]):
         self.players = players
         self.redraw()
 
@@ -47,13 +48,15 @@ class PlayersGui(GameSprite):
     def redraw(self):
         self.image.fill((0,0,0,0))
 
+        player_ids = self.players.keys()
         avatar_size = (38, 38)
         player_gui_spacing = 30
-        player_gui_width = (self.rect.width - avatar_size[0]/2 - player_gui_spacing) / len(self.players)
+        player_gui_width = (self.rect.width - avatar_size[0]/2 - player_gui_spacing) / len(player_ids)
         player_gui_height = 50
 
-        for i, player in enumerate(self.players):
+        for i, player_id in enumerate(player_ids):
             player_iter = i+1
+            player = self.players[player_id]
 
              # Player Overlay
             size = (player_gui_width, player_gui_height)

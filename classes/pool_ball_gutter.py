@@ -1,13 +1,16 @@
+from classes.game_space_config import GameSpaceConfig
 from config import pygame, pymunk, pool_ball_gutter_config
-import config
 from classes.pool_ball import PoolBall
 from classes.draw_mode_enum import DrawModeEnum
 from classes.media_manager import MediaManager
 from classes.__helpers__ import draw_poly_points_around_rect
 from globals import media_manager
 
-class PoolBallGutter():
-    def __init__(self, position):
+class PoolBallGutter(pygame.sprite.Sprite):
+    def __init__(self, position, space_config: GameSpaceConfig):
+        pygame.sprite.Sprite.__init__(self)
+        
+        self.space_config: GameSpaceConfig = space_config
         self.draw_mode = pool_ball_gutter_config.pool_ball_gutter_draw_mode
         self.size = pool_ball_gutter_config.pool_ball_gutter_size
         self.gutter_RAW_color = pool_ball_gutter_config.pool_ball_gutter_DM_RAW_color
@@ -149,12 +152,12 @@ class PoolBallGutter():
         self.space.add(ball.shape.body, ball.shape)
         self.ball_group.add(ball)
 
-
-    def update(self):
-        for _ in range(config.time_dt_steps):
-            self.space.step(config.time_dt / config.time_dt_steps)
+    def update(self, *args, **kwargs):
+        for _ in range(self.space_config.dt_steps):
+            self.space.step(self.space_config.dt / self.space_config.dt_steps)
 
         self.ball_group.update()
+        return super().update(*args, **kwargs)
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))

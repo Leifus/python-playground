@@ -1,6 +1,7 @@
 from classes.game_lobby import GameLobby
 from classes.game_mode_enum import GameModeEnum
 from classes.game_session import GameSession
+from classes.player import Player
 from classes.players_gui import PlayersGui
 from config import *
 import config
@@ -40,6 +41,7 @@ class App:
         self.game_lobby: GameLobby = None
         self.game_session: GameSession = None
 
+        self.active_player: Player = None
         self.player_shot_was_taken = False
 
     def on_init(self):
@@ -53,8 +55,8 @@ class App:
         self.setup_ui_menu()
         self.setup_floor()
         self.setup_lighting()
-        self.setup_pool_table()
-        self.setup_ball_gutter()
+        # self.setup_pool_table()
+        # self.setup_ball_gutter()
         self.setup_cue_power_bar()
         # self.set_table_layout()
 
@@ -426,18 +428,32 @@ class App:
         self.floor.on_init()
 
     def setup_pool_table(self):
+        if self.game_session is None or self.game_session.game_mode is GameModeEnum.NONE:
+            print('CANT SETUP POOL TABLE: NO GAMESESSION SET')
+            return
+        
+        if self.pool_table is not None:
+            self.pool_table = self.pool_table.kill()
+        
         surface_size = self.surface.get_size()
         position = (surface_size[0]/2, surface_size[1]/2)
-        self.pool_table = PoolTable(position)
+        self.pool_table = PoolTable(position, self.game_session.game_mode_config.space_config)
         self.pool_table.on_init()
 
     def setup_ball_gutter(self):
+        if self.game_session is None or self.game_session.game_mode is GameModeEnum.NONE:
+            print('CANT SETUP POOL BALL GUTTER: NO GAMESESSION SET')
+            return
+        
+        if self.pool_ball_gutter is not None:
+            self.pool_ball_gutter = self.pool_ball_gutter.kill()
+
         size = pool_ball_gutter_config.pool_ball_gutter_size
         x_buffer = 0
         y_buffer = 40
 
         position = (self.pool_table.rect.right - size[0]/2 - x_buffer, self.pool_table.rect.bottom + size[1]/2 + y_buffer)
-        self.pool_ball_gutter = PoolBallGutter(position)
+        self.pool_ball_gutter = PoolBallGutter(position, self.game_session.game_mode_config.space_config)
         self.pool_ball_gutter.on_init()
 
     def setup_cue_power_bar(self):
@@ -476,7 +492,9 @@ class App:
         if self.game_session is None or not self.game_session.is_running:
             return
         
+        self.game_session.on_event(event)
         self.ui_layer.on_event(event)
+        
         if not self.ui_layer.is_active:
             self.cue_power_bar.on_event(event)
 
@@ -509,16 +527,14 @@ class App:
         sound_manager.play_sound(self.cue_hitting_ball_sound, volume)
 
     def update_active_game_session(self):
-        if self.game_session is None or not self.game_session.is_running:
-            return
-
         self.game_session.update()
         time_lapsed = self.game_session.time_lapsed
         self.players_gui.update()
         self.ui_layer.update(self.game_session.game_mode)
         self.cue_power_bar.update()
         self.light_source.update(self.ui_layer.light_options, self.mouse_position)
-        self.pool_table.update(time_lapsed, self.light_source)
+        
+        self.pool_table.update(self.game_session.time_lapsed, self.active_player, self.light_source)
 
         if len(self.pool_table.balls_to_remove_from_table) > 0:
             for ball in self.pool_table.balls_to_remove_from_table:
@@ -541,9 +557,13 @@ class App:
             self.pool_table.free_place_cue_ball(cue_ball)
             self.cue_ball_reset_ttl = None
 
-        # Swap player
+        # Player Turn End Check
+        # TODO: MOVE THIS TO THE PLAYER
         if self.player_shot_was_taken and not self.balls_are_in_motion:
-            self.game_session.move_to_next_player()
+            next_player = self.game_session.move_to_next_player()
+            # This will work ok for local multi-turn play
+            self.active_player = next_player
+            self.active_player.can_take_shot = True
             self.players_gui.redraw()
             self.player_shot_was_taken = False
 
@@ -555,9 +575,14 @@ class App:
         game_id = f'{game_mode} Game'
         self.game_session = GameSession(game_id, game_mode_enum)
         self.active_ball_set_index = 0
+        self.active_player = self.game_session.get_first_player()
+        self.game_session.set_active_player(self.active_player)
         self.players_gui.setup_players(self.game_session.players)
+        self.active_player.can_take_shot = True
 
-        self.reset_table()   
+        self.setup_pool_table()
+        self.setup_ball_gutter()
+        # self.reset_table()   
         self.set_table_layout()
 
     def update(self):
@@ -573,7 +598,8 @@ class App:
                 self.game_lobby.hovered_component = None
                 self.game_session.is_running = True
 
-        self.update_active_game_session()
+        if self.game_session is not None and self.game_session.is_running:
+            self.update_active_game_session()
 
         if self.game_lobby.hovered_component is not None or self.ui_layer.hovered_component is not None or (self.cue_power_bar.is_hovered and not self.ui_layer.is_active):
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)

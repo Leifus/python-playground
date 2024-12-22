@@ -1,9 +1,8 @@
-from turtle import left
-
-from pygame import Vector2
+from classes.game_session import GameSession
+from classes.game_space_config import GameSpaceConfig
+from classes.player import Player
 from config import pygame, pymunk, pool_table_config, pool_balls_config, random, math
 from pygame.locals import *
-import config
 
 from classes.light_source import LightSource
 from classes.shadow import Shadow
@@ -15,16 +14,12 @@ from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
 from globals import media_manager, sound_manager
 
 class PoolTable(pygame.sprite.Sprite):
-    def __init__(self, position):
+    def __init__(self, position, space_config: GameSpaceConfig):
         pygame.sprite.Sprite.__init__(self)
 
         self.draw_mode = pool_table_config.pool_table_draw_mode
         self.raw_color = pool_table_config.pool_table_DM_RAW_color
         self.size = pool_table_config.pool_table_size
-        self.space_iterations = pool_table_config.pool_table_space_iterations
-        self.space_gravity = pool_table_config.pool_table_space_gravity
-        self.space_damping = pool_table_config.pool_table_space_damping
-        self.space_sleep_time_threshold = pool_table_config.pool_table_space_sleep_time_threshold
         self.WIREFRAME_outline_width = pool_table_config.pool_table_DM_WIREFRAME_outline_width
         self.WIREFRAME_poly_point_radius = pool_table_config.pool_table_DM_WIREFRAME_poly_point_radius
         self.chalk_line_RAW_color = pool_table_config.pool_table_chalk_line_DM_RAW_color
@@ -35,6 +30,8 @@ class PoolTable(pygame.sprite.Sprite):
         self.chalk_line_RICH_media = pool_table_config.pool_table_chalk_line_DM_RICH_media
         self.chalk_dot_RICH_media = pool_table_config.pool_table_chalk_dot_DM_RICH_media
         self.chalk_dot_radius = pool_table_config.pool_table_chalk_dot_radius
+        
+        self.space_config: GameSpaceConfig = space_config
         self.position = position
         self.width = self.size[0]
         self.height = self.size[1]
@@ -91,8 +88,6 @@ class PoolTable(pygame.sprite.Sprite):
         self.mask: pygame.mask.Mask = None
         self.light_source_overlap_mask: pygame.mask.Mask = None
 
-
-        
     def setup_visuals(self):
         if self.draw_mode in DrawModeEnum.WIREFRAME | DrawModeEnum.RAW:
             outline_width = 0
@@ -199,10 +194,10 @@ class PoolTable(pygame.sprite.Sprite):
 
     def setup_physical_space(self):
         self.space = pymunk.Space()
-        self.space.iterations = self.space_iterations
-        self.space.gravity = self.space_gravity
-        self.space.damping = self.space_damping
-        self.space.sleep_time_threshold = self.space_sleep_time_threshold
+        self.space.iterations = self.space_config.iterations
+        self.space.gravity = self.space_config.gravity
+        self.space.damping = self.space_config.damping
+        self.space.sleep_time_threshold = self.space_config.sleep_time_threshold
 
         for i, _ in enumerate(self.cushions):
             _.on_init(self.space, i)
@@ -503,7 +498,7 @@ class PoolTable(pygame.sprite.Sprite):
         # ball.filter = pymunk.ShapeFilter()
         self.cue_ball = ball
 
-    def ray_cast_ball_path(self):
+    def ray_cast_ball_path_to_mouse_position(self):
         if not self.relative_mouse_position or not self.cue_ball:       #bit lame but better than no check
             return
         
@@ -664,15 +659,19 @@ class PoolTable(pygame.sprite.Sprite):
     #         self.line_of_sight.collision_type = pool_balls_config.COLLISION_TYPE_LINE_OF_SIGHT
     #         self.space.add(self.line_of_sight)
 
-    def update(self, time_lapsed, light_source: LightSource, *args, **kwargs):
+    def update(self, time_lapsed, player: Player, light_source: LightSource, *args, **kwargs):
         self.ball_collisions.clear()
         self.time_lapsed = time_lapsed
 
-        for _ in range(config.time_dt_steps):
-            self.space.step(config.time_dt / config.time_dt_steps)
+        for _ in range(self.space_config.dt_steps):
+            self.space.step(self.space_config.dt / self.space_config.dt_steps)
         
         self.shadow_group.update(self.rect.topleft, light_source)
-        self.ray_cast_ball_path()
+        
+        if player.can_take_shot:
+            if self.relative_mouse_position and self.cue_ball:       #bit lame but better than no check
+                self.ray_cast_ball_path_to_mouse_position()
+        
         # self.hit_point, self.hit_shape, self.rays = self.get_ball_raycast()
         # self.find_physical_line_of_sight_collision()
 

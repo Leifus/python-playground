@@ -5,6 +5,7 @@ import pymunk.pygame_util
 import random
 import math
 import os
+from typing import Dict
 
 from config import pool_balls_config
 
@@ -13,10 +14,6 @@ from config import pool_balls_config
 # :: MAIN CONFIG ::
 # ----------------------------
 
-# Time Config
-time_fps = 60
-time_dt = 1.0 / 60
-time_dt_steps = 3
 
 # Display Config
 display_size = (1400, 800)
