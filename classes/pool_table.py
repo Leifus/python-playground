@@ -1,4 +1,3 @@
-from classes.game_session import GameSession
 from classes.game_space_config import GameSpaceConfig
 from classes.player import Player
 from config import pygame, pymunk, pool_table_config, pool_balls_config, random, math
@@ -78,15 +77,14 @@ class PoolTable(pygame.sprite.Sprite):
         self.ball_collisions = dict()
         self.time_lapsed = 0
         
-        self.shadow_group = pygame.sprite.Group()
-        # self.shadows = []
-        self.shadow_orig_image = None
-        # self.shadow_surface = None
-        # self.shadow_rect = None
+        self.shadow_group: pygame.sprite.Group = pygame.sprite.Group()
+        self.shadow_orig_image: pygame.Surface = None
         
         #TODO: Implement types better everywhere!
         self.mask: pygame.mask.Mask = None
         self.light_source_overlap_mask: pygame.mask.Mask = None
+
+        self.cue_ball_first_hit_ball = None
 
     def setup_visuals(self):
         if self.draw_mode in DrawModeEnum.WIREFRAME | DrawModeEnum.RAW:
@@ -382,7 +380,21 @@ class PoolTable(pygame.sprite.Sprite):
         self.ball_group.empty()
         self.shadow_group.empty()
 
+    def get_ball_by_shape(self, shape: pymunk.Shape):
+        for ball in self.ball_group:
+            if ball.shape == shape:
+                return ball
+            
+        return None
+
     def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
+        ball_0 = arbiter.shapes[0]
+        ball_1 = arbiter.shapes[1]
+
+        if self.cue_ball_first_hit_ball is None and self.cue_ball.shape in arbiter.shapes:
+            other_ball = ball_0 if self.cue_ball.shape == ball_0 else ball_1
+            self.cue_ball_first_hit_ball = self.get_ball_by_shape(other_ball)
+
         # shape0 = arbiter.shapes[0]
         # initial_force = 700000      #TODO: Resolve where this is set and gotten
         # impact = arbiter.total_impulse / initial_force

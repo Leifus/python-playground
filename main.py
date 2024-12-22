@@ -415,10 +415,10 @@ class App:
         self.ui_layer.on_init()
 
     def setup_lighting(self):
-        radius = 80
+        radius = 40
         position = (self.rect.centerx, self.rect.centery)
         z_position = 300    #distance from table in cm (ish)
-        lumens = 25  #255 max at the moment.
+        lumens = 32  #255 max at the moment.
         show_light = False
         self.light_source = LightSource(lumens, radius, position, z_position, show_light)
 
@@ -508,7 +508,7 @@ class App:
     def take_player_shot(self):
         self.apply_force_to_ball(self.pool_table.cue_ball)
         self.balls_are_in_motion = True
-        self.active_player.has_taken_shot = True
+        self.active_player.is_taking_shot = True
 
     def apply_force_to_ball(self, ball: PoolBall):
         dx = self.mouse_position[0] - (self.pool_table.rect.x + ball.position[0])
@@ -535,13 +535,13 @@ class App:
         
         self.pool_table.update(self.game_session.time_lapsed, self.active_player, self.light_source)
         self.balls_are_in_motion = self.pool_table.check_balls_are_moving()
-        
-        if len(self.pool_table.balls_to_remove_from_table) > 0:
+
+        if self.pool_table.cue_ball_first_hit_ball is not None and self.active_player.is_taking_shot:
+            self.active_player.first_contact = self.pool_table.cue_ball_first_hit_ball
+
+        if len(self.pool_table.balls_to_remove_from_table) > 0: # Balls potted
             for ball in self.pool_table.balls_to_remove_from_table:
                 ball.stop_moving()
-
-                if ball == self.pool_table.cue_ball:
-                    self.active_player.has_faulted_shot = True
 
                 self.active_player.add_potted_ball(ball)
                 self.pool_table.remove_ball(ball)
@@ -550,7 +550,6 @@ class App:
             self.pool_table.balls_to_remove_from_table = []
 
         self.pool_ball_gutter.update()
-
         
         cue_ball = self.pool_table.cue_ball
         if not self.balls_are_in_motion and not cue_ball.is_in_active_play and not cue_ball.is_picked_up and self.cue_ball_reset_ttl is None:
@@ -561,19 +560,36 @@ class App:
             self.pool_table.free_place_cue_ball(cue_ball)
             self.cue_ball_reset_ttl = None
         
-        if self.cue_ball_reset_ttl is None:
-            if self.active_player.has_taken_shot and not self.balls_are_in_motion:
-                self.active_player.has_taken_shot = False
-                
-                if self.active_player.has_faulted_shot or len(self.active_player.balls_potted_this_shot) == 0:
-                    self.active_player.end_turn()
-                    next_player = self.game_session.move_to_next_player()
-                    self.active_player = next_player
-                    self.active_player.can_take_shot = True
-                    self.players_gui.redraw()
+        if self.cue_ball_reset_ttl is None: # No wait timer
+            if not self.balls_are_in_motion: # No moving balls
+                if self.active_player.is_taking_shot: # Player has taken shot
+                    if self.active_player.first_contact is None: # No cue ball hit
+                        self.active_player.has_faulted_shot = True
+                    
+                    if not self.check_potted_balls_are_player_friendly():
+                        self.active_player.has_faulted_shot = True
 
-                self.active_player.balls_potted_this_shot.empty()
+                    if self.active_player.has_faulted_shot or len(self.active_player.balls_potted_this_shot) == 0:
+                        self.active_player.end_turn()
+                        next_player = self.game_session.move_to_next_player()
+                        self.active_player = next_player
+                        self.active_player.can_take_shot = True
+                        self.players_gui.redraw()
+
+                    self.active_player.end_shot()
+                    self.pool_table.cue_ball_first_hit_ball = None
                 
+    def check_potted_balls_are_player_friendly(self):
+        disallowed_balls = [
+            self.pool_table.cue_ball
+        ]
+
+        for ball in self.active_player.balls_potted:
+            if ball in disallowed_balls:
+                return False
+            
+        return True
+
 
     def create_new_game_session(self, game_mode: str):
         # TODO: End existing game session (if exists)
