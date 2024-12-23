@@ -506,13 +506,14 @@ class App:
         if not self.ui_layer.is_active:
             self.cue_power_bar.on_event(event)
 
-        self.pool_table.on_event(event)
-
         # Player takes a shot
         if event.type == MOUSEBUTTONDOWN and event.button == 1:
             if not self.ui_layer.is_hovered and not self.cue_power_bar.is_hovered:
-                if self.pool_table.cue_ball.is_in_active_play and not self.balls_are_in_motion:
+                if self.pool_table.cue_ball.is_in_active_play and not self.pool_table.cue_ball.is_picked_up and not self.balls_are_in_motion:
                     self.take_player_shot()
+
+        self.pool_table.on_event(event)
+
 
     def take_player_shot(self):
         self.apply_force_to_ball(self.pool_table.cue_ball)
@@ -530,7 +531,7 @@ class App:
         force_y = force_magnitude * math.sin(angle - ball.angle)
         
         ball.set_force_at_point((force_x, force_y))
-        max_volume = 0.3    #hack for my cheap sounds
+        max_volume = 0.3    #HACK: For quietening my cheap sounds
         volume = self.cue_power_bar.power_percent * max_volume
         sound_manager.play_sound(self.cue_hitting_ball_sound, volume)
 
@@ -563,7 +564,7 @@ class App:
         print('changing ball mass', ball.identifier, mass)
 
     def spawn_random_hole(self):
-        radius = random.uniform(10, 30)
+        radius = random.uniform(10, 60)
         rand_x = random.uniform(radius/2, self.pool_table.rect.width - radius/2)
         rand_y = random.uniform(radius/2, self.pool_table.rect.height - radius/2)
         position = (rand_x, rand_y)
@@ -693,10 +694,29 @@ class App:
         if self.game_session is not None and self.game_session.is_running:
             self.update_active_game_session()
 
-        if self.game_lobby.hovered_component is not None or self.ui_layer.hovered_component is not None or (self.cue_power_bar.is_hovered and not self.ui_layer.is_active):
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-        else:
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        current_mouse_cursor = pygame.mouse.get_cursor()
+        new_mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
+        mouse_cursor_checks = [
+            self.game_lobby.hovered_component is not None,
+            self.ui_layer.hovered_component is not None,
+            self.cue_power_bar.is_hovered and not self.ui_layer.is_active,
+            self.game_session is not None and self.game_session.is_running and self.pool_table.cue_ball.is_picked_up
+        ]
+
+        for check in mouse_cursor_checks:
+            if check:
+                new_mouse_cursor = pygame.SYSTEM_CURSOR_HAND
+                break
+
+
+        # if mouse_cursor_checks == True:
+        #     # if self.game_lobby.hovered_component is not None or self.ui_layer.hovered_component is not None or (self.cue_power_bar.is_hovered and not self.ui_layer.is_active):
+        #     new_mouse_cursor = pygame.SYSTEM_CURSOR_HAND
+        # else:
+        #     new_mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
+
+        if new_mouse_cursor != current_mouse_cursor:
+            pygame.mouse.set_cursor(new_mouse_cursor)
 
     def draw_running_game(self):
         self.floor.draw(self.surface)

@@ -372,7 +372,8 @@ class PoolTable(pygame.sprite.Sprite):
     def update_ball(self, ball: PoolBall):
         orig_ball = None
         for _ in self.ball_group:
-            if _.identifier == ball.identifier:
+            #TODO: Make this better / Use a dict
+            if _._identifier == ball._identifier:
                 orig_ball = _
                 break
         
@@ -412,7 +413,7 @@ class PoolTable(pygame.sprite.Sprite):
         #TODO: Handle multi-step collision.. yes no?
 
         # Make collision sound        
-        base_volume = 1.0
+        base_volume = 0.8
         volume = base_volume
         if arbiter.is_first_contact:
             ball_0_ke = ball_shape_0.body.kinetic_energy
@@ -495,6 +496,12 @@ class PoolTable(pygame.sprite.Sprite):
         # check if we're hovering over a ball
         # self.check_for_hovered_ball()
 
+        if event.type == MOUSEBUTTONDOWN:
+            buttons_pressed = pygame.mouse.get_pressed()
+
+            if buttons_pressed[0] and self.cue_ball.is_picked_up:
+                self.cue_ball.drop_ball()
+
         # if event.type == MOUSEBUTTONDOWN: #and button checks
         #     if self.hovered_ball is not None:
         #         self.selected_ball = self.hovered_ball
@@ -502,6 +509,7 @@ class PoolTable(pygame.sprite.Sprite):
     def free_place_cue_ball(self, ball: PoolBall):
         print('free_place_cue_ball')
         self.add_ball(ball)
+        ball.is_in_active_play = True
         self.cue_ball.pick_up_ball()
 
     def remove_ball(self, ball: PoolBall):
@@ -523,10 +531,7 @@ class PoolTable(pygame.sprite.Sprite):
         # ball.filter = pymunk.ShapeFilter()
         self.cue_ball = ball
 
-    def ray_cast_ball_path_to_mouse_position(self):
-        if not self.relative_mouse_position or not self.cue_ball:       #bit lame but better than no check
-            return
-        
+    def ray_cast_ball_path_to_mouse_position(self):        
         ball = self.cue_ball
 
         # The plan here is to cast two paths from either side of the ball in the direction toward the angle of the mouse.
@@ -690,8 +695,9 @@ class PoolTable(pygame.sprite.Sprite):
         
         self.shadow_group.update(self.rect.topleft, light_source)
         
+        self.rays = []
         if player.can_take_shot:
-            if self.relative_mouse_position and self.cue_ball:       #bit lame but better than no check
+            if self.relative_mouse_position and self.cue_ball and not self.cue_ball.is_picked_up:
                 self.ray_cast_ball_path_to_mouse_position()
         
         # self.hit_point, self.hit_shape, self.rays = self.get_ball_raycast()
@@ -748,7 +754,7 @@ class PoolTable(pygame.sprite.Sprite):
         # Cast shadows
         self.shadow_group.draw(self.surface)
 
-        if not self.check_balls_are_moving() and self.cue_ball.is_in_active_play:
+        if not self.check_balls_are_moving() and self.cue_ball.is_in_active_play and not self.cue_ball.is_picked_up:
             # Cast rays from cue ball
             for ray_start, ray_end in self.rays:
                 pygame.draw.line(self.surface, pygame.Color('blue'), ray_start, ray_end, 1)

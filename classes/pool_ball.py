@@ -1,4 +1,4 @@
-from config import pool_balls_config, pygame, pymunk
+from config import pool_balls_config, pygame, pymunk, random
 from globals import media_manager
 
 from classes.draw_mode_enum import DrawModeEnum
@@ -6,9 +6,13 @@ from classes.__helpers__ import aspect_scale
 from classes.game_sprite import GameSprite
 
 class PoolBall(GameSprite):
-    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media):
+    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media):        
         super(GameSprite, self).__init__()
-        
+
+        #TODO: REPLACE THIS FOR BETTER UID type
+        #TODO: Move to super
+        self._identifier: float = random.random()
+
         self.draw_mode = pool_balls_config.pool_ball_draw_mode
         self.mass = mass
         self.shape_elasticity = elasticity
@@ -26,6 +30,9 @@ class PoolBall(GameSprite):
         self.mask: pygame.mask.Mask | None = None
         self.rect: pygame.Rect | None = None
 
+        self.base_scale_factor = 1.0
+        self.scale_factor = self.base_scale_factor
+        
         self.identifier = identifier
 
         self.angle = 0
@@ -36,7 +43,8 @@ class PoolBall(GameSprite):
         self.is_in_active_play = False
         self.is_picked_up = False
 
-        self.z_distance_from_floor = 0.01
+        self.base_z_distance_from_floor = 0.01
+        self.z_distance_from_floor = self.base_z_distance_from_floor
 
         self.setup_visuals()
         self.construct_physical_body()
@@ -44,7 +52,7 @@ class PoolBall(GameSprite):
 
     def redraw(self):
         orig_rect = self.orig_image.get_rect()
-        image_radius = self.radius*2
+        image_radius = self.radius*2 * self.scale_factor
         if self.image is None or orig_rect.width != image_radius:
             self.image = pygame.transform.scale(self.orig_image, (image_radius, image_radius))
             self.rect = self.image.get_rect(center=(self.radius, self.radius))
@@ -87,11 +95,12 @@ class PoolBall(GameSprite):
         space = self.body.space
         if space is not None:
             space.remove(self.body, self.shape)
+            space.step(1)
             self.construct_physical_body()
             space.add(self.body, self.shape)
+            space.step(1)
         else:
             self.construct_physical_body()
-
 
     def set_mass(self, mass):
         self.mass = mass
@@ -119,18 +128,21 @@ class PoolBall(GameSprite):
     def stop_moving(self):
         self.body.velocity = (0,0)
 
-    # def on_init(self, body_iter):
-    #     self.setup_visuals()
-    #     self.setup_physical_body(body_iter)
+    def drop_ball(self):
+        self.stop_moving()
+        self.is_picked_up = False
+        self.shape.sensor = False
+        self.scale_factor = self.base_scale_factor
+        self.z_distance_from_floor = self.base_z_distance_from_floor
+        self.redraw()
 
     def pick_up_ball(self):
         self.stop_moving()
         self.is_picked_up = True
         self.shape.sensor = True
-        scale = 2.1
-        self.image = aspect_scale(self.orig_image, (self.radius*scale, self.radius*scale))
-        self.ball_surface = self.image
-        self.z_distance_from_floor = 1.0
+        self.scale_factor = 1.1
+        self.z_distance_from_floor = 0.1
+        self.redraw()
 
     def update(self, *args, **kwargs):
         if not self.is_picked_up:

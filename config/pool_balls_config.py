@@ -27,9 +27,9 @@ snooker_ball_sets = [
         'Standard', # title/Label
         13,  # ball radius
         'balls/coloured_balls', # media folder
-        8,     # ball mass
-        0.8,    # ball elasticity
-        0.9,     # ball friction
+        6,     # ball mass
+        0.7,    # ball elasticity
+        0.2,     # ball friction
     ]
 ]
 
@@ -40,8 +40,8 @@ billiard_ball_sets = [
         False,    # use ball identifer as media file name
         'balls/coloured_balls', # media folder
         6,     # ball mass
-        0.8,    # ball elasticity
-        0.9,     # ball friction
+        0.7,    # ball elasticity
+        0.2,     # ball friction
         (pygame.Color('ivory'), 'white.png'),      # cue ball
         (pygame.Color('black'), 'black.png'),      # 8 ball
         (pygame.Color('yellow2'), 'yellow.png'), # spot ball
@@ -53,8 +53,8 @@ billiard_ball_sets = [
         True,    # use ball identifer as media file name
         'balls/numbered_balls', # media folder
         6,     # ball mass
-        0.8,    # ball elasticity
-        0.9,     # ball friction
+        0.7,    # ball elasticity
+        0.2,     # ball friction
         (pygame.Color('ivory'), None),      # cue ball
         (pygame.Color('black'), None),      # 8 ball
         (pygame.Color('yellow2'), None), # spot ball

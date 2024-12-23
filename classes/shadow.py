@@ -14,7 +14,7 @@ class Shadow(pygame.sprite.Sprite):
         # height_scale = 0.5
         # width_scale = 0.5
         self.orig_size = (mask_rect.width, mask_rect.height)
-        self.image = pygame.transform.scale(self.orig_image, self.orig_size)
+        self.image = pygame.transform.smoothscale(self.orig_image, self.orig_size)
         self.image.set_alpha(self.alpha)
         self.parent_obj = parent_obj
         self.rect = self.image.get_rect()
