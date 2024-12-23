@@ -79,7 +79,7 @@ class UIChangePoolTableBallsOptions(GameSprite):
     def setup_visuals(self):
         self.title_orig_image = self.font.render(self.title, True, self.font_color)
 
-        if self.draw_mode in DrawModeEnum.RICH:
+        if self.draw_mode in DrawModeEnum.Rich:
             # Housing
             self.housing_orig_image = media_manager.get(self.housing_RICH_media)
 
@@ -161,9 +161,9 @@ class UIChangePoolTableBallsOptions(GameSprite):
     def update_game_mode(self, game_mode: GameModeEnum):
         self.game_mode = game_mode
 
-        if self.game_mode is GameModeEnum.BILLIARDS:
+        if self.game_mode is GameModeEnum.Billiards:
             self.ball_sets = pool_balls_config.billiard_ball_sets
-        elif self.game_mode is GameModeEnum.SNOOKER:
+        elif self.game_mode is GameModeEnum.Snooker:
             self.ball_sets = pool_balls_config.snooker_ball_sets
 
         self.recreate_buttons()

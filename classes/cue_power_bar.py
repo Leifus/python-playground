@@ -64,16 +64,16 @@ class CuePowerBar(GameSprite):
         self.cue_button.position = (0, y_pos)
 
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
             outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
             # Draw housing
             rect = pygame.Rect(0, 0, self.size[0], self.size[1])
             rect = pygame.draw.rect(self.housing_surface, self.housing_RAW_color, rect, outline_width)
 
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 color = pygame.Color('black')
                 draw_poly_points_around_rect(self.housing_surface, rect, color, self.WIREFRAME_outline_width)
 
@@ -84,14 +84,14 @@ class CuePowerBar(GameSprite):
             rect = pygame.Rect(left_pos, 0, width, self.size[1] - 10)
             rect = pygame.draw.rect(self.cue_surface, self.cue_button_RAW_color, rect, outline_width)
             
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 color = pygame.Color('black')
                 draw_poly_points_around_rect(self.cue_surface, rect, color, self.WIREFRAME_outline_width, offset=(left_pos,0))
             
             # position = (self.rect.width/2 - rect.width/2, 6)
             # self.cue_surface.blit(self.cue_RICH_surface, position)
             
-        elif self.draw_mode in DrawModeEnum.RICH:
+        elif self.draw_mode in DrawModeEnum.Rich:
             # Housing
             img = media_manager.get(self.housing_RICH_media)
             img = pygame.transform.scale(img, self.size)

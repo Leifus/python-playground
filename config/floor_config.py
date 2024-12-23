@@ -5,7 +5,7 @@ from classes.draw_mode_enum import DrawModeEnum
 # FLOOR CONFIG
 # ----------------------------------------------------
 
-floor_draw_mode = DrawModeEnum.RICH
+floor_draw_mode = DrawModeEnum.Rich
 floor_DM_WIREFRAME_thickness = 5
 floor_DM_WIREFRAME_poly_point_radius = 5
 floor_DM_active_idx = 0

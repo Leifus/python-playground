@@ -20,9 +20,11 @@ class LightSource(pygame.sprite.Sprite):
         self.mask = None
         self.image = None
         self.lumens = lumens
+        self.base_lumens = lumens
         self.alpha = lumens/2
 
-        self.light_size = 1.0
+        self.light_size_scale = 1.0
+        self.light_strength_scale = 1.0
 
         self.setup_visuals()
 
@@ -36,12 +38,16 @@ class LightSource(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
         
     def update(self, light_options: UILightControlOptions, mouse_position, *args, **kwargs):
-        if light_options.light_size != self.light_size:
-            self.light_size = light_options.light_size
-            self.radius = self.base_radius * self.light_size
+        if light_options.light_size_scale != self.light_size_scale:
+            self.light_size_scale = light_options.light_size_scale
+            self.radius = self.base_radius * self.light_size_scale
             self.image = pygame.transform.scale(self.orig_image, (self.radius*2, self.radius*2))
             self.mask = pygame.mask.from_surface(self.image)
             self.rect = self.image.get_rect(center=self.position)
+
+        if light_options.light_strength_scale != self.light_strength_scale:
+            self.light_strength_scale = light_options.light_strength_scale
+            self.lumens = self.base_lumens * self.light_strength_scale
 
         if light_options.move_light:
             self.position = mouse_position

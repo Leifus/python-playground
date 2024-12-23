@@ -14,7 +14,7 @@ pool_ball_gutter_space_gravity = (780, 980)
 pool_ball_gutter_space_damping = 0.98
 pool_ball_gutter_space_sleep_time_threshold = 0.1 #math.inf
 
-pool_ball_gutter_draw_mode = DrawModeEnum.RICH
+pool_ball_gutter_draw_mode = DrawModeEnum.Rich
 pool_ball_gutter_DM_WIREFRAME_outline_width = 3
 pool_ball_gutter_DM_WIREFRAME_poly_point_radius = 2
 

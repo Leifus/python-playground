@@ -1,6 +1,6 @@
 from classes.game_space_config import GameSpaceConfig
 from classes.player import Player
-from config import pygame, pymunk, pool_table_config, pool_balls_config, random, math
+from config import pygame, pymunk, pool_table_config, pool_balls_config, random, math, Dict
 from pygame.locals import *
 
 from classes.light_source import LightSource
@@ -38,8 +38,10 @@ class PoolTable(pygame.sprite.Sprite):
         self.space = None
         self.space_draw_options = None
         
-        self.pockets = []
+        self.pockets_group = pygame.sprite.Group()
         self.cushions = []
+        self.pockets_by_shape: Dict[pymunk.Shape, PoolTablePocket] = dict()
+        self.balls_by_shape: Dict[pymunk.Shape, PoolBall] = dict()
         self.ball_group = pygame.sprite.Group()
         self.cue_ball = None
         self.relative_mouse_position = None
@@ -63,6 +65,7 @@ class PoolTable(pygame.sprite.Sprite):
         self.chalk_line_positions = []
         self.chalk_dots = []
         
+        self.pockets = []
         self.setup_pockets()
         self.setup_cushions()
         self.setup_table_chalk_line_positions()
@@ -78,25 +81,23 @@ class PoolTable(pygame.sprite.Sprite):
         self.time_lapsed = 0
         
         self.shadow_group: pygame.sprite.Group = pygame.sprite.Group()
-        self.shadow_orig_image: pygame.Surface = None
         
-        #TODO: Implement types better everywhere!
         self.mask: pygame.mask.Mask = None
         self.light_source_overlap_mask: pygame.mask.Mask = None
 
         self.cue_ball_first_hit_ball = None
 
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.WIREFRAME | DrawModeEnum.RAW:
+        if self.draw_mode in DrawModeEnum.Wireframe | DrawModeEnum.Raw:
             outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
             # Table
             rect = pygame.Rect(0, 0, self.rect.width, self.rect.height)
             pygame.draw.rect(self.table_surface, self.raw_color, rect, outline_width)
 
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 color = (0,0,0)
                 draw_poly_points_around_rect(self.table_surface, rect, color, self.WIREFRAME_poly_point_radius)
 
@@ -108,7 +109,7 @@ class PoolTable(pygame.sprite.Sprite):
             for position in self.chalk_dots:
                 position = (position[0], position[1])
                 pygame.draw.circle(self.table_surface, self.chalk_dot_RAW_color, position, self.chalk_dot_radius, outline_width)
-        if self.draw_mode in DrawModeEnum.RICH:
+        if self.draw_mode in DrawModeEnum.Rich:
             # Table
             table_surface = media_manager.get(self.table_RICH_media, convert_alpha=True)
             if not table_surface:
@@ -172,19 +173,7 @@ class PoolTable(pygame.sprite.Sprite):
                     self.table_surface.blit(decal_surface, rect)
 
             
-            # Ball Shadow
-            media = 'balls/ball_shadow.png'
-            max_size = (100, 100)
-            image = media_manager.get(media, convert_alpha=True)
-            image.set_alpha(150)
-            self.shadow_orig_image = aspect_scale(image, max_size)
-
-            # size = (100, 10)
-            # self.shadow_surface = pygame.transform.scale(self.shadow_orig_image, size)
-            # self.shadow_rect = self.shadow_surface.get_rect(midbottom=self.rect.midbottom)
-            # self.shadow_surface.fill((0,0,0,100))
-            
-        elif self.draw_mode in DrawModeEnum.PHYSICS:
+        elif self.draw_mode in DrawModeEnum.Physics:
             self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
         self.image = self.table_surface
@@ -197,19 +186,20 @@ class PoolTable(pygame.sprite.Sprite):
         self.space.damping = self.space_config.damping
         self.space.sleep_time_threshold = self.space_config.sleep_time_threshold
 
+        bodies_to_add = []
+        shapes_to_add = []
+
         for i, _ in enumerate(self.cushions):
             _.on_init(self.space, i)
 
-        for i, _ in enumerate(self.pockets):
-            _.on_init(self.space, i)
-        
+        for i, pocket in enumerate(self.pockets_group):
+            bodies_to_add.append(pocket.body)
+            shapes_to_add.append(pocket.shape)
+            self.pockets_by_shape[pocket.shape] = pocket
 
-        
-        # # SHOULD ONLY NEED TO SET THIS UP ONCE I WOULD HAVE THOUGHT...BUT THATS NOT SEEMINGLY SO CLEAR-CUT!
-        # # MEETHINkS THIS IS A ME SITUATION - I HAVE CUSTOM BALL COLLISION TYPES...
-        # # Check for what shapes have collided with the LOS
-        # handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_LINE_OF_SIGHT)
-        # handler.pre_solve = self.line_of_sight_collision_handler
+
+        self.space.add(*bodies_to_add)
+        self.space.add(*shapes_to_add)
 
         self.setup_physical_collision_handlers()
 
@@ -218,7 +208,6 @@ class PoolTable(pygame.sprite.Sprite):
         handler.post_solve = self.on_ball_post_solve_collide_with_ball
         self.handlers.append(handler)
         
-        # for pocket in self.pockets:
         handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET)
         handler.pre_solve = self.on_ball_collide_with_pocket
         handler.separate = self.on_ball_separate_from_pocket
@@ -240,35 +229,40 @@ class PoolTable(pygame.sprite.Sprite):
     def setup_pockets(self):
         radius = pool_table_config.pool_table_pocket_radius
 
+        pockets = []
+        
         #top left
         position = (0, 0)
-        pocket = PoolTablePocket(position, media_manager)
-        self.pockets.append(pocket)
+        pocket = PoolTablePocket(position, radius)
+        pockets.append(pocket)
 
         #top mid
         position = (self.width/2, -radius/2)
-        pocket = PoolTablePocket(position, media_manager)
-        self.pockets.append(pocket)
+        pocket = PoolTablePocket(position, radius)
+        pockets.append(pocket)
 
         #top right
         position = (self.width, 0)
-        pocket = PoolTablePocket(position, media_manager)
-        self.pockets.append(pocket)
+        pocket = PoolTablePocket(position, radius)
+        pockets.append(pocket)
 
         #bottom right
         position = (self.width, self.height)
-        pocket = PoolTablePocket(position, media_manager)
-        self.pockets.append(pocket)
+        pocket = PoolTablePocket(position, radius)
+        pockets.append(pocket)
 
         #bottom mid
         position = (self.width/2, self.height + (radius/2))
-        pocket = PoolTablePocket(position, media_manager)
-        self.pockets.append(pocket)
+        pocket = PoolTablePocket(position, radius)
+        pockets.append(pocket)
 
         #bottom left
         position = (0, self.height)
-        pocket = PoolTablePocket(position, media_manager)
-        self.pockets.append(pocket)
+        pocket = PoolTablePocket(position, radius)
+        pockets.append(pocket)
+
+        for pocket in pockets:
+            self.pockets_group.add(pocket)
 
     def setup_cushions(self):
         pocket_radius = pool_table_config.pool_table_pocket_radius
@@ -360,32 +354,52 @@ class PoolTable(pygame.sprite.Sprite):
         self.setup_visuals()
         self.setup_physical_space()
 
-    def add_ball(self, ball: PoolBall):
+    def add_pocket(self, pocket: PoolTablePocket):
+        self.pockets_by_shape[pocket.shape] = pocket
+        self.pockets_group.add(pocket)
+        self.space.add(pocket.body, pocket.shape)
+
+    def add_ball(self, ball: PoolBall, ball_is_in_play=False):
         self.space.add(ball.body, ball.shape)
         self.ball_group.add(ball)
+        self.balls_by_shape[ball.shape] = ball
         
+        ball.is_in_active_play = ball_is_in_play
+
         shadow = Shadow(ball)
         self.shadow_group.add(shadow)
 
-        # shadow_surface = self.shadow_orig_image.copy()
-        # size = (ball.radius*3.5, ball.radius*1.5)
-        # shadow_surface = pygame.transform.scale(self.shadow_orig_image, size)
-        # # shadow_rect = shadow_surface.get_rect(midbottom=ball.rect.midbottom)
-        # shadow_surface.fill((0,0,0,100))
-        # self.shadows.append(shadow_surface)
+    def update_ball(self, ball: PoolBall):
+        orig_ball = None
+        for _ in self.ball_group:
+            if _.identifier == ball.identifier:
+                orig_ball = _
+                break
+        
+        if orig_ball is None:
+            return
+    
+        self.ball_group.remove(orig_ball)
+        self.ball_group.add(ball)
+        self.balls_by_shape[ball.shape] = ball
+
+        orig_shadow = None
+        for _ in self.shadow_group:
+            if _.parent_obj == orig_ball:
+                orig_shadow = _
+                break
+        
+        if orig_shadow is not None:
+            self.shadow_group.remove(orig_shadow)
+            shadow = Shadow(ball)
+            self.shadow_group.add(shadow)
 
     def clear_balls(self):
         for ball in self.ball_group:
             self.space.remove(ball.shape.body, ball.shape)
-        self.ball_group.empty()
         self.shadow_group.empty()
-
-    def get_ball_by_shape(self, shape: pymunk.Shape):
-        for ball in self.ball_group:
-            if ball.shape == shape:
-                return ball
-            
-        return None
+        self.balls_by_shape.clear()
+        self.ball_group.empty()
 
     def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         ball_0 = arbiter.shapes[0]
@@ -393,7 +407,8 @@ class PoolTable(pygame.sprite.Sprite):
 
         if self.cue_ball_first_hit_ball is None and self.cue_ball.shape in arbiter.shapes:
             other_ball = ball_0 if self.cue_ball.shape == ball_0 else ball_1
-            self.cue_ball_first_hit_ball = self.get_ball_by_shape(other_ball)
+            self.cue_ball_first_hit_ball = self.balls_by_shape.get(other_ball)
+
 
         # shape0 = arbiter.shapes[0]
         # initial_force = 700000      #TODO: Resolve where this is set and gotten
@@ -410,8 +425,10 @@ class PoolTable(pygame.sprite.Sprite):
 
     def on_ball_collide_with_pocket(self, arbiter: pymunk.Arbiter, space, data):
         ball_shape = arbiter.shapes[0]
+        pocket_shape = arbiter.shapes[1]
 
         #This is to handle multiple space stepping before resolving any game changes made.
+        # and its probably a bad way to do this.
         collision_handled = self.ball_collisions.get(arbiter.shapes)
         if collision_handled:
             return False
@@ -421,50 +438,25 @@ class PoolTable(pygame.sprite.Sprite):
         distance = 0 - arbiter.contact_point_set.points[0].distance
         buffer = 2
 
-        ball = None
-        for _ in self.ball_group:
-            if _.shape == ball_shape:
-                ball = _
-                break
+        #TODO: Handle the velocity of the ball.. would it travel past or fall in?
+        # ... could we make a real hole or is this too much? Likely, the simple calculations (hah) would be fine..
 
-        if ball:
-            if distance > ball.radius + buffer: #ball has fallen into the pocket
-                ball.stop_moving()
-                self.balls_to_remove_from_table.append(ball)
-                return False
+        ball = self.balls_by_shape.get(ball_shape)
+        pocket = self.pockets_by_shape.get(pocket_shape)
+        if ball and pocket:
+            if pocket.radius > ball.radius: # Pocket is big enough to consume ball
+                if distance > ball.radius + buffer: #ball has fallen 'enough' into the pocket
+                    ball.stop_moving()
+                    self.balls_to_remove_from_table.append(ball)
+                    return False
         else:
-            print('_!!_ UNHANDLED: PoolTable.on_ball_collide_with_pocket: NO BALL')
+            print('_!!_ UNHANDLED: PoolTable.on_ball_collide_with_pocket: NO BALL OR POCKET', ball, pocket)
 
         return True
 
     def on_ball_separate_from_pocket(self, arbiter: pymunk.Arbiter, space, data):
         return True
     
-    # def check_for_hovered_ball(self):
-    #     hovered_ball = None
-    #     max_distance = 3
-    #     hit = self.space.point_query_nearest(self.relative_mouse_position, max_distance, pymunk.ShapeFilter())
-    #     if hit is not None:
-    #         if hit.shape.collision_type >= pool_balls_config.COLLISION_TYPE_POOL_BALL:
-    #             idx = hit.shape.collision_type - pool_balls_config.COLLISION_TYPE_POOL_BALL
-    #             ball = self.balls[idx]
-    #             if not ball.is_moving:
-    #                 hovered_ball = ball
-
-    #     if hovered_ball is None:
-    #         if self.hovered_ball is not None:
-    #             self.hovered_ball.highlight_position(show=False)
-    #             self.hovered_ball = None
-            
-    #         return
-        
-    #     if hovered_ball != self.hovered_ball:
-    #         if self.hovered_ball is not None:
-    #             self.hovered_ball.highlight_position(show=False)
-
-    #         self.hovered_ball = hovered_ball
-    #         self.hovered_ball.highlight_position(show=True)
-
     def check_balls_are_moving(self):
         margin = 0.1
         for _ in self.ball_group:
@@ -490,11 +482,14 @@ class PoolTable(pygame.sprite.Sprite):
         #         self.selected_ball = self.hovered_ball
 
     def free_place_cue_ball(self, ball: PoolBall):
+        print('free_place_cue_ball')
         self.add_ball(ball)
         self.cue_ball.pick_up_ball()
 
     def remove_ball(self, ball: PoolBall):
         self.ball_group.remove(ball)
+        del self.balls_by_shape[ball.shape]
+
         shadow = None
         for _ in self.shadow_group:
             if _.parent_obj is ball:
@@ -547,9 +542,6 @@ class PoolTable(pygame.sprite.Sprite):
             (left_point, (left_point[0] + end_x, left_point[1] + end_y)),
             (right_point, (right_point[0] + end_x, right_point[1] + end_y))
         ]
-        
-
-
 
     # def get_ball_raycast(self):
     #     if not self.relative_mouse_position or not self.cue_ball:       #bit lame but better than no check
@@ -687,8 +679,7 @@ class PoolTable(pygame.sprite.Sprite):
         # self.hit_point, self.hit_shape, self.rays = self.get_ball_raycast()
         # self.find_physical_line_of_sight_collision()
 
-        for _ in self.pockets:
-            _.update()
+        self.pockets_group.update()
 
         for _ in self.cushions:
             _.update()
@@ -712,7 +703,6 @@ class PoolTable(pygame.sprite.Sprite):
         
         # if self.cue_ball.is_picked_up:
         return super().update(*args, **kwargs)
-
 
     def draw(self, surface: pygame.Surface, light_source: LightSource):
         self.surface.fill((0,0,0,0))
@@ -799,15 +789,14 @@ class PoolTable(pygame.sprite.Sprite):
         #         pygame.draw.circle(self.surface, color, position, radius, outline)
             
 
-        for _ in self.pockets:
-            _.draw(self.surface)
+        self.pockets_group.draw(self.surface)
             
         for _ in self.cushions:
             _.draw(self.surface)
 
         self.ball_group.draw(self.surface)
 
-        if self.draw_mode in DrawModeEnum.PHYSICS:
+        if self.draw_mode in DrawModeEnum.Physics:
             self.space.debug_draw(self.space_draw_options)
 
         surface.blit(self.surface, self.rect)

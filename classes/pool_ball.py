@@ -1,4 +1,4 @@
-from config import pool_balls_config, pygame, pymunk, math
+from config import pool_balls_config, pygame, pymunk
 from globals import media_manager
 
 from classes.draw_mode_enum import DrawModeEnum
@@ -21,6 +21,11 @@ class PoolBall(GameSprite):
         self.shape_collision_type = pool_balls_config.COLLISION_TYPE_POOL_BALL
         self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
 
+        self.image: pygame.Surface | None = None
+        self.orig_image: pygame.Surface | None = None
+        self.mask: pygame.mask.Mask | None = None
+        self.rect: pygame.Rect | None = None
+
         self.identifier = identifier
 
         self.angle = 0
@@ -31,35 +36,40 @@ class PoolBall(GameSprite):
         self.is_in_active_play = False
         self.is_picked_up = False
 
-        self.surface = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
-        self.rect = self.surface.get_rect(center=(self.radius,self.radius))
-        self.ball_surface = self.surface.copy()
-        self.orig_image = None
         self.z_distance_from_floor = 0.01
 
+        self.setup_visuals()
+        self.construct_physical_body()
+        self.redraw()
+
+    def redraw(self):
+        orig_rect = self.orig_image.get_rect()
+        image_radius = self.radius*2
+        if self.image is None or orig_rect.width != image_radius:
+            self.image = pygame.transform.scale(self.orig_image, (image_radius, image_radius))
+            self.rect = self.image.get_rect(center=(self.radius, self.radius))
+            self.mask = pygame.mask.from_surface(self.image)
+
+        if self.mask is None:
+            self.mask = pygame.mask.from_surface(self.image)
+
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
+            # Ball
             outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
-            pygame.draw.circle(self.ball_surface, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
-        elif self.draw_mode in DrawModeEnum.RICH:
+            self.orig_image = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
+            pygame.draw.circle(self.orig_image, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
+        elif self.draw_mode in DrawModeEnum.Rich:
             # Ball
             self.orig_image = media_manager.get(self.ball_RICH_media)
             if not self.orig_image:
                 print('No pool ball img:', self.ball_RICH_media)
                 return
-            
-            self.image = pygame.transform.scale(self.orig_image, (self.radius*2, self.radius*2))
-            # self.image.set_alpha(50)
-            # self.image.set_colorkey((0,0,0))
-            # self.ball_surface.blit(self.image, (0, 0))
 
-        #TODO: FiX for working with wireframe/RAW
-        self.mask = pygame.mask.from_surface(self.image)
-
-    def setup_physical_body(self, body_iter):
+    def construct_physical_body(self):
         inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
         self.body = pymunk.Body(self.mass, inertia)
         self.body.position = self.position
@@ -73,12 +83,45 @@ class PoolBall(GameSprite):
         self.shape.elasticity = self.shape_elasticity
         self.shape.friction = self.shape_friction
 
+    def reconstruct_physical_body(self):
+        space = self.body.space
+        if space is not None:
+            space.remove(self.body, self.shape)
+            self.construct_physical_body()
+            space.add(self.body, self.shape)
+        else:
+            self.construct_physical_body()
+
+
+    def set_mass(self, mass):
+        self.mass = mass
+
+        # TODO: Maybe reuse construct_physical_body
+        # What about the inertia moment? Does this need changing?
+        self.body.mass = mass
+        inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
+        self.body.moment = inertia
+
+    def set_radius(self, radius):
+        self.radius = radius
+        
+        self.reconstruct_physical_body()
+        self.redraw()
+
+        # TODO: Maybe reuse construct_physical_body
+        # TODO: FINSIH tHIS!!!
+        # self.body.space.
+        # pymunk.
+
+        # TODO: FINSIH tHIS!!!
+        # self.redraw()
+
     def stop_moving(self):
         self.body.velocity = (0,0)
 
-    def on_init(self, body_iter):
-        self.setup_visuals()
-        self.setup_physical_body(body_iter)
+    # def on_init(self, body_iter):
+    #     self.setup_visuals()
+    #     self.setup_physical_body(body_iter)
 
     def pick_up_ball(self):
         self.stop_moving()
@@ -96,7 +139,7 @@ class PoolBall(GameSprite):
         elif self.is_picked_up:
             self.body.position = self.position  #Wont collide if its a sensor
         
-        self.rect = self.surface.get_rect(center=self.position)
+        self.rect = self.image.get_rect(center=self.position)
         
         #TODO: Consider the 'is_moving' again - am I checking already for this?
         # stop_force_margin = 3
@@ -110,12 +153,6 @@ class PoolBall(GameSprite):
         #     self.is_moving = True
         
         return super().update(*args, **kwargs)
-
-
-
-    # def highlight_position(self, show=True):
-    #     self.is_highlighted = show
-    #     self._draw()
 
     def set_force_at_point(self, force):
         #TODO: IF using max force, then apply at SCALE, fixing the ratio!!

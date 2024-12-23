@@ -1,10 +1,11 @@
 from classes.button import Button
 from classes.game_sprite import GameSprite
+from classes.in_game_event_enum import InGameEventEnum
 from config import pygame
 from classes.draw_mode_enum import DrawModeEnum
 from globals import media_manager
 
-class UILightControlOptions(GameSprite):
+class UIInGameEventOptions(GameSprite):
     def __init__(self, draw_mode, size, position):
         super(GameSprite, self).__init__()
 
@@ -18,7 +19,7 @@ class UILightControlOptions(GameSprite):
         self.button_spacing = 5
         self.font = pygame.font.Font('freesansbold.ttf', 16)
         self.font_color = pygame.Color('white')
-        self.title = 'Light Settings'
+        self.title = 'Game Events'
         self.title_height = 18
         self.ball_RAW_color_options = []
         self.buttons_group = pygame.sprite.Group()
@@ -32,9 +33,7 @@ class UILightControlOptions(GameSprite):
         self.relative_mouse_position = None
         self.hovered_component = None
 
-        self.move_light = False
-        self.light_size_scale = 1.0
-        self.light_strength_scale = 1.0
+        self.selected_game_event: InGameEventEnum = InGameEventEnum.NONE
 
         self.setup_visuals()
         self.setup_buttons()
@@ -73,82 +72,50 @@ class UILightControlOptions(GameSprite):
         font_color = pygame.Color('black')
         font = pygame.font.Font(font_family, font_size)
 
-        row = 0
-        col = 0
         on_hover = self.on_button_hover
-        on_press = self.on_move_light_button_press
+        on_press = self.on_button_press
         on_release = None
         button_color = pygame.Color('white')
         
-        button_size = (60, 30)
+        button_size = (80, 30)
         button_surface = pygame.Surface(button_size, pygame.SRCALPHA)
-        x = self.outer_margin + button_size[0]*col + self.button_spacing + self.button_spacing*col
-        y = self.title_height + self.outer_margin + button_size[1]*row + self.button_spacing + self.button_spacing*row
-        if x > self.size[0]:
-            col = 0
-            row += 1
-        else:
-            col += 1
 
-        value = True
-        position = (x, y)
-        label = 'Move'
-        
-        button_image = button_surface.copy()
-        button_image.fill(button_color)
+        row = 0
+        col = 0
+        for i, in_game_event in enumerate(InGameEventEnum):
+            if in_game_event is InGameEventEnum.NONE:
+                continue
+            
+            x = self.outer_margin + button_size[0]*col + self.button_spacing + self.button_spacing*col
+            y = self.title_height + self.outer_margin + button_size[1]*row + self.button_spacing + self.button_spacing*row
+            if x > self.size[0]:
+                col = 0
+                row += 1
+            else:
+                col += 1
 
-        text = font.render(label, True, font_color)
-        text_rect = text.get_rect(center=button_image.get_rect().center)
-        button_image.blit(text, text_rect)
-        button_rect = button_image.get_rect()
+            value = in_game_event
+            position = (x, y)
+            
+            button_image = button_surface.copy()
+            button_image.fill(button_color)
 
-        position = (x, y)
-        button = Button(button_image, position, value, on_hover, on_press, on_release)
-        self.buttons_group.add(button)
+            label = in_game_event.name
+            text = font.render(label, True, font_color)
+            text_rect = text.get_rect(center=button_image.get_rect().center)
+            button_image.blit(text, text_rect)
 
-        # Change Light Size
-        label = 'Resize'
-        button_image = button_surface.copy()
-        button_image.fill(button_color)
-        text = font.render(label, True, font_color)
-        text_rect = text.get_rect(center=button_image.get_rect().center)
-        button_image.blit(text, text_rect)
-        x = x + button_rect.right + self.button_spacing*2
-        position = (x, y)
-        on_press = self.on_change_light_size_button_press
-        button = Button(button_image, position, value, on_hover, on_press, on_release)
-        self.buttons_group.add(button)
+            position = (x, y)
+            button = Button(button_image, position, value, on_hover, on_press, on_release)
+            self.buttons_group.add(button)
 
-        # Change Light Strength
-        label = 'Strength'
-        button_image = button_surface.copy()
-        button_image.fill(button_color)
-        text = font.render(label, True, font_color)
-        text_rect = text.get_rect(center=button_image.get_rect().center)
-        button_image.blit(text, text_rect)
-        x = x + button_rect.right + self.button_spacing*2
-        position = (x, y)
-        on_press = self.on_change_light_strength_button_press
-        button = Button(button_image, position, value, on_hover, on_press, on_release)
-        self.buttons_group.add(button)
 
     def on_button_hover(self, button: Button):
         self.hovered_component = button
+        
+    def on_button_press(self, button: Button):
+        self.selected_game_event = button.value
          
-    def on_change_light_size_button_press(self, button: Button):
-        self.light_size_scale = self.light_size_scale / 2
-        if self.light_size_scale < 0.25:
-            self.light_size_scale = 3.0
-
-    def on_change_light_strength_button_press(self, button: Button):
-        self.light_strength_scale = self.light_strength_scale / 2
-        if self.light_strength_scale < 0.25:
-            self.light_strength_scale = 3.0
-
-    def on_move_light_button_press(self, button: Button):
-        self.move_light = button.value
-        button.value = not button.value
-
     def on_event(self, parent_mouse_position, event: pygame.event.Event):
         self.hovered_component = None
 

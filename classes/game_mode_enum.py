@@ -1,6 +1,6 @@
 from enum import Flag, auto
 
 class GameModeEnum(Flag):
-    BILLIARDS = auto()
-    SNOOKER = auto()
+    Billiards = auto()
+    Snooker = auto()
     NONE = auto()

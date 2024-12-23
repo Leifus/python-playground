@@ -1,4 +1,6 @@
 from classes.game_mode_enum import GameModeEnum
+from classes.in_game_event_enum import InGameEventEnum
+from classes.ui_in_game_event_options import UIInGameEventOptions
 from classes.ui_light_control_options import UILightControlOptions
 from config import pygame, ui_layer_config
 from classes.draw_mode_enum import DrawModeEnum
@@ -35,16 +37,27 @@ class UILayer():
         self.change_floor_options: UIChangeFloorOptions | None = None
         self.change_balls_options: UIChangePoolTableBallsOptions | None = None
         self.light_options: UILightControlOptions | None = None
+        self.game_event_options: UIInGameEventOptions | None = None
+        
 
         self.is_active = False
         self.is_hovered = False
         self.relative_mouse_position = None
         self.hovered_component = None
 
+        self.queued_game_event: InGameEventEnum = InGameEventEnum.NONE
+
+        self.setup_visuals()
+        self.setup_options_button()
+        self.setup_change_floor_options()
+        self.setup_change_pool_table_ball_options()
+        self.setup_user_control_options()
+        self.setup_game_event_options()
+
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
             outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
             # Housing
@@ -64,7 +77,7 @@ class UILayer():
             self.button_surface.blit(text, text_rect)
 
 
-        elif self.draw_mode in DrawModeEnum.RICH:
+        elif self.draw_mode in DrawModeEnum.Rich:
             # Housing
             housing = media_manager.get(self.housing_RICH_media, convert_alpha=True)
             if not housing:
@@ -115,20 +128,20 @@ class UILayer():
         draw_mode = self.draw_mode
         value = 0
         self.options_button = Button(self.button_surface, position, value, on_hover, on_press, on_release)
-        
+         
+    def setup_game_event_options(self):
+        size = (self.rect.width, 140)
+        position = (size[0]/2, self.light_options.rect.bottom + 16 + size[1]/2)
+        draw_mode = self.draw_mode
+        self.game_event_options = UIInGameEventOptions(draw_mode, size, position)
+        self.components_group.add(self.game_event_options)
+  
     def setup_user_control_options(self):
         size = (self.rect.width, 140)
         position = (size[0]/2, self.change_balls_options.rect.bottom + 16 + size[1]/2)
         draw_mode = self.draw_mode
         self.light_options = UILightControlOptions(draw_mode, size, position)
         self.components_group.add(self.light_options)
-
-    def on_init(self):
-        self.setup_visuals()
-        self.setup_options_button()
-        self.setup_change_floor_options()
-        self.setup_change_pool_table_ball_options()
-        self.setup_user_control_options()
 
     def on_event(self, event: pygame.event.Event):
         self.hovered_component = None
@@ -146,15 +159,10 @@ class UILayer():
         if not self.is_active:
             return
         
-        self.change_floor_options.on_event(self.relative_mouse_position, event)
-        self.change_balls_options.on_event(self.relative_mouse_position, event)
-        self.light_options.on_event(self.relative_mouse_position, event)
-        if self.change_floor_options.hovered_component is not None:
-            self.hovered_component = self.change_floor_options.hovered_component
-        elif self.change_balls_options.hovered_component is not None:
-            self.hovered_component = self.change_balls_options.hovered_component
-        elif self.light_options.hovered_component is not None:
-            self.hovered_component = self.light_options.hovered_component
+        for component in self.components_group:
+            component.on_event(self.relative_mouse_position, event)
+            if component.hovered_component is not None:
+                self.hovered_component = component.hovered_component
 
         if self.hovered_component is not None:
             self.is_hovered = True
@@ -170,6 +178,11 @@ class UILayer():
         self.change_floor_options.update()
         self.change_balls_options.update(game_mode)
         self.light_options.update()
+        self.game_event_options.update()
+
+        if self.game_event_options.selected_game_event is not InGameEventEnum.NONE:
+            self.queued_game_event = self.game_event_options.selected_game_event
+            self.game_event_options.selected_game_event = InGameEventEnum.NONE
 
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))

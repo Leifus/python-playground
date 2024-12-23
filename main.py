@@ -1,10 +1,10 @@
-from classes.camera import Camera
-from classes.camera_screen import CameraScreen
 from classes.game_lobby import GameLobby
 from classes.game_mode_enum import GameModeEnum
 from classes.game_session import GameSession
+from classes.in_game_event_enum import InGameEventEnum
 from classes.player import Player
 from classes.players_gui import PlayersGui
+from classes.pool_table_pocket import PoolTablePocket
 from config import *
 import config
 import config.pool_ball_gutter_config as pool_ball_gutter_config
@@ -16,7 +16,6 @@ from classes.pool_ball_gutter import PoolBallGutter
 from classes.floor import Floor
 from classes.ui_layer import UILayer
 from classes.cue_power_bar import CuePowerBar
-from classes.draw_mode_enum import DrawModeEnum
 from classes.light_source import LightSource
 
 
@@ -194,9 +193,7 @@ class App:
 
         self.pool_table.clear_balls()
         for i, ball in enumerate(self.balls):
-            ball.on_init(i)
-            ball.is_in_active_play = True
-            self.pool_table.add_ball(ball)
+            self.pool_table.add_ball(ball, ball_is_in_play=True)
 
     def set_table_layout_as_billiards(self):
         self.balls = []
@@ -381,17 +378,15 @@ class App:
 
         self.pool_table.clear_balls()
         for i, ball in enumerate(self.balls):
-            ball.on_init(i)
-            ball.is_in_active_play = True
-            self.pool_table.add_ball(ball)
+            self.pool_table.add_ball(ball, ball_is_in_play=True)
 
     def set_table_layout(self):
         if self.game_session is None:
             return
         
-        if self.game_session.game_mode == GameModeEnum.BILLIARDS:
+        if self.game_session.game_mode == GameModeEnum.Billiards:
             self.set_table_layout_as_billiards()
-        elif self.game_session.game_mode == GameModeEnum.SNOOKER:
+        elif self.game_session.game_mode == GameModeEnum.Snooker:
             self.set_table_layout_as_snooker()
 
     def setup_game_lobby(self):
@@ -412,7 +407,6 @@ class App:
         on_change_floor = self.on_change_floor
         on_change_ball_set = self.on_change_ball_set
         self.ui_layer = UILayer(size, position, on_change_floor, on_change_ball_set)
-        self.ui_layer.on_init()
 
     def setup_lighting(self):
         radius = 40
@@ -430,6 +424,8 @@ class App:
         if self.game_session is None or self.game_session.game_mode is GameModeEnum.NONE:
             print('CANT SETUP POOL TABLE: NO GAMESESSION SET')
             return
+        
+        self.cue_ball_reset_ttl = None
         
         if self.pool_table is not None:
             self.pool_table = self.pool_table.kill()
@@ -536,9 +532,62 @@ class App:
         volume = self.cue_power_bar.power_percent * max_volume
         sound_manager.play_sound(self.cue_hitting_ball_sound, volume)
 
+    def change_random_ball_size(self):
+        balls = []
+        for ball in self.pool_table.ball_group:
+            if ball.is_in_active_play:
+                balls.append(ball)
+
+        radius = random.randint(0, 50)
+        ball_idx = random.randint(0, len(balls)-1)
+        ball = balls[ball_idx]
+        ball.set_radius(radius)
+        self.pool_table.update_ball(ball)
+
+        print('changing ball size', ball.identifier, radius)
+
+    def change_random_ball_mass(self):
+        balls = []
+        for ball in self.pool_table.ball_group:
+            if ball.is_in_active_play:
+                balls.append(ball)
+
+        mass = random.uniform(0, 50)
+        ball_idx = random.randint(0, len(balls)-1)
+        ball = balls[ball_idx]
+        ball.set_mass(mass)
+        self.pool_table.update_ball(ball)
+
+        print('changing ball mass', ball.identifier, mass)
+
+    def spawn_random_hole(self):
+        radius = random.uniform(10, 30)
+        rand_x = random.uniform(radius/2, self.pool_table.rect.width - radius/2)
+        rand_y = random.uniform(radius/2, self.pool_table.rect.height - radius/2)
+        position = (rand_x, rand_y)
+        hole = PoolTablePocket(position, radius)
+        self.pool_table.add_pocket(hole)
+
+    def action_game_events(self):
+        for kvp in self.game_session.game_events_to_action.items():
+            event_time, game_event = kvp
+            print('action_game_event', game_event.name, event_time)
+            if game_event is InGameEventEnum.Spawn_Hole:
+                self.spawn_random_hole()
+            elif game_event is InGameEventEnum.Ball_Size:
+                self.change_random_ball_size()
+            elif game_event is InGameEventEnum.Ball_Mass:
+                self.change_random_ball_mass()
+
+        self.game_session.game_events_to_action.clear()
+
     def update_active_game_session(self):
         self.game_session.update()
         time_lapsed = self.game_session.time_lapsed
+
+        if len(self.game_session.game_events_to_action) > 0:
+            self.action_game_events()
+
         self.players_gui.update()
         self.ui_layer.update(self.game_session.game_mode)
         self.cue_power_bar.update()
@@ -592,7 +641,12 @@ class App:
 
                     self.active_player.end_shot()
                     self.pool_table.cue_ball_first_hit_ball = None
-                
+
+        if self.ui_layer.queued_game_event is not InGameEventEnum.NONE:
+            time_to_activate = 2 * 1000
+            self.game_session.queue_game_event(self.ui_layer.queued_game_event, time_to_activate)
+            self.ui_layer.queued_game_event = InGameEventEnum.NONE
+
     def check_potted_balls_are_player_friendly(self):
         disallowed_balls = [
             self.pool_table.cue_ball

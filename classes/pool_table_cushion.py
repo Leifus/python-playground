@@ -34,17 +34,17 @@ class PoolTableCushion():
         self.cushion_RICH_surface = None
 
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
             outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
             pygame.draw.polygon(self.cushion_surface, self.cushion_RAW_color, self.poly_points, outline_width)
 
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 color = (0,0,0)
                 draw_poly_points(self.cushion_surface, self.poly_points, color, self.WIREFRAME_poly_point_radius)
-        elif self.draw_mode in DrawModeEnum.RICH:
+        elif self.draw_mode in DrawModeEnum.Rich:
             media_path = self.cushion_RICH_media
             rich_surface = self.media_manager.get(media_path, convert_alpha=True)
             if not rich_surface:

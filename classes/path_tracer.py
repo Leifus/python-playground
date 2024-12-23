@@ -32,9 +32,9 @@ class PathTracer():
         self.point_a_surface = pygame.Surface((self.point_radius*2, self.point_radius*2), pygame.SRCALPHA)
         self.point_b_surface = pygame.Surface((self.point_radius*2, self.point_radius*2), pygame.SRCALPHA)
 
-        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
             outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
             # Point A
@@ -45,7 +45,7 @@ class PathTracer():
 
             # Path Line
             # pygame.draw.line(self.surface, self.line_RAW_color, self.point_a, self.point_b, self.line_RAW_width)
-        elif self.draw_mode in DrawModeEnum.RICH:
+        elif self.draw_mode in DrawModeEnum.Rich:
             # Point A
             img = self.media_manager.get(self.point_a_RICH_media, convert_alpha=True)
             size = (self.point_radius*2, self.point_radius*2)
@@ -78,7 +78,7 @@ class PathTracer():
             if self.point_b is not None:
                 self.surface.blit(self.point_b_surface, self.point_b_surface.get_rect(center=self.point_b))
                 
-                if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
+                if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
                     # Draw Path Line
                     pygame.draw.line(self.surface, self.line_RAW_color, self.point_a, self.point_b, self.line_RAW_width)
 

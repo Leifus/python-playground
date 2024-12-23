@@ -21,6 +21,7 @@ class Floor(GameSprite):
 
         self.image = pygame.Surface(size, pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=position)
+        
         self.floor_options = None
     
     def update(self, selected_floor_idx, *args, **kwargs):
@@ -32,11 +33,11 @@ class Floor(GameSprite):
         return super().update(*args, **kwargs)
 
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME:
+        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
             self.floor_options = self.floor_RAW_colors
 
             outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
             # Draw floor
@@ -44,10 +45,10 @@ class Floor(GameSprite):
             rect = pygame.Rect(0, 0, self.size[0], self.size[1])
             rect = pygame.draw.rect(self.image, color, rect, outline_width)
 
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 color = pygame.Color('black')
                 draw_poly_points_around_rect(self.image, rect, color, self.WIREFRAME_poly_point_radius)
-        elif self.draw_mode in DrawModeEnum.RICH:
+        elif self.draw_mode in DrawModeEnum.Rich:
             self.floor_options = self.floor_DM_RICH_medias
 
             # Draw floor

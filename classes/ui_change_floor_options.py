@@ -108,7 +108,7 @@ class UIChangeFloorOptions(GameSprite):
         #         surface = button_surface.copy()
         #         surface.fill(color)
         #         self.button_surfaces.append(surface)
-        if self.draw_mode in DrawModeEnum.RICH:
+        if self.draw_mode in DrawModeEnum.Rich:
             # Housing
             self.housing_orig_image = media_manager.get(self.housing_RICH_media)
             

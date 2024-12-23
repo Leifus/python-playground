@@ -1,7 +1,8 @@
 from classes.game_mode_config import GameModeConfig
 from classes.game_time_config import GameTimeConfig
+from classes.in_game_event_enum import InGameEventEnum
 from classes.player import Player
-from config import pygame, game_mode_time_config, Dict
+from config import pygame, game_mode_time_config, OrderedDict, Dict
 from classes.game_mode_enum import GameModeEnum
 import config.game_mode_configs as game_mode_configs
 
@@ -17,11 +18,14 @@ class GameSession():
         self.time_config: GameTimeConfig = game_mode_time_config.game_mode_times[self.game_mode]
         self.is_running = False
 
+        self.queued_game_events: OrderedDict[int, InGameEventEnum] = dict()
+        self.game_events_to_action: OrderedDict[int, InGameEventEnum] = dict()
+
         self.setup_players()
 
     def setup_players(self):
         player_count = 1
-        if self.game_mode in GameModeEnum.BILLIARDS | GameModeEnum.SNOOKER:
+        if self.game_mode in GameModeEnum.Billiards | GameModeEnum.Snooker:
             player_count = 2
 
         for i in range(player_count):
@@ -34,6 +38,9 @@ class GameSession():
         first_player_id = list(self.players.keys())[0]
         return self.players[first_player_id]
 
+    def queue_game_event(self, game_event: InGameEventEnum, activation_time):
+        #TODO: Check for dupe activation times
+        self.queued_game_events[self.time_lapsed + activation_time] = game_event
 
     def set_active_player(self, player: Player):
         self.active_player = player
@@ -71,9 +78,25 @@ class GameSession():
         
         return self.active_player
 
+    def update_queued_game_events(self):
+        event_times = list(self.queued_game_events.keys())
+        self.game_events_to_action.clear()
+
+        keys_to_remove = []
+        for event_time in event_times:
+            if self.time_lapsed > event_time:
+                keys_to_remove.append(event_time)
+                self.game_events_to_action[event_time] = self.queued_game_events[event_time]
+        
+        if len(keys_to_remove) > 0:
+            for key in keys_to_remove:
+                del self.queued_game_events[key]
+
     def update(self):
         self.time_lapsed = pygame.time.get_ticks()
         self.clock.tick(self.time_config.fps)
+
+        self.update_queued_game_events()
 
         #TODO: Move this out of here
         pygame.display.set_caption(f'{self.game_id} ({round(self.clock.get_fps(),3)} fps) | {round(self.time_lapsed / 1000)} secs')

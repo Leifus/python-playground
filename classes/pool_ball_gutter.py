@@ -81,12 +81,12 @@ class PoolBallGutter(pygame.sprite.Sprite):
     def setup_visuals(self):
         self.gutter_surface = self.surface.copy()
 
-        if self.draw_mode in DrawModeEnum.RAW | DrawModeEnum.WIREFRAME | DrawModeEnum.PHYSICS:
-            if self.draw_mode in DrawModeEnum.PHYSICS:
+        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe | DrawModeEnum.Physics:
+            if self.draw_mode in DrawModeEnum.Physics:
                 self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
             outline_width = 0
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
             
             # Main gutter
@@ -94,17 +94,17 @@ class PoolBallGutter(pygame.sprite.Sprite):
             pygame.draw.rect(self.gutter_surface, self.gutter_RAW_color, rect, outline_width)
 
             wireframe_point_color = pygame.Color('black')
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 draw_poly_points_around_rect(self.gutter_surface, rect, wireframe_point_color, self.WIREFRAME_poly_point_radius)
                 
             # Edge barriers
             for points in self.edge_barrier_vectors:
                 rect = pygame.draw.polygon(self.gutter_surface, self.edge_barrier_RAW_color, points, outline_width)
 
-            if self.draw_mode in DrawModeEnum.WIREFRAME:
+            if self.draw_mode in DrawModeEnum.Wireframe:
                 for points in self.edge_barrier_vectors:
                     draw_poly_points_around_rect(self.gutter_surface, rect, wireframe_point_color, self.WIREFRAME_poly_point_radius)
-        elif self.draw_mode in DrawModeEnum.RICH:
+        elif self.draw_mode in DrawModeEnum.Rich:
             img = media_manager.get(self.gutter_RICH_media, convert_alpha=True)
             if not img:
                 print('No gutter img')
@@ -166,7 +166,7 @@ class PoolBallGutter(pygame.sprite.Sprite):
 
         self.ball_group.draw(self.surface)
         
-        if self.draw_mode in DrawModeEnum.PHYSICS:
+        if self.draw_mode in DrawModeEnum.Physics:
             self.space.debug_draw(self.space_draw_options)
 
         surface.blit(self.surface, self.rect)
