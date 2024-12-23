@@ -13,11 +13,6 @@ class PoolTablePocket(GameSprite):
         self.WIREFRAME_outline_width = pool_table_config.pool_table_pocket_DM_WIREFRAME_outline_width
         self.pocket_RICH_media = pool_table_config.pool_table_pocket_DM_RICH_media
 
-        # self.surface = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
-        # self.rect = self.surface.get_rect(center=position)
-        # self.pocket_surface = self.surface.copy()
-        # self.pocket_RICH_surface = None
-
         self.position = position
 
         self.image: pygame.Surface | None = None
@@ -58,7 +53,6 @@ class PoolTablePocket(GameSprite):
                 return
             
             self.orig_image = pygame.transform.scale(rich_surface, (self.radius*2, self.radius*2))
-            # self.pocket_surface.blit(self.pocket_RICH_surface, (0, 0))
 
     def construct_physical_body(self):
         self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
@@ -66,7 +60,3 @@ class PoolTablePocket(GameSprite):
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.sensor = True
         self.shape.collision_type = pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET # + body_iter
-
-    # def on_init(self, space: pymunk.Space, body_iter):
-    #     self.setup_visual_presentation()
-    #     self.setup_physical_space(space, body_iter)

@@ -402,25 +402,43 @@ class PoolTable(pygame.sprite.Sprite):
         self.ball_group.empty()
 
     def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
-        ball_0 = arbiter.shapes[0]
-        ball_1 = arbiter.shapes[1]
+        ball_shape_0 = arbiter.shapes[0]
+        ball_shape_1 = arbiter.shapes[1]
 
         if self.cue_ball_first_hit_ball is None and self.cue_ball.shape in arbiter.shapes:
-            other_ball = ball_0 if self.cue_ball.shape == ball_0 else ball_1
+            other_ball = ball_shape_0 if self.cue_ball.shape == ball_shape_0 else ball_shape_1
             self.cue_ball_first_hit_ball = self.balls_by_shape.get(other_ball)
 
+        #TODO: Handle multi-step collision.. yes no?
 
-        # shape0 = arbiter.shapes[0]
-        # initial_force = 700000      #TODO: Resolve where this is set and gotten
-        # impact = arbiter.total_impulse / initial_force
-        # min_impact_allowed = 0.01
-        # # print(impact, arbiter.total_ke, initial_force)
+        # Make collision sound        
+        base_volume = 1.0
+        volume = base_volume
+        if arbiter.is_first_contact:
+            ball_0_ke = ball_shape_0.body.kinetic_energy
+            ball_1_ke = ball_shape_1.body.kinetic_energy
+            total_ke = ball_0_ke + ball_1_ke
+            total_ke_loss = arbiter.total_ke
+            ke_remaining = total_ke - total_ke_loss
+            max_volume_in_ke = 150000  #TODO: Get this from cue_power/somewhere else
+            # volume_in_ke = max_volume_in_ke - ke_remaining
+            # volume_by_ke = volume_in_ke / max_volume_in_ke
+            # dampen_by = ke_remaining / total_ke #NOPE
 
-        # if impact < min_impact_allowed:
-        #     return True
+            ke_scale = total_ke_loss / total_ke
+            volume_in_ke = ke_remaining * ke_scale
+            volume_scale = (volume_in_ke / max_volume_in_ke) % 1.0
+            # volume = base_volume * ke_vol
+            
+            volume = base_volume * volume_scale
+
+            if volume >= 0.01:
+                # print('NOISE collide', volume)
+                sound_length = sound_manager.play_sound(pool_balls_config.sound_ball_collide_with_ball, volume)
+            else:
+                # print('SILENT collide', volume)
+                pass
         
-        volume = 0.4
-        sound_length = sound_manager.play_sound(pool_balls_config.sound_ball_collide_with_ball, volume)
         return True
 
     def on_ball_collide_with_pocket(self, arbiter: pymunk.Arbiter, space, data):

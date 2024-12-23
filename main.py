@@ -131,7 +131,8 @@ class App:
         color = pygame.Color('red')
         identifier = 'red'
         media_path = f'{media_folder}/{identifier}.png'
-        x_pos = position[0] + radius*2 + 6
+        x_offset_from_pink = 6
+        x_pos = position[0] + radius*2 + x_offset_from_pink
         y_pos = position[1]
         position = (x_pos, y_pos)
         ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
@@ -186,7 +187,8 @@ class App:
         color = pygame.Color('black')
         identifier = 'black'
         media_path = f'{media_folder}/{identifier}.png'
-        x_pos += radius*2 + 6
+        x_offset_from_reds = 6
+        x_pos += radius*2 + x_offset_from_reds
         position = (x_pos, y_pos)
         ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media_path)
         self.balls.append(ball)
@@ -528,7 +530,7 @@ class App:
         force_y = force_magnitude * math.sin(angle - ball.angle)
         
         ball.set_force_at_point((force_x, force_y))
-        max_volume = 0.5    #hack for my cheap sounds
+        max_volume = 0.3    #hack for my cheap sounds
         volume = self.cue_power_bar.power_percent * max_volume
         sound_manager.play_sound(self.cue_hitting_ball_sound, volume)
 

@@ -23,6 +23,8 @@ class SoundManager():
             sound = pygame.mixer.Sound(file_path)
             self.sounds[file_path] = sound
 
+        #TODO: Check for existing louder/quieter sound when channels are full.
+
         sound.set_volume(volume)
 
         #first step in sound management
