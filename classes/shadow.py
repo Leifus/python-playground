@@ -1,5 +1,5 @@
 from pygame import Vector2
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 from classes.light_source import LightSource
 from config import pygame, math
 

@@ -1,11 +1,10 @@
-from classes.game_mode_config import GameModeConfig
-from classes.game_tables.game_table import GameTable
-from classes.game_time_config import GameTimeConfig
-from classes.in_game_event_enum import InGameEventEnum
-from classes.player import Player
-from classes.pool_table import PoolTable
+from classes.configs.game_mode_config import GameModeConfig
+from classes.game.game_table.game_table import GameTable
+from classes.configs.game_time_config import GameTimeConfig
+from classes.enums.in_game_event_enum import InGameEventEnum
+from classes.game.player import Player
 from config import pygame, game_mode_time_config, OrderedDict, Dict
-from classes.game_mode_enum import GameModeEnum
+from classes.enums.game_mode_enum import GameModeEnum
 import config.game_mode_configs as game_mode_configs
 
 #TODO: Add Floor here and convert to GameSprite
@@ -29,6 +28,8 @@ class GameSession():
         self.pockets_group: pygame.sprite.Group = pygame.sprite.Group()
 
         self.setup_players()
+
+    # def add_mine(self, )
 
     def has_picked_up_cue_ball(self) -> bool:
         if not self.is_running or not self.game_table or not self.game_table.cue_ball:

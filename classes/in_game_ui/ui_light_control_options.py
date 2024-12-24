@@ -1,7 +1,7 @@
-from classes.button import Button
-from classes.game_sprite import GameSprite
+from classes.common.button import Button
+from classes.common.game_sprite import GameSprite
 from config import pygame
-from classes.draw_mode_enum import DrawModeEnum
+from classes.enums.draw_mode_enum import DrawModeEnum
 from globals import media_manager
 
 class UILightControlOptions(GameSprite):

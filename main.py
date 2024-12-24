@@ -1,30 +1,30 @@
 from classes.camera import Camera
 from classes.camera_screen import CameraScreen
-from classes.decal import Decal
-from classes.draw_mode_enum import DrawModeEnum
-from classes.game_lobby import GameLobby
-from classes.game_mode_enum import GameModeEnum
-from classes.game_session import GameSession
-from classes.game_tables.billiards_game_table import BilliardsGameTable
-from classes.game_tables.circle_game_table import CircleGameTable
-from classes.game_tables.game_table import GameTable
-from classes.game_tables.snooker_game_table import SnookerGameTable
-from classes.in_game_event_enum import InGameEventEnum
-from classes.player import Player
-from classes.players_gui import PlayersGui
-from classes.pool_table_cushion import PoolTableCushion
-from classes.pool_table_pocket import PoolTablePocket
+from classes.game.decal import Decal
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.main_menu.game_lobby import GameLobby
+from classes.enums.game_mode_enum import GameModeEnum
+from classes.game.game_session import GameSession
+from classes.game.game_table.billiards_game_table import BilliardsGameTable
+from classes.game.game_table.circle_game_table import CircleGameTable
+from classes.game.game_table.game_table import GameTable
+from classes.game.game_table.snooker_game_table import SnookerGameTable
+from classes.enums.in_game_event_enum import InGameEventEnum
+from classes.game.player import Player
+from classes.in_game_ui.players_gui import PlayersGui
+from classes.game.pool_table_cushion import PoolTableCushion
+from classes.game.pool_table_pocket import PoolTablePocket
 from config import *
 import config
 from config import pool_table_config
 import config.pool_ball_gutter_config as pool_ball_gutter_config
 import config.cue_power_bar_config as cue_power_bar_config
 from globals import media_manager
-from classes.pool_ball import PoolBall
-from classes.pool_ball_gutter import PoolBallGutter
-from classes.floor import Floor
-from classes.ui_layer import UILayer
-from classes.cue_power_bar import CuePowerBar
+from classes.game.pool_ball import PoolBall
+from classes.game.pool_ball_gutter import PoolBallGutter
+from classes.game.floor import Floor
+from classes.in_game_ui.ui_layer import UILayer
+from classes.in_game_ui.cue_power_bar import CuePowerBar
 from classes.light_source import LightSource
 
 
@@ -923,7 +923,6 @@ class App:
         camera_screen_2 = CameraScreen(size, camera_screen_position, camera)
         self.camera_screens.add(camera_screen_2)
 
-
     def quit_to_menu(self):
         if self.game_session is not None:
             self.game_session.is_running = False
@@ -1003,6 +1002,10 @@ class App:
         print('changing ball size', ball.identifier, radius)
 
     # TODO: PLACE GAME EVENT SENSORS ON TABLE
+    # Extra Ball (when potted)
+    # Change size (for remaining turn)
+    # Mine (trigger and explode)
+
     # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
 
     def change_random_ball_mass(self):

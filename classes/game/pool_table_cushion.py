@@ -1,7 +1,7 @@
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 from config import pool_balls_config, pool_table_config, pygame, pymunk
-from classes.draw_mode_enum import DrawModeEnum
-from classes.__helpers__ import draw_poly_points
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.common.helper_methods import draw_poly_points
 from globals import media_manager
 
 class PoolTableCushion(GameSprite):

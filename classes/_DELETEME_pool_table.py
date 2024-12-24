@@ -1,17 +1,17 @@
-from classes.decal import Decal
-from classes.game_space_config import GameSpaceConfig
-from classes.game_sprite import GameSprite
-from classes.player import Player
+from classes.game.decal import Decal
+from classes.configs.game_space_config import GameSpaceConfig
+from classes.common.game_sprite import GameSprite
+from classes.game.player import Player
 from config import pygame, pymunk, pool_table_config, pool_balls_config, math, Dict
 from pygame.locals import *
 
 from classes.light_source import LightSource
 from classes.shadow import Shadow
-from classes.pool_ball import PoolBall
-from classes.pool_table_cushion import PoolTableCushion
-from classes.pool_table_pocket import PoolTablePocket
-from classes.draw_mode_enum import DrawModeEnum
-from classes.__helpers__ import draw_poly_points_around_rect
+from classes.game.pool_ball import PoolBall
+from classes.game.pool_table_cushion import PoolTableCushion
+from classes.game.pool_table_pocket import PoolTablePocket
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.common.helper_methods import draw_poly_points_around_rect
 from globals import media_manager, sound_manager
 
 class PoolTable(GameSprite):

@@ -1,8 +1,8 @@
-from classes.game_mode_enum import GameModeEnum
-from classes.game_sprite import GameSprite
+from classes.enums.game_mode_enum import GameModeEnum
+from classes.common.game_sprite import GameSprite
 from config import pygame, pool_balls_config
-from classes.draw_mode_enum import DrawModeEnum
-from classes.button import Button
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.common.button import Button
 from globals import media_manager
 
 class UIChangePoolTableBallsOptions(GameSprite):

@@ -1,5 +1,5 @@
 from config import pygame, pool_balls_config
-from classes.draw_mode_enum import DrawModeEnum
+from classes.enums.draw_mode_enum import DrawModeEnum
 
 # ----------------------------------------------------
 # POOL BALL GUTTER CONFIG

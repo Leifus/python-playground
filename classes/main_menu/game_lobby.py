@@ -1,6 +1,6 @@
-from classes.button import Button
-from classes.game_mode_enum import GameModeEnum
-from classes.game_sprite import GameSprite
+from classes.common.button import Button
+from classes.enums.game_mode_enum import GameModeEnum
+from classes.common.game_sprite import GameSprite
 from config import pygame, random
 from globals import media_manager
 

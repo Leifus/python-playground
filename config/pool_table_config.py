@@ -1,5 +1,5 @@
 from config import pygame, math
-from classes.draw_mode_enum import DrawModeEnum
+from classes.enums.draw_mode_enum import DrawModeEnum
 
 
 # ----------------------------------------------------
@@ -8,7 +8,7 @@ from classes.draw_mode_enum import DrawModeEnum
 
 # Main Table
 pool_table_size = (800, 400)
-pool_table_draw_mode = DrawModeEnum.Rich
+pool_table_draw_mode = DrawModeEnum.Physics
 pool_table_DM_WIREFRAME_outline_width = 2
 pool_table_DM_WIREFRAME_poly_point_radius = 3
 pool_table_DM_RICH_media = 'table/green_fabric.jpg'

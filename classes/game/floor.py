@@ -1,8 +1,8 @@
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 from config import pygame, math
 import config.floor_config as floor_config
-from classes.draw_mode_enum import DrawModeEnum
-from classes.__helpers__ import draw_poly_points_around_rect
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.common.helper_methods import draw_poly_points_around_rect
 from globals import media_manager
 
 class Floor(GameSprite):

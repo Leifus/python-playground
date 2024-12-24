@@ -1,7 +1,7 @@
-from classes.__helpers__ import aspect_scale
-from classes.player import Player
+from classes.common.helper_methods import aspect_scale
+from classes.game.player import Player
 from config import pygame, Dict
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 from globals import media_manager
 
 class PlayersGui(GameSprite):

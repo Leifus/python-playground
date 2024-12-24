@@ -1,8 +1,7 @@
-from classes.draw_mode_enum import DrawModeEnum
-from classes.game_space_config import GameSpaceConfig
-from classes.game_tables.game_table import GameTable
-from classes.light_source import LightSource
-from config import pool_table_config, pygame
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.configs.game_space_config import GameSpaceConfig
+from classes.game.game_table.game_table import GameTable
+from config import pool_balls_config, pool_table_config, pygame, pymunk
 from globals import media_manager
 
 class CircleGameTable(GameTable):
@@ -18,6 +17,7 @@ class CircleGameTable(GameTable):
         self.mask = pygame.mask.from_surface(self.circle_image)
 
         self.setup_visuals()
+        self.setup_table_bounds_sensor()
         self.redraw()
 
     def redraw(self):
@@ -31,7 +31,7 @@ class CircleGameTable(GameTable):
             self.image = self.mask.to_surface(unsetcolor=None, setsurface=self.image)
 
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
+        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe | DrawModeEnum.Physics:
             # Table
             self.orig_image = self.circle_image
         elif self.draw_mode in DrawModeEnum.Rich:
@@ -40,3 +40,19 @@ class CircleGameTable(GameTable):
             if not self.orig_image:
                 print('CircleGameTable: No table img', self.rich_media_path)
                 return
+            
+    def on_ball_separate_with_table(self, arbiter: pymunk.Arbiter, space, data):
+        print('ball separated with table!')
+
+    def setup_table_bounds_sensor(self):
+        body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+        body.position = (self.radius, self.radius)
+        table_bounds_sensor = pymunk.Circle(body, self.radius)
+        table_bounds_sensor.sensor = True
+        table_bounds_sensor.collision_type = pool_balls_config.COLLISION_TYPE_TABLE
+        self.space.add(body, table_bounds_sensor)
+        
+        handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_TABLE)
+        handler.separate = self.on_ball_separate_with_table
+        self.handlers.append(handler)
+        

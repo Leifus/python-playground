@@ -1,7 +1,7 @@
 from config import pygame, path_tracer_config
-from classes.media_manager import MediaManager
-from classes.__helpers__ import aspect_scale
-from classes.draw_mode_enum import DrawModeEnum
+from classes.common.media_manager import MediaManager
+from classes.common.helper_methods import aspect_scale
+from classes.enums.draw_mode_enum import DrawModeEnum
 
 class PathTracer():
     def __init__(self, size, media_manager: MediaManager):

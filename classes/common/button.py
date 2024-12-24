@@ -1,12 +1,14 @@
+from classes.common.game_sprite import GameSprite
 from config import pygame
 
-class Button(pygame.sprite.Sprite):
+class Button(GameSprite):
     def __init__(self, surface: pygame.Surface, position, value, on_hover, on_press, on_release):
-        pygame.sprite.Sprite.__init__(self)
+        super(Button, self).__init__()
 
         self.image = surface
         self.rect = self.image.get_rect(topleft=position)
         self.position = position
+        
         self.value = value
         self.on_hover = on_hover
         self.on_press = on_press

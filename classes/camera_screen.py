@@ -1,6 +1,6 @@
 from classes.camera import Camera
 from config import pygame
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 
 
 class CameraScreen(GameSprite):

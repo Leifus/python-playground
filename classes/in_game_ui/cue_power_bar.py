@@ -1,8 +1,8 @@
-from classes.button import Button
-from classes.draw_mode_enum import DrawModeEnum
-from classes.game_sprite import GameSprite
+from classes.common.button import Button
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.common.game_sprite import GameSprite
 from config import cue_power_bar_config, pygame
-from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
+from classes.common.helper_methods import aspect_scale, draw_poly_points_around_rect
 from globals import media_manager
 
 

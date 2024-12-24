@@ -1,6 +1,6 @@
-from classes.draw_mode_enum import DrawModeEnum
-from classes.game_space_config import GameSpaceConfig
-from classes.game_tables.game_table import GameTable
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.configs.game_space_config import GameSpaceConfig
+from classes.game.game_table.game_table import GameTable
 from config import pool_table_config, pygame
 from globals import media_manager
 

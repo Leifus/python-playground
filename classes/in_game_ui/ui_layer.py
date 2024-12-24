@@ -1,12 +1,12 @@
-from classes.game_mode_enum import GameModeEnum
-from classes.in_game_event_enum import InGameEventEnum
-from classes.ui_in_game_event_options import UIInGameEventOptions
-from classes.ui_light_control_options import UILightControlOptions
+from classes.enums.game_mode_enum import GameModeEnum
+from classes.enums.in_game_event_enum import InGameEventEnum
+from classes.in_game_ui.ui_in_game_event_options import UIInGameEventOptions
+from classes.in_game_ui.ui_light_control_options import UILightControlOptions
 from config import pygame, ui_layer_config
-from classes.draw_mode_enum import DrawModeEnum
-from classes.button import Button
-from classes.ui_change_floor_options import UIChangeFloorOptions
-from classes.ui_change_pool_table_balls_options import UIChangePoolTableBallsOptions
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.common.button import Button
+from classes.in_game_ui.ui_change_floor_options import UIChangeFloorOptions
+from classes.in_game_ui.ui_change_pool_table_balls_options import UIChangePoolTableBallsOptions
 from globals import media_manager
 
 class UILayer():

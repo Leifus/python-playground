@@ -1,6 +1,6 @@
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 from config import pool_balls_config, pool_table_config, pygame, pymunk
-from classes.draw_mode_enum import DrawModeEnum
+from classes.enums.draw_mode_enum import DrawModeEnum
 from globals import media_manager
 
 class PoolTablePocket(GameSprite):

@@ -1,5 +1,5 @@
 from config import pygame
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 
 
 class Camera(GameSprite):

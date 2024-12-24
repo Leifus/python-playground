@@ -1,6 +1,6 @@
-from classes.__helpers__ import aspect_scale
+from classes.common.helper_methods import aspect_scale
 from config import pygame
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 
 class Decal(GameSprite):
     def __init__(self, orig_image, size, position, use_aspect_scale=False):

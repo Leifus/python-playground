@@ -1,8 +1,8 @@
 from config import pool_balls_config, pygame, pymunk, random
 from globals import media_manager, sound_manager
 
-from classes.draw_mode_enum import DrawModeEnum
-from classes.game_sprite import GameSprite
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.common.game_sprite import GameSprite
 
 class PoolBall(GameSprite):
     def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media):

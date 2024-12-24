@@ -1,8 +1,8 @@
-from classes.button import Button
-from classes.game_sprite import GameSprite
-from classes.in_game_event_enum import InGameEventEnum
+from classes.common.button import Button
+from classes.common.game_sprite import GameSprite
+from classes.enums.in_game_event_enum import InGameEventEnum
 from config import pygame
-from classes.draw_mode_enum import DrawModeEnum
+from classes.enums.draw_mode_enum import DrawModeEnum
 from globals import media_manager
 
 class UIInGameEventOptions(GameSprite):

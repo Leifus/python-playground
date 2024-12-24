@@ -1,9 +1,9 @@
-from classes.game_space_config import GameSpaceConfig
+from classes.configs.game_space_config import GameSpaceConfig
 from config import pygame, pymunk, pool_ball_gutter_config
-from classes.pool_ball import PoolBall
-from classes.draw_mode_enum import DrawModeEnum
-from classes.media_manager import MediaManager
-from classes.__helpers__ import draw_poly_points_around_rect
+from classes.game.pool_ball import PoolBall
+from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.common.media_manager import MediaManager
+from classes.common.helper_methods import draw_poly_points_around_rect
 from globals import media_manager
 
 class PoolBallGutter(pygame.sprite.Sprite):

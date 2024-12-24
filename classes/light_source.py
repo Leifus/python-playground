@@ -1,5 +1,5 @@
-from classes.game_sprite import GameSprite
-from classes.ui_light_control_options import UILightControlOptions
+from classes.common.game_sprite import GameSprite
+from classes.in_game_ui.ui_light_control_options import UILightControlOptions
 from config import pygame
 
 class LightSource(GameSprite):

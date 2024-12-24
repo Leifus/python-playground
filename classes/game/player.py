@@ -1,6 +1,6 @@
-from classes.pool_ball import PoolBall
+from classes.game.pool_ball import PoolBall
 from config import pygame
-from classes.game_sprite import GameSprite
+from classes.common.game_sprite import GameSprite
 
 class Player(GameSprite):
     def __init__(self, identifier, name):

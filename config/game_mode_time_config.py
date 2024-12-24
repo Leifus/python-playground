@@ -1,5 +1,5 @@
-from classes.game_mode_enum import GameModeEnum
-from classes.game_time_config import GameTimeConfig
+from classes.enums.game_mode_enum import GameModeEnum
+from classes.configs.game_time_config import GameTimeConfig
 
 game_mode_times = dict()
 game_mode_times[GameModeEnum.Billiards] = GameTimeConfig(60)
