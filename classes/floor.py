@@ -23,51 +23,54 @@ class Floor(GameSprite):
         self.rect = self.image.get_rect(center=position)
         
         self.floor_options = None
-    
-    def update(self, selected_floor_idx, *args, **kwargs):
-        if selected_floor_idx is self.active_floor_idx:
-            return
+        self.image_scale = 1.0
 
-        self.active_floor_idx = selected_floor_idx
         self.setup_visuals()
+        self.redraw()
+
+    def redraw(self):
+        self.image.fill((0,0,0,0))
+
+        orig_image_rect = self.orig_img.get_rect()
+        size = (orig_image_rect.width * self.image_scale, orig_image_rect.height * self.image_scale)
+        tile_image = pygame.transform.scale(self.orig_img, size)
+        tile_rect = tile_image.get_rect()
+
+        rows = math.ceil(self.rect.height / tile_rect.height)
+        cols = math.ceil(self.rect.width / tile_rect.width)
+
+        for row in range(rows):
+            for col in range(cols):
+                position = (tile_rect.width * col, tile_rect.height * row)
+                self.image.blit(tile_image, position)
+
+    def update(self, selected_floor_idx, *args, **kwargs):
+        if selected_floor_idx != self.active_floor_idx:
+            self.active_floor_idx = selected_floor_idx
+            self.setup_visuals()
+            self.redraw()
+
         return super().update(*args, **kwargs)
 
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
-            self.floor_options = self.floor_RAW_colors
+        # if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
+        #     self.floor_options = self.floor_RAW_colors
 
-            outline_width = 0
-            if self.draw_mode in DrawModeEnum.Wireframe:
-                outline_width = self.WIREFRAME_outline_width
+        #     outline_width = 0
+        #     if self.draw_mode in DrawModeEnum.Wireframe:
+        #         outline_width = self.WIREFRAME_outline_width
 
-            # Draw floor
-            color = self.floor_RAW_colors[self.active_floor_idx]
-            rect = pygame.Rect(0, 0, self.size[0], self.size[1])
-            rect = pygame.draw.rect(self.image, color, rect, outline_width)
+        #     # Draw floor
+        #     color = self.floor_RAW_colors[self.active_floor_idx]
+        #     rect = pygame.Rect(0, 0, self.size[0], self.size[1])
+        #     rect = pygame.draw.rect(self.image, color, rect, outline_width)
 
-            if self.draw_mode in DrawModeEnum.Wireframe:
-                color = pygame.Color('black')
-                draw_poly_points_around_rect(self.image, rect, color, self.WIREFRAME_poly_point_radius)
-        elif self.draw_mode in DrawModeEnum.Rich:
+        #     if self.draw_mode in DrawModeEnum.Wireframe:
+        #         color = pygame.Color('black')
+        #         draw_poly_points_around_rect(self.image, rect, color, self.WIREFRAME_poly_point_radius)
+        if self.draw_mode in DrawModeEnum.Rich:
             self.floor_options = self.floor_DM_RICH_medias
-
-            # Draw floor
             media, scale = self.floor_DM_RICH_medias[self.active_floor_idx]
-            img = media_manager.get(media)
-            size = (img.get_width() * scale, img.get_height() * scale)
-            self.orig_image = pygame.transform.scale(img, size)
-            rect = self.orig_image.get_rect()
-
-            rows = math.ceil(self.rect.height / rect.height)
-            cols = math.ceil(self.rect.width / rect.width)
-
-            for row in range(rows):
-                for col in range(cols):
-                    position = (rect.width * col, rect.height * row)
-                    self.image.blit(self.orig_image, position)
-        
-    def on_init(self):
-        self.setup_visuals()
-
-    def draw(self, surface: pygame.Surface):
-        surface.blit(self.image, self.rect)
+            self.orig_img = media_manager.get(media)
+            self.image_scale = scale
+            

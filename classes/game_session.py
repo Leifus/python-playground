@@ -8,6 +8,7 @@ from config import pygame, game_mode_time_config, OrderedDict, Dict
 from classes.game_mode_enum import GameModeEnum
 import config.game_mode_configs as game_mode_configs
 
+#TODO: Add Floor here and convert to GameSprite
 class GameSession():
     def __init__(self, game_id, game_mode: GameModeEnum):
         self.game_id: str = game_id

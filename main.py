@@ -1,3 +1,5 @@
+from classes.camera import Camera
+from classes.camera_screen import CameraScreen
 from classes.decal import Decal
 from classes.draw_mode_enum import DrawModeEnum
 from classes.game_lobby import GameLobby
@@ -52,11 +54,15 @@ class App:
         self.camera_screens = pygame.sprite.Group()
         self.general_light_dim_surface: pygame.Surface = None
 
+        self.game_surface: pygame.Surface = None
+
     def on_init(self):
         pygame.init()
 
         self.surface = pygame.display.set_mode(config.display_size, config.display_flags, config.display_depth)
         self.rect = self.surface.get_rect()
+        self.game_surface = pygame.Surface(self.rect.size, pygame.SRCALPHA)
+        self.game_surface_rect = self.game_surface.get_rect()
 
         self.setup_game_lobby()
         self.setup_players_gui()
@@ -64,7 +70,6 @@ class App:
         self.setup_floor()
         self.setup_lighting()
         self.setup_cue_power_bar()
-        self.setup_camera_screen() # TODO: MOVE THIS FIX THIS
 
         self.app_is_running = True
 
@@ -858,7 +863,6 @@ class App:
 
     def setup_floor(self):
         self.floor = Floor(self.rect.size, self.rect.center)
-        self.floor.on_init()
 
     def setup_ball_gutter(self):
         if self.game_session is None or self.game_session.game_mode in GameModeEnum.NONE:
@@ -887,15 +891,38 @@ class App:
         self.cue_power_bar.on_init()
 
     def setup_camera_screen(self):
-        # size = (200, 200)
-        # position = self.rect.center
-        # camera = Camera(size, position)
+        # Cue Ball Camera
+        size = (200, 200)
+        target_offset_rect = self.game_session.game_table.rect
+        default_camera_position = (self.game_surface_rect.width/2, self.game_surface_rect.height/2)
+        camera = Camera(self.game_surface, size, default_camera_position)
+        camera.track_target(self.game_session.game_table.cue_ball, target_offset_rect)
 
-        # size = (200, 200)
-        # position = (size[0]/2 + 20, self.rect.height - size[1]/2 - 20)
-        # camera_screen = CameraScreen(size, position, camera)
-        # self.camera_screens.add(camera_screen)
-        pass
+        margin = 20
+        camera_screen_position = (self.game_surface_rect.width - size[0]/2 - margin, size[1]/2 + margin)
+        camera_screen_1 = CameraScreen(size, camera_screen_position, camera)
+        self.camera_screens.add(camera_screen_1)
+
+        # Random Ball Camera
+        camera = Camera(self.game_surface, size, default_camera_position)
+        available_balls = []
+        for ball in self.game_session.game_table.ball_group:
+            ball: PoolBall
+            if ball == self.game_session.game_table.cue_ball:
+                continue
+
+            available_balls.append(ball)
+
+        ball_idx = random.randint(0, len(available_balls)-1)
+        target_ball = available_balls[ball_idx]
+        camera.track_target(target_ball, target_offset_rect)
+
+        size = (200, 200)
+        margin = 20
+        camera_screen_position = (self.game_surface_rect.width - size[0]/2 - margin, camera_screen_1.rect.height + size[1]/2 + margin*2)
+        camera_screen_2 = CameraScreen(size, camera_screen_position, camera)
+        self.camera_screens.add(camera_screen_2)
+
 
     def quit_to_menu(self):
         if self.game_session is not None:
@@ -1033,8 +1060,7 @@ class App:
         
         game_table.update(self.game_session.time_lapsed, self.active_player.can_take_shot, self.light_source)
         
-        # for camera_screen in self.camera_screens:
-        #     camera_screen.update(self.surface)
+        self.camera_screens.update(self.surface)
 
         self.balls_are_in_motion = game_table.check_balls_are_moving()
 
@@ -1055,11 +1081,10 @@ class App:
         self.pool_ball_gutter.update()
         
         cue_ball = game_table.cue_ball
-        if not self.balls_are_in_motion and cue_ball:
-            if not cue_ball.is_in_active_play and not cue_ball.is_picked_up and self.cue_ball_reset_ttl is None:
-                self.cue_ball_reset_ttl = time_lapsed + self.cue_ball_out_of_play_time_to_reset
+        if cue_ball and not cue_ball.is_in_active_play and not cue_ball.is_picked_up and self.cue_ball_reset_ttl is None:
+            self.cue_ball_reset_ttl = time_lapsed + self.cue_ball_out_of_play_time_to_reset
 
-        if self.cue_ball_reset_ttl is not None and time_lapsed > self.cue_ball_reset_ttl:
+        if not self.balls_are_in_motion and self.cue_ball_reset_ttl is not None and time_lapsed > self.cue_ball_reset_ttl:
             self.pool_ball_gutter.remove_ball(cue_ball)
             game_table.free_place_cue_ball(cue_ball)
             self.cue_ball_reset_ttl = None
@@ -1084,7 +1109,7 @@ class App:
                     game_table.cue_ball_first_hit_ball = None
 
         if self.ui_layer.queued_game_event is not InGameEventEnum.NONE:
-            time_to_activate = 2 * 1000
+            time_to_activate = 1.5 * 1000
             self.game_session.queue_game_event(self.ui_layer.queued_game_event, time_to_activate)
             self.ui_layer.queued_game_event = InGameEventEnum.NONE
 
@@ -1115,6 +1140,7 @@ class App:
 
         self.construct_game_table()
         self.setup_ball_gutter()
+        self.setup_camera_screen()
 
     def update(self):
         self.game_lobby.update()
@@ -1151,20 +1177,29 @@ class App:
             pygame.mouse.set_cursor(new_mouse_cursor)
 
     def draw_running_game(self):
-        self.floor.draw(self.surface)
-        #TODO: Make this a game_sesson.draw
-        self.game_session.game_table.draw(self.surface, self.light_source)
-        self.pool_ball_gutter.draw(self.surface)
-        self.cue_power_bar.draw(self.surface)
+        self.game_surface.fill((0,0,0,0))
 
+        # Game Floor, Table, Gutter
+        self.floor.draw(self.game_surface)
+        self.game_session.game_table.draw(self.game_surface, self.light_source)
+        self.pool_ball_gutter.draw(self.game_surface)
+
+        # Lighting
         self.general_light_dim_surface.fill((0,0,0,self.light_source.lumens))
-        self.surface.blit(self.general_light_dim_surface, (0,0))
+        self.game_surface.blit(self.general_light_dim_surface, (0,0))
+        self.light_source.draw(self.game_surface)
 
-        self.light_source.draw(self.surface)
-        # for camera_screen in self.camera_screens:
-        #     camera_screen.draw(self.surface)
-        self.ui_layer.draw(self.surface)
+        self.surface.blit(self.game_surface, self.game_surface_rect)
+
+        # Game UI Layers
+        self.cue_power_bar.draw(self.surface)
         self.players_gui.draw(self.surface)
+
+        # Cameras
+        self.camera_screens.draw(self.surface)
+
+        # UI Layers
+        self.ui_layer.draw(self.surface)
 
     def draw(self):
         bg_fill = config.display_bg_color

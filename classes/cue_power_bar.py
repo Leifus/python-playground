@@ -132,6 +132,7 @@ class CuePowerBar(GameSprite):
         self.is_hovered = self.cue_button.is_hovered
         return super().update(*args, **kwargs)
 
+    # TODO: Tear down and use redraw
     def draw(self, surface: pygame.Surface):
         self.image.fill((0,0,0,0))
 
@@ -140,5 +141,3 @@ class CuePowerBar(GameSprite):
         self.image.blit(self.housing_overlay_surface, (0, 0))
 
         surface.blit(self.image, self.rect)
-        
-    
