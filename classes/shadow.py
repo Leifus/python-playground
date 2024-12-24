@@ -1,10 +1,12 @@
 from pygame import Vector2
+from classes.game_sprite import GameSprite
 from classes.light_source import LightSource
 from config import pygame, math
 
-class Shadow(pygame.sprite.Sprite):
-    def __init__(self, parent_obj):
-        pygame.sprite.Sprite.__init__(self)
+class Shadow(GameSprite):
+    def __init__(self, parent_obj):     
+        super(GameSprite, self).__init__()
+
         self.mask = parent_obj.mask
         self.alpha = 50
         unsetcolor=(0,0,0,0)

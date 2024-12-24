@@ -37,6 +37,8 @@ pool_table_cushion_DM_RICH_media = 'SBS - Tiny Texture Pack 2 - 512x512/512x512/
 pool_table_cushion_DM_RAW_color = pygame.Color('chartreuse3')
 
 
+pool_table_chalk_d_line_DM_RICH_media = 'table/decals/spr_Decal_Dline.png'
+
 # Chalk Lines
 pool_table_chalk_line_DM_RICH_media = 'table/decals/spr_Decal_Line.png'
 pool_table_chalk_line_DM_RAW_color = pygame.Color('green4')

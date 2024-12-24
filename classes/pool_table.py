@@ -1,6 +1,8 @@
+from classes.decal import Decal
 from classes.game_space_config import GameSpaceConfig
+from classes.game_sprite import GameSprite
 from classes.player import Player
-from config import pygame, pymunk, pool_table_config, pool_balls_config, random, math, Dict
+from config import pygame, pymunk, pool_table_config, pool_balls_config, math, Dict
 from pygame.locals import *
 
 from classes.light_source import LightSource
@@ -9,70 +11,47 @@ from classes.pool_ball import PoolBall
 from classes.pool_table_cushion import PoolTableCushion
 from classes.pool_table_pocket import PoolTablePocket
 from classes.draw_mode_enum import DrawModeEnum
-from classes.__helpers__ import aspect_scale, draw_poly_points_around_rect
+from classes.__helpers__ import draw_poly_points_around_rect
 from globals import media_manager, sound_manager
 
-class PoolTable(pygame.sprite.Sprite):
-    def __init__(self, position, space_config: GameSpaceConfig):
-        pygame.sprite.Sprite.__init__(self)
+class PoolTable(GameSprite):
+    def __init__(self, size, position, space_config: GameSpaceConfig):
+        super(GameSprite, self).__init__()
 
         self.draw_mode = pool_table_config.pool_table_draw_mode
         self.raw_color = pool_table_config.pool_table_DM_RAW_color
-        self.size = pool_table_config.pool_table_size
+        self.size = size
         self.WIREFRAME_outline_width = pool_table_config.pool_table_DM_WIREFRAME_outline_width
         self.WIREFRAME_poly_point_radius = pool_table_config.pool_table_DM_WIREFRAME_poly_point_radius
-        self.chalk_line_RAW_color = pool_table_config.pool_table_chalk_line_DM_RAW_color
-        self.chalk_line_width = pool_table_config.pool_table_chalk_line_width
-        self.chalk_dot_RAW_color = pool_table_config.pool_table_chalk_dot_DM_RAW_color
-        self.chalk_dot_radius = pool_table_config.pool_table_chalk_dot_radius
+        # self.chalk_line_RAW_color = pool_table_config.pool_table_chalk_line_DM_RAW_color
+        # self.chalk_line_width = pool_table_config.pool_table_chalk_line_width
+        # self.chalk_dot_RAW_color = pool_table_config.pool_table_chalk_dot_DM_RAW_color
+        # self.chalk_dot_radius = pool_table_config.pool_table_chalk_dot_radius
         self.table_RICH_media = pool_table_config.pool_table_DM_RICH_media
-        self.chalk_line_RICH_media = pool_table_config.pool_table_chalk_line_DM_RICH_media
-        self.chalk_dot_RICH_media = pool_table_config.pool_table_chalk_dot_DM_RICH_media
-        self.chalk_dot_radius = pool_table_config.pool_table_chalk_dot_radius
+        # self.chalk_dot_radius = pool_table_config.pool_table_chalk_dot_radius
         
         self.space_config: GameSpaceConfig = space_config
         self.position = position
-        self.width = self.size[0]
-        self.height = self.size[1]
+        # self.width = self.size[0]
+        # self.height = self.size[1]
 
-        self.space = None
-        self.space_draw_options = None
+        self.space: pymunk.Space = None
+        self.space_draw_options: pymunk.pygame_util.DrawOptions | None = None
         
-        self.pockets_group = pygame.sprite.Group()
-        self.cushions = []
-        self.pockets_by_shape: Dict[pymunk.Shape, PoolTablePocket] = dict()
-        self.balls_by_shape: Dict[pymunk.Shape, PoolBall] = dict()
-        self.ball_group = pygame.sprite.Group()
-        self.cue_ball = None
-        self.relative_mouse_position = None
-        self.balls_to_remove_from_table = []
-        
-        self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
-        self.rect = self.surface.get_rect(center=self.position)
-        self.image = None
-        self.table_surface = self.surface.copy()
-        self.table_RICH_surface = None
-        self.chalk_line_RICH_surface = None
-        self.chalk_dot_RICH_surface = None
+        self.surface: pygame.Surface | None = pygame.Surface(self.size, pygame.SRCALPHA)
 
-        self.rich_decals = []
-        self.rich_chalk_lines = []
-        self.rich_chalk_dots = []
-        
-        self.hovered_ball = None
-        self.selected_ball = None
+        self.image: pygame.Surface | None = None
+        self.orig_image: pygame.Surface | None = None
+        self.mask: pygame.mask.Mask | None = None
+        self.rect: pygame.Rect | None = self.surface.get_rect(center=self.position)
 
-        self.chalk_line_positions = []
-        self.chalk_dots = []
-        
-        self.pockets = []
-        self.setup_pockets()
-        self.setup_cushions()
-        self.setup_table_chalk_line_positions()
-        self.setup_table_chalk_dot_positions()
-        
+        self.chalk_line_orig_image: pygame.Surface | None = None
+        self.chalk_dot_orig_image: pygame.Surface | None = None
+        self.decal_orig_images = []
+        self.light_source_overlap_mask: pygame.mask.Mask = None
+
         self.handlers = []
-
+        self.hovered_ball = None
         self.line_of_sight = None
         self.hit_point = None
         self.hit_shape = None
@@ -80,126 +59,76 @@ class PoolTable(pygame.sprite.Sprite):
         self.ball_collisions = dict()
         self.time_lapsed = 0
         
-        self.shadow_group: pygame.sprite.Group = pygame.sprite.Group()
-        
-        self.mask: pygame.mask.Mask = None
-        self.light_source_overlap_mask: pygame.mask.Mask = None
+        self.pockets_group = pygame.sprite.Group()
+        self.cushions_group = pygame.sprite.Group()
+        self.ball_group = pygame.sprite.Group()
+        self.decals_group = pygame.sprite.Group()
+        self.shadow_group = pygame.sprite.Group()
 
+        self.pockets_by_shape: Dict[pymunk.Shape, PoolTablePocket] = dict()
+        self.balls_by_shape: Dict[pymunk.Shape, PoolBall] = dict()
+
+        self.relative_mouse_position = None
+        
+        self.cue_ball: PoolBall = None
         self.cue_ball_first_hit_ball = None
+        self.balls_to_remove_from_table = []
+
+        self.setup_visuals()
+        self.setup_physical_space()
+        self.redraw()
+        
+    def redraw(self):
+        # Table
+        self.image = pygame.transform.scale(self.orig_image, self.size)
+        self.rect = self.image.get_rect(center=self.position)
+        self.mask = pygame.mask.from_surface(self.image)
+
+        # Decals
+        for decal in self.decals_group:
+            self.image.blit(decal.image, decal.rect)
+
+        if self.draw_mode in DrawModeEnum.Physics:
+            self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
 
     def setup_visuals(self):
-        if self.draw_mode in DrawModeEnum.Wireframe | DrawModeEnum.Raw:
+        if self.draw_mode in DrawModeEnum.Wireframe | DrawModeEnum.Raw | DrawModeEnum.Physics:
             outline_width = 0
             if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
             # Table
-            rect = pygame.Rect(0, 0, self.rect.width, self.rect.height)
-            pygame.draw.rect(self.table_surface, self.raw_color, rect, outline_width)
+            table_image = self.surface.copy()
+            table_rect = table_image.get_rect()
+            pygame.draw.rect(table_image, self.raw_color, table_rect, outline_width)
 
             if self.draw_mode in DrawModeEnum.Wireframe:
                 color = (0,0,0)
-                draw_poly_points_around_rect(self.table_surface, rect, color, self.WIREFRAME_poly_point_radius)
+                draw_poly_points_around_rect(table_image, table_rect, color, self.WIREFRAME_poly_point_radius)
 
-            # Chalk lines
-            for _ in self.chalk_line_positions:
-                pygame.draw.line(self.table_surface, self.chalk_line_RAW_color, _[0], _[1], self.chalk_line_width)
+            # # Chalk lines
+            # for _ in self.chalk_line_positions:
+            #     pygame.draw.line(table_image, self.chalk_line_RAW_color, _[0], _[1], self.chalk_line_width)
 
-            # Chalk dots
-            for position in self.chalk_dots:
-                position = (position[0], position[1])
-                pygame.draw.circle(self.table_surface, self.chalk_dot_RAW_color, position, self.chalk_dot_radius, outline_width)
-        if self.draw_mode in DrawModeEnum.Rich:
+            # # Chalk dots
+            # for position in self.chalk_dots:
+            #     position = (position[0], position[1])
+            #     pygame.draw.circle(table_image, self.chalk_dot_RAW_color, position, self.chalk_dot_radius, outline_width)
+
+            self.orig_image = table_image
+        elif self.draw_mode in DrawModeEnum.Rich:
             # Table
-            table_surface = media_manager.get(self.table_RICH_media, convert_alpha=True)
-            if not table_surface:
-                print('No table img')
+            self.orig_image = media_manager.get(self.table_RICH_media, convert_alpha=True)
+            if not self.orig_image:
+                print('No table img', self.table_RICH_media)
                 return
             
-            self.table_RICH_surface = pygame.transform.scale(table_surface, self.size)
-            self.table_surface.blit(self.table_RICH_surface, (0, 0))
-            overlay = self.table_surface.copy()
-            overlay.fill((0,0,0,50))
-            self.table_surface.blit(overlay, (0,0))
-
-            # Chalk Lines
-            chalk_line_surface = media_manager.get(self.chalk_line_RICH_media, convert_alpha=True)
-            if not chalk_line_surface:
-                print('No chalk line img')
-            else:
-                size = (chalk_line_surface.get_width(), self.size[1])
-                self.chalk_line_RICH_surface = pygame.transform.scale(chalk_line_surface, size)
-                position = (self.width/5, 0)
-                self.table_surface.blit(self.chalk_line_RICH_surface, position)
-
-            # Chalk Dots
-            position_offset = (3, 0)
-            chalk_dot = media_manager.get(self.chalk_dot_RICH_media, convert_alpha=True)
-            if not chalk_dot:
-                print('No black chalk dot img')
-            else:
-                self.chalk_dot_RICH_surface = aspect_scale(chalk_dot, (self.chalk_dot_radius*2, self.chalk_dot_radius*2))
-                for dot_position in self.chalk_dots:
-                    position = (dot_position[0], dot_position[1])
-                    self.table_surface.blit(self.chalk_dot_RICH_surface, position)
-                
-            # TODO: Move this some where more configurable 
-            # decals
-            decals = [
-                ['spr_Decal_Scratches3.png', 255], 
-                ['spr_Decal_Scuff2.png', 200], 
-                ['spr_Decal_Scratches1.png', 255], 
-                ['spr_Decal_Scratches1.png', 255], 
-                ['spr_Decal_Scratches2.png', 255], 
-                ['spr_Decal_Scratches2.png', 255], 
-                ['spr_Decal_Scratches3.png', 255], 
-                ['spr_Decal_Scuff1.png', 200], 
-                ['spr_Decal_Scratches2.png', 255], 
-            ]
-
-            for file_name, alpha in decals:
-                media_path = f'table/decals/{file_name}'
-                decal_surface = media_manager.get(media_path, convert_alpha=True)
-                decal_surface.set_alpha(alpha)
-                if not decal_surface:
-                    print('No decal_surface img', media_path)
-                else:
-                    bleed = 10
-                    rand_x = random.uniform(bleed, self.width - bleed)
-                    rand_y = random.uniform(bleed, self.height - bleed)
-                    position = (rand_x, rand_y)
-                    rect = decal_surface.get_rect(center=position)
-                    # self.rich_decals.append([decal_surface, position])
-                    self.table_surface.blit(decal_surface, rect)
-
-            
-        elif self.draw_mode in DrawModeEnum.Physics:
-            self.space_draw_options = pymunk.pygame_util.DrawOptions(self.surface)
-
-        self.image = self.table_surface
-        self.mask = pygame.mask.from_surface(self.image)
-
     def setup_physical_space(self):
         self.space = pymunk.Space()
         self.space.iterations = self.space_config.iterations
         self.space.gravity = self.space_config.gravity
         self.space.damping = self.space_config.damping
         self.space.sleep_time_threshold = self.space_config.sleep_time_threshold
-
-        bodies_to_add = []
-        shapes_to_add = []
-
-        for i, _ in enumerate(self.cushions):
-            _.on_init(self.space, i)
-
-        for i, pocket in enumerate(self.pockets_group):
-            bodies_to_add.append(pocket.body)
-            shapes_to_add.append(pocket.shape)
-            self.pockets_by_shape[pocket.shape] = pocket
-
-
-        self.space.add(*bodies_to_add)
-        self.space.add(*shapes_to_add)
 
         self.setup_physical_collision_handlers()
 
@@ -213,151 +142,19 @@ class PoolTable(pygame.sprite.Sprite):
         handler.separate = self.on_ball_separate_from_pocket
         self.handlers.append(handler)
 
-    def setup_table_chalk_dot_positions(self):
-        position = (self.width - self.width/4, self.height/2)
-        self.chalk_dots.append(position)
-
-        position = (self.width/5, self.height/2)
-        self.chalk_dots.append(position)
-
-    def setup_table_chalk_line_positions(self):
-        start_pos = (self.width/5, 0)
-        end_pos = (self.width/5, self.height)
-        table_third = (start_pos, end_pos)
-        self.chalk_line_positions.append(table_third)
-
-    def setup_pockets(self):
-        radius = pool_table_config.pool_table_pocket_radius
-
-        pockets = []
-        
-        #top left
-        position = (0, 0)
-        pocket = PoolTablePocket(position, radius)
-        pockets.append(pocket)
-
-        #top mid
-        position = (self.width/2, -radius/2)
-        pocket = PoolTablePocket(position, radius)
-        pockets.append(pocket)
-
-        #top right
-        position = (self.width, 0)
-        pocket = PoolTablePocket(position, radius)
-        pockets.append(pocket)
-
-        #bottom right
-        position = (self.width, self.height)
-        pocket = PoolTablePocket(position, radius)
-        pockets.append(pocket)
-
-        #bottom mid
-        position = (self.width/2, self.height + (radius/2))
-        pocket = PoolTablePocket(position, radius)
-        pockets.append(pocket)
-
-        #bottom left
-        position = (0, self.height)
-        pocket = PoolTablePocket(position, radius)
-        pockets.append(pocket)
-
-        for pocket in pockets:
-            self.pockets_group.add(pocket)
-
-    def setup_cushions(self):
-        pocket_radius = pool_table_config.pool_table_pocket_radius
-        cushion_gap = pool_table_config.pool_table_cushion_gap_to_pocket
-        cushion_thickness = pool_table_config.pool_table_cushion_thickness
-        bezel_short = pool_table_config.pool_table_cushion_bezel_short
-        bezel_long = pool_table_config.pool_table_cushion_bezel_long
-        
-        #left
-        offset = pocket_radius*2 + cushion_gap*4
-        width = cushion_thickness
-        height = self.height - offset
-        position = (width/2, self.height/2)
-        poly_points = [
-            (0, 0),
-            (bezel_short, 0),
-            (width - bezel_short/2, bezel_long/2),
-            (width, bezel_long),
-            (width, height - bezel_long),
-            (width - bezel_short/2, height - bezel_long/2),
-            (width - bezel_short, height),
-            (0, height)
-        ]
-        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
-        self.cushions.append(cushion)
-
-        #right
-        position = (self.width - (width/2), self.height/2)
-        poly_points = [
-            (width, 0), 
-            (width, height),
-            (bezel_short, height),
-            (bezel_short/2, height - bezel_long/2),
-            (0, height - bezel_long),
-            (0, bezel_long),
-            (bezel_short/2, bezel_long/2),
-            (bezel_short, 0)
-        ]
-        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
-        self.cushions.append(cushion)
-
-        #top left
-        offset = pocket_radius*2 + cushion_gap*3
-        height = cushion_thickness
-        width = (self.width/2) - offset
-        position = ((width/2) + pocket_radius + cushion_gap*2, height/2)
-        poly_points = [
-            (0, 0), 
-            (width, 0), 
-            (width, height - bezel_short),
-            (width - bezel_long/2, height - bezel_short/2),
-            (width - bezel_long, height),
-            (bezel_long, height),
-            (bezel_long/2, height - bezel_short/2),
-            (0, height - bezel_short)
-        ]
-        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
-        self.cushions.append(cushion)
-
-        #top right
-        position = ((self.width/2) + (width/2) + pocket_radius + cushion_gap, height/2)
-        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
-        self.cushions.append(cushion)
-
-        #bottom left
-        offset = pocket_radius*2 + cushion_gap*3
-        height = cushion_thickness
-        width = (self.width/2) - offset
-        position = ((width/2) + pocket_radius + cushion_gap*2, self.height - (height/2))
-        poly_points = [
-            (bezel_long, 0),
-            (width - bezel_long, 0),
-            (width - bezel_long/2, bezel_short/2),
-            (width, bezel_short),
-            (width, height),
-            (0, height),
-            (0, bezel_short),
-            (bezel_long/2, bezel_short/2),
-        ]
-        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
-        self.cushions.append(cushion)
-
-        #bottom right
-        position = ((self.width/2) + (width/2) + pocket_radius + cushion_gap, self.height - (height/2))
-        cushion = PoolTableCushion((width, height), position, poly_points, media_manager)
-        self.cushions.append(cushion)
-
-    def on_init(self):
-        self.setup_visuals()
-        self.setup_physical_space()
-
     def add_pocket(self, pocket: PoolTablePocket):
         self.pockets_by_shape[pocket.shape] = pocket
         self.pockets_group.add(pocket)
         self.space.add(pocket.body, pocket.shape)
+
+    def add_cushion(self, cushion: PoolTableCushion):
+        self.cushions_group.add(cushion)
+        self.space.add(cushion.body, cushion.shape)
+
+    def add_decals(self, decals: pygame.sprite.Group):
+        for i, decal in enumerate(decals):
+            decal: Decal
+            self.decals_group.add(decal)
 
     def add_ball(self, ball: PoolBall, ball_is_in_play=False):
         self.space.add(ball.body, ball.shape)
@@ -385,6 +182,7 @@ class PoolTable(pygame.sprite.Sprite):
         self.balls_by_shape[ball.shape] = ball
 
         orig_shadow = None
+        #TODO: Make this better / Use a dict
         for _ in self.shadow_group:
             if _.parent_obj == orig_ball:
                 orig_shadow = _
@@ -398,6 +196,7 @@ class PoolTable(pygame.sprite.Sprite):
     def clear_balls(self):
         for ball in self.ball_group:
             self.space.remove(ball.shape.body, ball.shape)
+
         self.shadow_group.empty()
         self.balls_by_shape.clear()
         self.ball_group.empty()
@@ -493,21 +292,13 @@ class PoolTable(pygame.sprite.Sprite):
         mouse_pos = event.pos
         self.relative_mouse_position = (mouse_pos[0] - self.rect.left, mouse_pos[1] - self.rect.top)
         
-        # check if we're hovering over a ball
-        # self.check_for_hovered_ball()
-
         if event.type == MOUSEBUTTONDOWN:
             buttons_pressed = pygame.mouse.get_pressed()
 
             if buttons_pressed[0] and self.cue_ball.is_picked_up:
                 self.cue_ball.drop_ball()
 
-        # if event.type == MOUSEBUTTONDOWN: #and button checks
-        #     if self.hovered_ball is not None:
-        #         self.selected_ball = self.hovered_ball
-
     def free_place_cue_ball(self, ball: PoolBall):
-        print('free_place_cue_ball')
         self.add_ball(ball)
         ball.is_in_active_play = True
         self.cue_ball.pick_up_ball()
@@ -517,6 +308,7 @@ class PoolTable(pygame.sprite.Sprite):
         del self.balls_by_shape[ball.shape]
 
         shadow = None
+        #TODO: Make this better / Use a dict
         for _ in self.shadow_group:
             if _.parent_obj is ball:
                 shadow = _
@@ -528,7 +320,6 @@ class PoolTable(pygame.sprite.Sprite):
         self.space.remove(ball.shape.body, ball.shape)
 
     def set_cue_ball_in_play(self, ball: PoolBall):
-        # ball.filter = pymunk.ShapeFilter()
         self.cue_ball = ball
 
     def ray_cast_ball_path_to_mouse_position(self):        
@@ -704,11 +495,9 @@ class PoolTable(pygame.sprite.Sprite):
         # self.find_physical_line_of_sight_collision()
 
         self.pockets_group.update()
+        self.cushions_group.update()
 
-        for _ in self.cushions:
-            _.update()
-
-        if self.cue_ball.is_picked_up:
+        if self.cue_ball and self.cue_ball.is_picked_up:
             x, y = self.relative_mouse_position
             min_x = 30
             min_y = 30
@@ -725,17 +514,17 @@ class PoolTable(pygame.sprite.Sprite):
 
         self.ball_group.update()
         
-        # if self.cue_ball.is_picked_up:
         return super().update(*args, **kwargs)
 
     def draw(self, surface: pygame.Surface, light_source: LightSource):
-        self.surface.fill((0,0,0,0))
+        self.surface.fill((0,0,0,100))
+        self.surface.blit(self.image, (0,0))
 
-        self.surface.blit(self.table_surface, (0, 0))
+        self.decals_group.draw(self.surface)
 
         #TODO: Bake this and change only when needed
         self.light_source_overlap_mask = light_source.mask.overlap_mask(self.mask, (0,0))
-        if self.light_source_overlap_mask:            
+        if self.light_source_overlap_mask:
             fade_steps = 6
             initial_lumens = light_source.lumens * 0.18
             for i in range(fade_steps):
@@ -750,7 +539,6 @@ class PoolTable(pygame.sprite.Sprite):
                 rect = light_surface.get_rect(center=position)
                 self.surface.blit(light_surface, rect)
 
-
         # Cast shadows
         self.shadow_group.draw(self.surface)
 
@@ -764,60 +552,8 @@ class PoolTable(pygame.sprite.Sprite):
         #     pygame.draw.circle(self.surface, pygame.Color('red'), (int(self.hit_point.x), int(self.hit_point.y)), self.cue_ball.radius, 2)
         #     pygame.draw.line(self.surface, pygame.Color('white'), self.cue_ball.position, (self.hit_point.x, self.hit_point.y), 2)
         
-
-        # wireframe_thickness = pool_table_config.pool_table_draw_mode_wireframe_thickness
-
-        # if self.draw_mode in DrawMode.RICH:
-        #     # draw table
-        #     self.surface.blit(self.rich_table_surface, (0,0))
-
-        #     # draw chalk lines
-        #     for line, position in self.rich_chalk_lines:
-        #         self.surface.blit(line, position)
-
-        #     # draw chalk dots
-        #     for dot, position in self.rich_chalk_dots:
-        #         rect = dot.get_rect(center=position)
-        #         self.surface.blit(dot, rect)
-
-        #     # draw table decals
-        #     for decal, position in self.rich_decals:
-        #         self.surface.blit(decal, position)
-
-        # elif self.draw_mode in DrawMode.WIREFRAME:
-        #     # draw table
-        #     rect = pygame.Rect(0, 0, self.rect.width, self.rect.height)
-        #     pygame.draw.rect(self.surface, self.raw_color, rect, wireframe_thickness)
-
-        #     # draw poly points
-        #     pygame.draw.circle(self.surface, (0,0,0), (0, 0), 2)
-        #     pygame.draw.circle(self.surface, (0,0,0), (self.rect.width, 0), 2)
-        #     pygame.draw.circle(self.surface, (0,0,0), (self.rect.width, self.rect.height), 2)
-        #     pygame.draw.circle(self.surface, (0,0,0), (0, self.rect.height), 2)
-        # elif self.draw_mode in DrawMode.RAW:
-        #     # draw table
-        #     self.surface.fill(self.raw_color)
-
-        #     # draw chalk lines
-        #     color = pool_table_config.pool_table_chalk_line_DM_RAW_color
-        #     width = pool_table_config.pool_table_chalk_line_width
-        #     for _ in self.chalk_line_positions:
-        #         pygame.draw.line(self.surface, color, _[0], _[1], width)
-
-        #     # draw chalk dots
-        #     color = pool_table_config.pool_table_chalk_dot_DM_RAW_color
-        #     radius = pool_table_config.pool_table_chalk_dot_radius
-        #     outline = 0
-        #     for position in self.chalk_dots:
-        #         position = (position[0], position[1])
-        #         pygame.draw.circle(self.surface, color, position, radius, outline)
-            
-
         self.pockets_group.draw(self.surface)
-            
-        for _ in self.cushions:
-            _.draw(self.surface)
-
+        self.cushions_group.draw(self.surface)
         self.ball_group.draw(self.surface)
 
         if self.draw_mode in DrawModeEnum.Physics:

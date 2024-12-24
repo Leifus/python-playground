@@ -1,10 +1,13 @@
+from classes.game_sprite import GameSprite
 from config import pool_balls_config, pool_table_config, pygame, pymunk
 from classes.draw_mode_enum import DrawModeEnum
-from classes.media_manager import MediaManager
 from classes.__helpers__ import draw_poly_points
+from globals import media_manager
 
-class PoolTableCushion():
-    def __init__(self, size, position, poly_points, media_manager: MediaManager):
+class PoolTableCushion(GameSprite):
+    def __init__(self, size, position, poly_points):
+        super(GameSprite, self).__init__()
+        
         self.draw_mode = pool_table_config.pool_table_cushion_draw_mode
         self.elasticity = pool_table_config.pool_table_cushion_elasticity
         self.friction = pool_table_config.pool_table_cushion_friction
@@ -16,7 +19,6 @@ class PoolTableCushion():
         self.shape_elasticity = pool_table_config.pool_table_cushion_elasticity
         self.shape_friction = pool_table_config.pool_table_cushion_friction
 
-        self.media_manager = media_manager
         self.size = size
         self.position = position
 
@@ -25,54 +27,45 @@ class PoolTableCushion():
         else:   # rectangle
             self.poly_points = [(0,0), (self.size[0], 0), (self.size[0], self.size[1]), (0, self.size[1])]
         
+        self.image: pygame.Surface | None = None
+        self.orig_image: pygame.Surface | None = None
+        self.mask: pygame.mask.Mask | None = None
+        self.rect: pygame.Rect | None = None
+        
         self.body = None
         self.shape = None
 
-        self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
-        self.rect = self.surface.get_rect(center=self.position)
-        self.cushion_surface = self.surface.copy()
-        self.cushion_RICH_surface = None
+        self.setup_visuals()
+        self.setup_physical_space()
+        self.redraw()
+
+    def redraw(self):
+        self.image = pygame.transform.scale(self.orig_image, self.size)
+        self.rect = self.image.get_rect(center=self.position)
+        self.mask = pygame.mask.from_surface(self.image)
 
     def setup_visuals(self):
         if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
+            self.orig_image = pygame.Surface(self.size, pygame.SRCALPHA)
             outline_width = 0
             if self.draw_mode in DrawModeEnum.Wireframe:
                 outline_width = self.WIREFRAME_outline_width
 
-            pygame.draw.polygon(self.cushion_surface, self.cushion_RAW_color, self.poly_points, outline_width)
+            pygame.draw.polygon(self.orig_image, self.cushion_RAW_color, self.poly_points, outline_width)
 
             if self.draw_mode in DrawModeEnum.Wireframe:
                 color = (0,0,0)
-                draw_poly_points(self.cushion_surface, self.poly_points, color, self.WIREFRAME_poly_point_radius)
-        elif self.draw_mode in DrawModeEnum.Rich:
-            media_path = self.cushion_RICH_media
-            rich_surface = self.media_manager.get(media_path, convert_alpha=True)
-            if not rich_surface:
-                print('No cushion img', media_path)
-                return
-            
-            self.cushion_RICH_surface = pygame.transform.scale(rich_surface, self.size)
-            self.cushion_surface.blit(self.cushion_RICH_surface, (0, 0))
+                draw_poly_points(self.orig_image, self.poly_points, color, self.WIREFRAME_poly_point_radius)
+        if self.draw_mode in DrawModeEnum.Rich:
+            self.orig_image = media_manager.get(self.cushion_RICH_media, convert_alpha=True)
+            if not self.orig_image:
+                print('No cushion img', self.cushion_RICH_media)
     
-    def setup_physical_space(self, space: pymunk.Space, body_iter):
+    def setup_physical_space(self):
         self.body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        self.body.position = (self.position[0] - (self.rect.width/2), self.position[1] - (self.rect.height/2))
+        self.body.position = (self.position[0] - (self.size[0]/2), self.position[1] - (self.size[1]/2))
         self.shape = pymunk.Poly(self.body, self.poly_points)
-        self.shape.collision_type = self.shape_collision_type + body_iter
+        self.shape.collision_type = self.shape_collision_type# + body_iter
         self.shape.elasticity = self.shape_elasticity
         self.shape.friction = self.shape_friction
-        space.add(self.body, self.shape)
         
-    def on_init(self, space: pymunk.Space, body_iter):
-        self.setup_visuals()
-        self.setup_physical_space(space, body_iter)
-
-    def update(self):
-        pass
-
-    def draw(self, surface: pygame.Surface):
-        self.surface.fill((0,0,0,0))
-
-        self.surface.blit(self.cushion_surface, (0,0))
-
-        surface.blit(self.surface, self.rect)
