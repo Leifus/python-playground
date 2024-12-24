@@ -45,13 +45,12 @@ class App:
         self.cue_ball_reset_ttl = None
 
         self.game_lobby: GameLobby = None
-        self.game_session: Optional['GameSession'] | None = None
+        self.game_session: GameSession | None = None
 
         self.active_player: Player = None
 
         self.camera_screens = pygame.sprite.Group()
         self.general_light_dim_surface: pygame.Surface = None
-
 
     def on_init(self):
         pygame.init()
@@ -685,12 +684,90 @@ class App:
         return game_table
 
     def construct_custom_circle_game_table(self) -> CircleGameTable:
+        # Table
         radius = 300
         position = (self.rect.width/2, self.rect.height/2)
         space_config = self.game_session.game_mode_config.space_config
         draw_mode = DrawModeEnum.Rich
         game_table = CircleGameTable(radius, position, space_config, draw_mode)
 
+        # Random Scuff Mark Decals
+        decal_group = self.construct_scuff_and_scratch_decals(game_table.rect)
+        game_table.add_decals(decal_group)
+
+        # Pockets
+        pocket_group = pygame.sprite.Group()
+        radius = 32
+
+        # center
+        center_position = (game_table.rect.width/2, game_table.rect.height/2)
+        center_pocket = PoolTablePocket(center_position, radius)
+        pocket_group.add(center_pocket)
+        
+        for i, pocket in enumerate(pocket_group):
+            game_table.add_pocket(pocket)
+                
+        # Balls
+        ball_group = pygame.sprite.Group()
+        balls_config = pool_balls_config.snooker_ball_sets[0]
+        ball_set_title, ball_radius, media_folder, mass, elasticity, friction = balls_config
+
+        color = pygame.Color('ivory')
+        identifier = 'white'
+        media_path = f'{media_folder}/{identifier}.png'
+        position = (game_table.rect.width/2, 100)
+        cue_ball = PoolBall(identifier, ball_radius, mass, elasticity, friction, position, color, media_path)
+        ball_group.add(cue_ball)
+
+        # Black balls
+        color = pygame.Color('black')
+        identifier = 'black'
+        media_path = f'{media_folder}/{identifier}.png'
+        positions = [
+            (center_position[0], center_position[1] + center_pocket.rect.height),
+            (center_position[0], center_position[1] - center_pocket.rect.height),
+            (center_position[0] + center_pocket.rect.width, center_position[1]),
+            (center_position[0] - center_pocket.rect.width, center_position[1]),
+            (center_position[0] + center_pocket.rect.width - ball_radius*2, center_position[1] - center_pocket.rect.height + ball_radius*2),
+            (center_position[0] + center_pocket.rect.width - ball_radius*2, center_position[1] + center_pocket.rect.height - ball_radius*2),
+            (center_position[0] - center_pocket.rect.width + ball_radius*2, center_position[1] - center_pocket.rect.height + ball_radius*2),
+            (center_position[0] - center_pocket.rect.width + ball_radius*2, center_position[1] + center_pocket.rect.height - ball_radius*2),
+        ]
+
+        for position in positions:
+            ball = PoolBall(identifier, ball_radius, mass, elasticity, friction, position, color, media_path)
+            ball_group.add(ball)
+
+        # Red balls
+        color = pygame.Color('red')
+        identifier = 'red'
+        media_path = f'{media_folder}/{identifier}.png'
+        base_position = (center_position[0], game_table.rect.height - 60)
+        positions = [
+            base_position,
+            (base_position[0] - ball_radius*2, base_position[1] - ball_radius),
+            (base_position[0] - ball_radius*4, base_position[1] - ball_radius*2),
+            (base_position[0] - ball_radius*6, base_position[1] - ball_radius*3),
+            (base_position[0] - ball_radius*8, base_position[1] - ball_radius*4),
+            (base_position[0] - ball_radius*10, base_position[1] - ball_radius*5),
+            (base_position[0] + ball_radius*2, base_position[1] - ball_radius),
+            (base_position[0] + ball_radius*4, base_position[1] - ball_radius*2),
+            (base_position[0] + ball_radius*6, base_position[1] - ball_radius*3),
+            (base_position[0] + ball_radius*8, base_position[1] - ball_radius*4),
+            (base_position[0] + ball_radius*10, base_position[1] - ball_radius*5),
+        ]
+
+        for position in positions:
+            ball = PoolBall(identifier, ball_radius, mass, elasticity, friction, position, color, media_path)
+            ball_group.add(ball)
+
+
+        game_table.clear_balls()
+        for i, ball in enumerate(ball_group):
+            game_table.add_ball(ball, ball_is_in_play=True)
+
+        game_table.set_cue_ball_in_play(cue_ball)
+        
         return game_table
 
     def construct_billiards_game_table(self) -> BilliardsGameTable:
@@ -747,6 +824,7 @@ class App:
             game_table = self.construct_custom_circle_game_table()
 
         if game_table:
+            game_table.add_light_source(self.light_source)
             self.game_session.game_table = game_table
 
     def setup_game_lobby(self):
@@ -857,7 +935,7 @@ class App:
         # Player takes a shot
         if event.type == MOUSEBUTTONDOWN and event.button == 1:
             if not self.ui_layer.is_hovered and not self.cue_power_bar.is_hovered:
-                if self.game_session.game_table.cue_ball.is_in_active_play and not self.game_session.game_table.cue_ball.is_picked_up and not self.balls_are_in_motion:
+                if self.game_session.game_table.check_cue_ball_is_available() and not self.balls_are_in_motion:
                     self.take_player_shot()
 
         self.game_session.game_table.on_event(event)
@@ -897,7 +975,6 @@ class App:
 
         print('changing ball size', ball.identifier, radius)
 
-    # TODO: WIP: CHANGE TABLE SHAPE
     # TODO: PLACE GAME EVENT SENSORS ON TABLE
     # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
 
@@ -964,8 +1041,8 @@ class App:
         if game_table.cue_ball_first_hit_ball is not None and self.active_player.is_taking_shot:
             self.active_player.first_contact = game_table.cue_ball_first_hit_ball
 
-        if len(game_table.balls_to_remove_from_table) > 0: # Balls potted
-            for ball in game_table.balls_to_remove_from_table:
+        if len(game_table.balls_potted) > 0: # Balls potted
+            for ball in game_table.balls_potted:
                 ball: PoolBall
                 ball.stop_moving()
 
@@ -973,7 +1050,7 @@ class App:
                 game_table.remove_ball(ball)
                 self.pool_ball_gutter.add_ball(ball)
             
-            game_table.balls_to_remove_from_table = []
+            game_table.balls_potted = []
 
         self.pool_ball_gutter.update()
         

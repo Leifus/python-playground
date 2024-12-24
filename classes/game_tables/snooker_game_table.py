@@ -13,10 +13,6 @@ class SnookerGameTable(GameTable):
         self.setup_visuals()
         self.redraw()
 
-    def redraw(self):
-        self.image = pygame.transform.scale(self.orig_image, self.rect.size)
-        self.mask = pygame.mask.from_surface(self.image)
-
     def setup_visuals(self):
         # Table
         self.orig_image = media_manager.get(self.rich_media_path, convert_alpha=True)

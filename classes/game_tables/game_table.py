@@ -41,10 +41,12 @@ class GameTable(GameSprite):
         
         self.ball_collisions = dict()
         self.handlers = []
-        self.balls_to_remove_from_table = []
+        self.balls_potted = []
         self.rays = []
 
         self.relative_mouse_position = None
+
+        self.light_sources = []
 
         self.setup_physical_space()
         self.setup_physical_collision_handlers()
@@ -84,6 +86,7 @@ class GameTable(GameSprite):
         return False
 
     def remove_ball(self, ball: PoolBall):
+        ball.stop_moving()
         self.ball_group.remove(ball)
         del self.balls_by_shape[ball.shape]
 
@@ -118,6 +121,7 @@ class GameTable(GameSprite):
     def add_cushion(self, cushion: PoolTableCushion):
         self.cushions_group.add(cushion)
         self.space.add(cushion.body, cushion.shape)
+        self.redraw()
 
     def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         ball_shape_0 = arbiter.shapes[0]
@@ -176,17 +180,14 @@ class GameTable(GameSprite):
 
         #TODO: Handle the velocity of the ball.. would it travel past or fall in?
         # ... could we make a real hole or is this too much? Likely, the simple calculations (hah) would be fine..
+        # HOW ABOUT A SIMPLE TIMER (HAS THE BALL BEEN IN THE HOLE FOR X?!)
 
         ball = self.balls_by_shape.get(ball_shape)
         pocket = self.pockets_by_shape.get(pocket_shape)
-        if ball and pocket:
+        if ball and not ball.is_picked_up and pocket:
             if pocket.radius > ball.radius: # Pocket is big enough to consume ball
                 if distance > ball.radius + buffer: #ball has fallen 'enough' into the pocket
-                    ball.stop_moving()
-                    self.balls_to_remove_from_table.append(ball)
-                    return False
-        else:
-            print('_!!_ UNHANDLED: PoolTable.on_ball_collide_with_pocket: NO BALL OR POCKET', ball, pocket)
+                    self.balls_potted.append(ball)
 
         return True
 
@@ -212,7 +213,7 @@ class GameTable(GameSprite):
         if event.type == pygame.MOUSEBUTTONDOWN:
             buttons_pressed = pygame.mouse.get_pressed()
 
-            if buttons_pressed[0] and self.cue_ball.is_picked_up:
+            if buttons_pressed[0] and self.cue_ball and self.cue_ball.is_picked_up:
                 self.cue_ball.drop_ball()
 
     def update_ball(self, ball: PoolBall):
@@ -249,10 +250,18 @@ class GameTable(GameSprite):
         self.pockets_group.add(pocket)
         self.space.add(pocket.body, pocket.shape)
 
+        self.redraw()
+
     def add_decals(self, decals: pygame.sprite.Group):
         for i, decal in enumerate(decals):
             decal: Decal
             self.decals_group.add(decal)
+
+        self.redraw()
+
+    def add_light_source(self, light_source: LightSource):
+        self.light_sources.append(light_source)
+        self.redraw()
 
     def set_cue_ball_in_play(self, ball: PoolBall):
         self.cue_ball = ball
@@ -303,7 +312,7 @@ class GameTable(GameSprite):
         
         self.rays = []
         if player_can_take_shot:
-            if self.relative_mouse_position and self.cue_ball and not self.cue_ball.is_picked_up:
+            if self.relative_mouse_position and self.check_cue_ball_is_available():
                 self.ray_cast_ball_path_to_mouse_position()
 
         self.pockets_group.update()
@@ -332,24 +341,24 @@ class GameTable(GameSprite):
         self.surface.fill((0,0,0,0))
         self.surface.blit(self.image, (0,0))
 
-        self.decals_group.draw(self.surface)
-
-        #TODO: Bake this and change only when needed
-        self.light_source_overlap_mask = light_source.mask.overlap_mask(self.mask, (0,0))
-        if self.light_source_overlap_mask:
-            fade_steps = 6
-            initial_lumens = light_source.lumens * 0.18
-            for i in range(fade_steps):
-                fade_step = fade_steps - i
-                scale = fade_step * 1.1
-                alpha = initial_lumens / fade_step
-                light_surface = self.light_source_overlap_mask.to_surface(unsetcolor=None, setcolor=(255,255,190,alpha))
-                rect = light_surface.get_rect()
-                size = (rect.width*scale, rect.height*scale)
-                light_surface = pygame.transform.scale(light_surface, size)
-                position = (light_source.rect.left - self.rect.left + rect.width/2, light_source.rect.top - self.rect.top + rect.height/2)
-                rect = light_surface.get_rect(center=position)
-                self.surface.blit(light_surface, rect)
+        # TODO: Bake this and change only when needed
+        for light_source in self.light_sources:
+            light_source: LightSource
+            overlap_mask = light_source.mask.overlap_mask(self.mask, (0,0))
+            if overlap_mask:
+                fade_steps = 6
+                initial_lumens = light_source.lumens * 0.18
+                for i in range(fade_steps):
+                    fade_step = fade_steps - i
+                    scale = fade_step * 1.1
+                    alpha = initial_lumens / fade_step
+                    light_surface = overlap_mask.to_surface(unsetcolor=None, setcolor=(255,255,190,alpha))
+                    rect = light_surface.get_rect()
+                    size = (rect.width*scale, rect.height*scale)
+                    light_surface = pygame.transform.scale(light_surface, size)
+                    position = (light_source.rect.left - self.rect.left + rect.width/2, light_source.rect.top - self.rect.top + rect.height/2)
+                    rect = light_surface.get_rect(center=position)
+                    self.surface.blit(light_surface, rect)
 
         # Cast shadows
         self.shadow_group.draw(self.surface)
@@ -359,11 +368,20 @@ class GameTable(GameSprite):
             for ray_start, ray_end in self.rays:
                 pygame.draw.line(self.surface, pygame.Color('blue'), ray_start, ray_end, 1)
         
-        self.pockets_group.draw(self.surface)
-        self.cushions_group.draw(self.surface)
         self.ball_group.draw(self.surface)
 
         if self.draw_mode in DrawModeEnum.Physics:
             self.space.debug_draw(self.space_draw_options)
 
         surface.blit(self.surface, self.rect)
+
+    def redraw(self, mask_surface: pygame.Surface = None):
+        self.image = pygame.transform.scale(self.orig_image, self.rect.size)
+
+        if not mask_surface:
+            mask_surface = self.image
+        self.mask = pygame.mask.from_surface(mask_surface)
+
+        self.decals_group.draw(self.image)
+        self.pockets_group.draw(self.image)
+        self.cushions_group.draw(self.image)
