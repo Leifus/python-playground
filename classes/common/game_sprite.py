@@ -5,6 +5,7 @@ class GameSprite(pygame.sprite.Sprite):
         super( GameSprite, self).__init__()
         
         self.position = None
+        self.angle = 0
 
         self.image: pygame.Surface | None = None
         self.orig_image: pygame.Surface | None = None

@@ -83,4 +83,5 @@ pool_ball_DM_RAW_stripe_color = pygame.Color('yellow2')
 
 
 # Sounds
-sound_ball_collide_with_ball = 'ball_collide.mp3'
+sound_ball_collide_with_ball = 'billiard_ball_hit.mp3'
+#sound_ball_collide_with_ball = 'ping_pong_ball_hit.wav'

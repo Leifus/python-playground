@@ -719,9 +719,9 @@ class App:
 
         color = pygame.Color('ivory')
         identifier = 'white'
-        media_path = f'{media_folder}/{identifier}.png'
+        media_path = f'skeleton_head.png'
         position = (game_table.rect.width/2, 100)
-        cue_ball = PoolBall(identifier, ball_radius, mass, elasticity, friction, position, color, media_path)
+        cue_ball = PoolBall(identifier, 25, mass, elasticity, friction, position, color, media_path)
         ball_group.add(cue_ball)
 
         # Black balls

@@ -4,7 +4,7 @@ from classes.light_source import LightSource
 from config import pygame, math
 
 class Shadow(GameSprite):
-    def __init__(self, parent_obj):     
+    def __init__(self, parent_obj: GameSprite):     
         super(Shadow, self).__init__()
 
         self.mask = parent_obj.mask
@@ -23,6 +23,8 @@ class Shadow(GameSprite):
 
         self.parent_offset = None
         self.light_source: LightSource | None = None
+
+        self.angle = self.parent_obj.angle
 
     def redraw(self):
         parent_pos = Vector2(self.parent_obj.rect.center) + Vector2(self.parent_offset)
@@ -52,12 +54,15 @@ class Shadow(GameSprite):
         new_width = self.orig_size[0] / width_scale
         new_height = self.orig_size[1] / height_scale
         position = Vector2(self.parent_obj.rect.midbottom) + offset
-        self.image = pygame.transform.scale(self.orig_image, (new_width, new_height))
+        scaled = pygame.transform.scale(self.orig_image, (new_width, new_height))
+        rotated = pygame.transform.rotate(scaled, math.degrees(self.angle))
+        self.image = rotated
         self.image.set_alpha(self.alpha)
         self.rect = self.image.get_rect(midbottom=(position[0], position[1]))
 
     def update(self, relative_parent_position_offset, light_source: LightSource, *args, **kwargs):
         self.parent_offset = relative_parent_position_offset
         self.light_source = light_source
+        self.angle = self.parent_obj.angle
         self.redraw()
         return super().update(*args, **kwargs)

@@ -1,4 +1,4 @@
-from config import pool_balls_config, pygame, pymunk, random
+from config import pool_balls_config, pygame, pymunk, random, math
 from globals import media_manager, sound_manager
 
 from classes.enums.draw_mode_enum import DrawModeEnum
@@ -46,7 +46,7 @@ class PoolBall(GameSprite):
         self.base_z_distance_from_floor = 0.01
         self.z_distance_from_floor = self.base_z_distance_from_floor
 
-        self.sounds_cue_hit = 'cue_hit_ball_1.wav'
+        self.sounds_cue_hit = 'cue_hit_billiard_ball.wav'
 
         self.setup_visuals()
         self.setup_physical_space()
@@ -55,14 +55,17 @@ class PoolBall(GameSprite):
     def redraw(self):
         orig_rect = self.orig_image.get_rect()
         image_radius = self.radius*2 * self.scale_factor
-        if self.image is None or orig_rect.width != image_radius:
-            self.image = pygame.transform.scale(self.orig_image, (image_radius, image_radius))
-            self.image.set_alpha(self.alpha)
-            self.rect = self.image.get_rect(center=self.position)
-            self.mask = pygame.mask.from_surface(self.image)
+        # if self.image is None or orig_rect.width != image_radius:
+        angle = math.degrees(self.angle)
+        scaled = pygame.transform.scale(self.orig_image, (image_radius, image_radius))
+        rotated = pygame.transform.rotate(scaled, angle)
+        self.image = rotated
+        self.image.set_alpha(self.alpha)
+        self.rect = self.image.get_rect(center=self.position)
+        self.mask = pygame.mask.from_surface(self.image)
 
-        if self.mask is None:
-            self.mask = pygame.mask.from_surface(self.image)
+        # if self.mask is None:
+        #     self.mask = pygame.mask.from_surface(self.image)
 
         # self.image.set_alpha(100)
 
@@ -158,7 +161,7 @@ class PoolBall(GameSprite):
         elif self.is_picked_up:
             self.body.position = self.position  #Wont collide if its a sensor
         
-        self.rect = self.image.get_rect(center=self.position)
+        self.redraw()
         
         #TODO: Consider the 'is_moving' again - am I checking already for this?
         # stop_force_margin = 3
