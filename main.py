@@ -48,6 +48,7 @@ class App:
         self.active_player: Player = None
 
         self.camera_screens = pygame.sprite.Group()
+        self.general_light_dim_surface: pygame.Surface = None
 
     def on_init(self):
         pygame.init()
@@ -757,6 +758,8 @@ class App:
         lumens = 32  #255 max at the moment.
         show_light = False
         self.light_source = LightSource(lumens, radius, position, z_position, show_light)
+        
+        self.general_light_dim_surface = pygame.Surface(self.rect.size, pygame.SRCALPHA)
 
     def setup_floor(self):
         self.floor = Floor(self.rect.size, self.rect.center)
@@ -1045,6 +1048,10 @@ class App:
         self.game_session.pool_table.draw(self.surface, self.light_source)
         self.pool_ball_gutter.draw(self.surface)
         self.cue_power_bar.draw(self.surface)
+
+        self.general_light_dim_surface.fill((0,0,0,self.light_source.lumens))
+        self.surface.blit(self.general_light_dim_surface, (0,0))
+
         self.light_source.draw(self.surface)
         # for camera_screen in self.camera_screens:
         #     camera_screen.draw(self.surface)
