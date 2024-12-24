@@ -4,7 +4,7 @@ from config import pygame
 
 class LightSource(GameSprite):
     def __init__(self, lumens, radius, position, z_position, show_light):
-        super(GameSprite, self).__init__()
+        super(LightSource, self).__init__()
         
         self.z_position = z_position
         self.base_radius = radius

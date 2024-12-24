@@ -6,7 +6,7 @@ from globals import media_manager
 
 class UILightControlOptions(GameSprite):
     def __init__(self, draw_mode, size, position):
-        super(GameSprite, self).__init__()
+        super(UILightControlOptions, self).__init__()
 
         self.draw_mode = draw_mode
         self.position = position

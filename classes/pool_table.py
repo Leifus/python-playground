@@ -16,7 +16,7 @@ from globals import media_manager, sound_manager
 
 class PoolTable(GameSprite):
     def __init__(self, size, position, space_config: GameSpaceConfig):
-        super(GameSprite, self).__init__()
+        super(PoolTable, self).__init__()
 
         self.draw_mode = pool_table_config.pool_table_draw_mode
         self.raw_color = pool_table_config.pool_table_DM_RAW_color
@@ -517,7 +517,7 @@ class PoolTable(GameSprite):
         return super().update(*args, **kwargs)
 
     def draw(self, surface: pygame.Surface, light_source: LightSource):
-        self.surface.fill((0,0,0,100))
+        self.surface.fill((0,0,0,0))
         self.surface.blit(self.image, (0,0))
 
         self.decals_group.draw(self.surface)

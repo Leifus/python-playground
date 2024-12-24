@@ -6,7 +6,7 @@ from globals import media_manager
 
 class GameLobby(GameSprite):
     def __init__(self, size, position):
-        super(GameSprite, self).__init__()
+        super(GameLobby, self).__init__()
         
         self.size = size
         self.position = position

@@ -2,7 +2,7 @@ from config import pygame
 
 class GameSprite(pygame.sprite.Sprite):
     def __init__(self):
-        super( pygame.sprite.Sprite, self).__init__()
+        super( GameSprite, self).__init__()
         
         self.image: pygame.Surface | None = None
         self.orig_image: pygame.Surface | None = None

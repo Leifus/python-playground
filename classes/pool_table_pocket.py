@@ -5,7 +5,7 @@ from globals import media_manager
 
 class PoolTablePocket(GameSprite):
     def __init__(self, position, radius):
-        super(GameSprite, self).__init__()
+        super(PoolTablePocket, self).__init__()
 
         self.draw_mode = pool_table_config.pool_table_pocket_draw_mode
         self.radius = radius

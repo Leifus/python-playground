@@ -1,12 +1,12 @@
 from config import pool_balls_config, pygame, pymunk, random
-from globals import media_manager
+from globals import media_manager, sound_manager
 
 from classes.draw_mode_enum import DrawModeEnum
 from classes.game_sprite import GameSprite
 
 class PoolBall(GameSprite):
     def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media):
-        super(GameSprite, self).__init__()
+        super(PoolBall, self).__init__()
 
         #TODO: REPLACE THIS FOR BETTER UID type
         #TODO: Move to super
@@ -25,10 +25,10 @@ class PoolBall(GameSprite):
         self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
         self.alpha = 255
 
-        self.image: pygame.Surface | None = None
-        self.orig_image: pygame.Surface | None = None
-        self.mask: pygame.mask.Mask | None = None
-        self.rect: pygame.Rect | None = None
+        # self.image: pygame.Surface | None = None
+        # self.orig_image: pygame.Surface | None = None
+        # self.mask: pygame.mask.Mask | None = None
+        # self.rect: pygame.Rect | None = None
 
         self.base_scale_factor = 1.0
         self.scale_factor = self.base_scale_factor
@@ -46,6 +46,8 @@ class PoolBall(GameSprite):
         self.base_z_distance_from_floor = 0.01
         self.z_distance_from_floor = self.base_z_distance_from_floor
 
+        self.sounds_cue_hit = 'cue_hit_ball_1.wav'
+
         self.setup_visuals()
         self.setup_physical_space()
         self.redraw()
@@ -56,7 +58,7 @@ class PoolBall(GameSprite):
         if self.image is None or orig_rect.width != image_radius:
             self.image = pygame.transform.scale(self.orig_image, (image_radius, image_radius))
             self.image.set_alpha(self.alpha)
-            self.rect = self.image.get_rect(center=(self.radius, self.radius))
+            self.rect = self.image.get_rect(center=self.position)
             self.mask = pygame.mask.from_surface(self.image)
 
         if self.mask is None:
@@ -185,3 +187,10 @@ class PoolBall(GameSprite):
         #     force_y = -self.max_force
         # print('force applied', force_x, force_y)
         self.body.apply_force_at_local_point((force_x, force_y))
+
+    #TODO: Replace how volume is being resolved
+    def on_cue_hit(self, force, volume):
+        self.set_force_at_point(force)
+
+        # Make a sound
+        sound_manager.play_sound(self.sounds_cue_hit, volume)

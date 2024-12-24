@@ -4,7 +4,7 @@ from classes.game_sprite import GameSprite
 
 class Player(GameSprite):
     def __init__(self, identifier, name):
-        super(GameSprite, self).__init__()
+        super(Player, self).__init__()
         
         self.identifier = identifier
         self.name = name

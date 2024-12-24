@@ -7,7 +7,7 @@ from globals import media_manager
 
 class Floor(GameSprite):
     def __init__(self, size, position):
-        super(GameSprite, self).__init__()
+        super(Floor, self).__init__()
 
         self.draw_mode = floor_config.floor_draw_mode
         self.floor_RAW_colors = floor_config.floor_DM_RAW_colors

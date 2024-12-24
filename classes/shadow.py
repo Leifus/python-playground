@@ -5,7 +5,7 @@ from config import pygame, math
 
 class Shadow(GameSprite):
     def __init__(self, parent_obj):     
-        super(GameSprite, self).__init__()
+        super(Shadow, self).__init__()
 
         self.mask = parent_obj.mask
         self.alpha = 50
@@ -18,12 +18,15 @@ class Shadow(GameSprite):
         self.orig_size = (mask_rect.width, mask_rect.height)
         self.image = pygame.transform.smoothscale(self.orig_image, self.orig_size)
         self.image.set_alpha(self.alpha)
-        self.parent_obj = parent_obj
+        self.parent_obj: GameSprite = parent_obj
         self.rect = self.image.get_rect()
 
-    def update(self, relative_parent_position_offset, light_source: LightSource, *args, **kwargs):
-        parent_pos = Vector2(self.parent_obj.rect.center) + Vector2(relative_parent_position_offset)
-        light_pos = Vector2(light_source.position)
+        self.parent_offset = None
+        self.light_source: LightSource | None = None
+
+    def redraw(self):
+        parent_pos = Vector2(self.parent_obj.rect.center) + Vector2(self.parent_offset)
+        light_pos = Vector2(self.light_source.position)
 
         dx, dy = Vector2(parent_pos-light_pos)
         angle = math.atan2(dy, dx)
@@ -33,15 +36,16 @@ class Shadow(GameSprite):
 
         height_scale = 1.0
         width_scale = 1.0
-        distance_in_light_sources = parent_pos.distance_to(light_pos) / light_source.rect.width
-        _distance_in_light_sources = abs(dx / light_source.rect.width)
+        distance_in_light_sources = parent_pos.distance_to(light_pos) / self.light_source.rect.width
+        _distance_in_light_sources = abs(dx / self.light_source.rect.width)
         if distance_in_light_sources > 0:
-            lumens = light_source.lumens / distance_in_light_sources
+            lumens = self.light_source.lumens / distance_in_light_sources
             strength_factor = lumens / 255
             self.alpha = lumens
             height_scale = 1.0 / distance_in_light_sources
             width_scale = 1.0 / distance_in_light_sources
         
+        # TODO: Add z_distance_from_floor to GameSprite or Abstract
         offset = Vector2(x_off/2, y_off*self.parent_obj.z_distance_from_floor)
         # offset = Vector2(0,0)
 
@@ -52,4 +56,8 @@ class Shadow(GameSprite):
         self.image.set_alpha(self.alpha)
         self.rect = self.image.get_rect(midbottom=(position[0], position[1]))
 
+    def update(self, relative_parent_position_offset, light_source: LightSource, *args, **kwargs):
+        self.parent_offset = relative_parent_position_offset
+        self.light_source = light_source
+        self.redraw()
         return super().update(*args, **kwargs)

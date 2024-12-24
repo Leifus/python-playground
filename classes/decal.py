@@ -4,7 +4,7 @@ from classes.game_sprite import GameSprite
 
 class Decal(GameSprite):
     def __init__(self, orig_image, size, position, use_aspect_scale=False):
-        super(GameSprite, self).__init__()
+        super(Decal, self).__init__()
 
         self.size = size
         self.position = position

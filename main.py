@@ -1,8 +1,12 @@
-from classes.__helpers__ import aspect_scale
 from classes.decal import Decal
+from classes.draw_mode_enum import DrawModeEnum
 from classes.game_lobby import GameLobby
 from classes.game_mode_enum import GameModeEnum
 from classes.game_session import GameSession
+from classes.game_tables.billiards_game_table import BilliardsGameTable
+from classes.game_tables.circle_game_table import CircleGameTable
+from classes.game_tables.game_table import GameTable
+from classes.game_tables.snooker_game_table import SnookerGameTable
 from classes.in_game_event_enum import InGameEventEnum
 from classes.player import Player
 from classes.players_gui import PlayersGui
@@ -13,8 +17,7 @@ import config
 from config import pool_table_config
 import config.pool_ball_gutter_config as pool_ball_gutter_config
 import config.cue_power_bar_config as cue_power_bar_config
-from globals import media_manager, sound_manager
-from classes.pool_table import PoolTable
+from globals import media_manager
 from classes.pool_ball import PoolBall
 from classes.pool_ball_gutter import PoolBallGutter
 from classes.floor import Floor
@@ -38,17 +41,17 @@ class App:
 
         self.cue_power_bar = None
         self.balls = []
-        self.cue_hitting_ball_sound = 'cue_hit_ball_1.wav'
         self.cue_ball_out_of_play_time_to_reset = 2000
         self.cue_ball_reset_ttl = None
 
         self.game_lobby: GameLobby = None
-        self.game_session: GameSession = None
+        self.game_session: Optional['GameSession'] | None = None
 
         self.active_player: Player = None
 
         self.camera_screens = pygame.sprite.Group()
         self.general_light_dim_surface: pygame.Surface = None
+
 
     def on_init(self):
         pygame.init()
@@ -80,8 +83,9 @@ class App:
         self.construct_game_table()
 
     def reset_table(self):
-        self.game_session.pool_table.clear_balls()
-        self.pool_ball_gutter.clear_balls()
+        self.game_session.game_table.clear_balls()
+        if self.pool_ball_gutter:
+            self.pool_ball_gutter.clear_balls()
 
     def construct_billiards_balls(self, table_rect: pygame.Rect):
         ball_group = pygame.sprite.Group()
@@ -394,11 +398,6 @@ class App:
     def construct_billiards_decals(self, table_rect: pygame.Rect):
         decals = pygame.sprite.Group()
 
-        # Chalk Line
-        # start_pos = (table_rect.width/5, 0)
-        # end_pos = (table_rect.width/5, table_rect.height)
-        # table_third = (start_pos, end_pos)
-        
         media = pool_table_config.pool_table_chalk_line_DM_RICH_media
         chalk_line_orig_image = media_manager.get(media, convert_alpha=True)
         chalk_line_orig_rect = chalk_line_orig_image.get_rect()
@@ -407,7 +406,7 @@ class App:
         else:
             size = (chalk_line_orig_rect.width, table_rect.height)
             position = (table_rect.width/5, table_rect.height/2)
-            decal = Decal(chalk_line_orig_image, size, position)
+            decal = Decal(chalk_line_orig_image, size, position, use_aspect_scale=True)
             decals.add(decal)
 
         # Chalk Dots
@@ -647,15 +646,13 @@ class App:
 
         return cue_ball, ball_group
 
-    def construct_snooker_game_table(self):
+    def construct_snooker_game_table(self) -> SnookerGameTable:
         # Table
         size = pool_table_config.pool_table_size
         position = (self.rect.width/2, self.rect.height/2)
         space_config = self.game_session.game_mode_config.space_config
-
-        # TODO: Move to Game Session
-        self.game_session.pool_table = PoolTable(size, position, space_config)
-        game_table = self.game_session.pool_table
+        draw_mode = DrawModeEnum.Rich
+        game_table = SnookerGameTable(size, position, space_config, draw_mode)
 
         # Pockets
         pockets_group = self.construct_classic_table_pockets(game_table.rect)
@@ -685,12 +682,24 @@ class App:
             
         game_table.set_cue_ball_in_play(cue_ball)
 
-    def construct_billiards_game_table(self):
-        size = pool_table_config.pool_table_size
+        return game_table
+
+    def construct_custom_circle_game_table(self) -> CircleGameTable:
+        radius = 300
         position = (self.rect.width/2, self.rect.height/2)
         space_config = self.game_session.game_mode_config.space_config
-        self.game_session.pool_table = PoolTable(size, position, space_config)
-        game_table = self.game_session.pool_table
+        draw_mode = DrawModeEnum.Rich
+        game_table = CircleGameTable(radius, position, space_config, draw_mode)
+
+        return game_table
+
+    def construct_billiards_game_table(self) -> BilliardsGameTable:
+        # size = pool_table_config.pool_table_size
+        size =  (820, 400)
+        position = (self.rect.width/2, self.rect.height/2)
+        space_config = self.game_session.game_mode_config.space_config
+        draw_mode = DrawModeEnum.Rich
+        game_table = BilliardsGameTable(size, position, space_config, draw_mode)
 
         # Pockets
         pockets_group = self.construct_classic_table_pockets(game_table.rect)
@@ -719,18 +728,26 @@ class App:
 
         game_table.set_cue_ball_in_play(cue_ball)
 
+        return game_table
+
     def construct_game_table(self):
         if self.game_session is None or self.game_session.game_mode is GameModeEnum.NONE:
             print('CANT SETUP POOL TABLE: NO GAMESESSION SET')
             return
 
-        if self.game_session.pool_table is not None:
-            self.game_session.pool_table = self.game_session.pool_table.kill()
+        if self.game_session.game_table is not None:
+            self.game_session.game_table = self.game_session.game_table.kill()
 
+        game_table: GameTable = None
         if self.game_session.game_mode == GameModeEnum.Billiards:
-            self.construct_billiards_game_table()
+            game_table = self.construct_billiards_game_table()
         elif self.game_session.game_mode == GameModeEnum.Snooker:
-            self.construct_snooker_game_table()
+            game_table = self.construct_snooker_game_table()
+        elif self.game_session.game_mode == GameModeEnum.CirclePool:
+            game_table = self.construct_custom_circle_game_table()
+
+        if game_table:
+            self.game_session.game_table = game_table
 
     def setup_game_lobby(self):
         size = (self.rect.width*0.9, self.rect.height*0.9)
@@ -766,7 +783,7 @@ class App:
         self.floor.on_init()
 
     def setup_ball_gutter(self):
-        if self.game_session is None or self.game_session.game_mode is GameModeEnum.NONE:
+        if self.game_session is None or self.game_session.game_mode in GameModeEnum.NONE:
             print('CANT SETUP POOL BALL GUTTER: NO GAMESESSION SET')
             return
         
@@ -777,7 +794,10 @@ class App:
         x_buffer = 0
         y_buffer = 40
 
-        position = (self.game_session.pool_table.rect.right - size[0]/2 - x_buffer, self.game_session.pool_table.rect.bottom + size[1]/2 + y_buffer)
+        rect = self.rect
+        if self.game_session and self.game_session.game_table:
+            rect = self.game_session.game_table.rect
+        position = (rect.right - size[0]/2 - x_buffer, rect.bottom + size[1]/2 + y_buffer)
         self.pool_ball_gutter = PoolBallGutter(position, self.game_session.game_mode_config.space_config)
         self.pool_ball_gutter.on_init()
 
@@ -833,37 +853,39 @@ class App:
         if not self.ui_layer.is_active:
             self.cue_power_bar.on_event(event)
 
+        # TODO: Move to Game Session
         # Player takes a shot
         if event.type == MOUSEBUTTONDOWN and event.button == 1:
             if not self.ui_layer.is_hovered and not self.cue_power_bar.is_hovered:
-                if self.game_session.pool_table.cue_ball.is_in_active_play and not self.game_session.pool_table.cue_ball.is_picked_up and not self.balls_are_in_motion:
+                if self.game_session.game_table.cue_ball.is_in_active_play and not self.game_session.game_table.cue_ball.is_picked_up and not self.balls_are_in_motion:
                     self.take_player_shot()
 
-        self.game_session.pool_table.on_event(event)
+        self.game_session.game_table.on_event(event)
 
     def take_player_shot(self):
-        self.apply_force_to_ball(self.game_session.pool_table.cue_ball)
+        self.apply_force_to_ball(self.game_session.game_table.cue_ball)
         self.balls_are_in_motion = True
         self.active_player.is_taking_shot = True
 
     def apply_force_to_ball(self, ball: PoolBall):
-        dx = self.mouse_position[0] - (self.game_session.pool_table.rect.x + ball.position[0])
-        dy = self.mouse_position[1] - (self.game_session.pool_table.rect.y + ball.position[1])
+        dx = self.mouse_position[0] - (self.game_session.game_table.rect.x + ball.position[0])
+        dy = self.mouse_position[1] - (self.game_session.game_table.rect.y + ball.position[1])
         # distance = math.sqrt(dx*dx + dy*dy)
         angle = math.atan2(dy, dx)
         
         force_magnitude = self.cue_power_bar.power
         force_x = force_magnitude * math.cos(angle - ball.angle)
         force_y = force_magnitude * math.sin(angle - ball.angle)
-        
-        ball.set_force_at_point((force_x, force_y))
+        force = (force_x, force_y)
+
         max_volume = 0.3    #HACK: For quietening my cheap sounds
         volume = self.cue_power_bar.power_percent * max_volume
-        sound_manager.play_sound(self.cue_hitting_ball_sound, volume)
+        ball.on_cue_hit(force, volume)
 
     def change_random_ball_size(self):
         balls = []
-        for ball in self.game_session.pool_table.ball_group:
+        for ball in self.game_session.game_table.ball_group:
+            ball: PoolBall
             if ball.is_in_active_play:
                 balls.append(ball)
 
@@ -871,17 +893,18 @@ class App:
         ball_idx = random.randint(0, len(balls)-1)
         ball = balls[ball_idx]
         ball.set_radius(radius)
-        self.game_session.pool_table.update_ball(ball)
+        self.game_session.game_table.update_ball(ball)
 
         print('changing ball size', ball.identifier, radius)
 
-    # TODO: CHANGE TABLE SHAPE
+    # TODO: WIP: CHANGE TABLE SHAPE
     # TODO: PLACE GAME EVENT SENSORS ON TABLE
-    # TODO: SETUP GLOBAL LIGHTING *DIMMING OF MAIN GAME AND FLOOR
+    # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
 
     def change_random_ball_mass(self):
         balls = []
-        for ball in self.game_session.pool_table.ball_group:
+        for ball in self.game_session.game_table.ball_group:
+            ball: PoolBall
             if ball.is_in_active_play:
                 balls.append(ball)
 
@@ -889,17 +912,17 @@ class App:
         ball_idx = random.randint(0, len(balls)-1)
         ball = balls[ball_idx]
         ball.set_mass(mass)
-        self.game_session.pool_table.update_ball(ball)
+        self.game_session.game_table.update_ball(ball)
 
         print('changing ball mass', ball.identifier, mass)
 
     def spawn_random_hole(self):
         radius = random.uniform(10, 60)
-        rand_x = random.uniform(radius/2, self.game_session.pool_table.rect.width - radius/2)
-        rand_y = random.uniform(radius/2, self.game_session.pool_table.rect.height - radius/2)
+        rand_x = random.uniform(radius/2, self.game_session.game_table.rect.width - radius/2)
+        rand_y = random.uniform(radius/2, self.game_session.game_table.rect.height - radius/2)
         position = (rand_x, rand_y)
         hole = PoolTablePocket(position, radius)
-        self.game_session.pool_table.add_pocket(hole)
+        self.game_session.game_table.add_pocket(hole)
 
     def action_game_events(self):
         for kvp in self.game_session.game_events_to_action.items():
@@ -918,7 +941,7 @@ class App:
         self.game_session.update()
         time_lapsed = self.game_session.time_lapsed
 
-        pool_table = self.game_session.pool_table
+        game_table = self.game_session.game_table
 
         if len(self.game_session.game_events_to_action) > 0:
             self.action_game_events()
@@ -928,34 +951,40 @@ class App:
         self.cue_power_bar.update()
         self.light_source.update(self.ui_layer.light_options, self.mouse_position)
         
-        pool_table.update(self.game_session.time_lapsed, self.active_player, self.light_source)
-        for camera_screen in self.camera_screens:
-            camera_screen.update(self.surface)
+        if not game_table:
+            return
+        
+        game_table.update(self.game_session.time_lapsed, self.active_player.can_take_shot, self.light_source)
+        
+        # for camera_screen in self.camera_screens:
+        #     camera_screen.update(self.surface)
 
-        self.balls_are_in_motion = pool_table.check_balls_are_moving()
+        self.balls_are_in_motion = game_table.check_balls_are_moving()
 
-        if pool_table.cue_ball_first_hit_ball is not None and self.active_player.is_taking_shot:
-            self.active_player.first_contact = pool_table.cue_ball_first_hit_ball
+        if game_table.cue_ball_first_hit_ball is not None and self.active_player.is_taking_shot:
+            self.active_player.first_contact = game_table.cue_ball_first_hit_ball
 
-        if len(pool_table.balls_to_remove_from_table) > 0: # Balls potted
-            for ball in pool_table.balls_to_remove_from_table:
+        if len(game_table.balls_to_remove_from_table) > 0: # Balls potted
+            for ball in game_table.balls_to_remove_from_table:
+                ball: PoolBall
                 ball.stop_moving()
 
                 self.active_player.add_potted_ball(ball)
-                pool_table.remove_ball(ball)
+                game_table.remove_ball(ball)
                 self.pool_ball_gutter.add_ball(ball)
             
-            pool_table.balls_to_remove_from_table = []
+            game_table.balls_to_remove_from_table = []
 
         self.pool_ball_gutter.update()
         
-        cue_ball = pool_table.cue_ball
-        if not self.balls_are_in_motion and not cue_ball.is_in_active_play and not cue_ball.is_picked_up and self.cue_ball_reset_ttl is None:
-            self.cue_ball_reset_ttl = time_lapsed + self.cue_ball_out_of_play_time_to_reset
+        cue_ball = game_table.cue_ball
+        if not self.balls_are_in_motion and cue_ball:
+            if not cue_ball.is_in_active_play and not cue_ball.is_picked_up and self.cue_ball_reset_ttl is None:
+                self.cue_ball_reset_ttl = time_lapsed + self.cue_ball_out_of_play_time_to_reset
 
         if self.cue_ball_reset_ttl is not None and time_lapsed > self.cue_ball_reset_ttl:
             self.pool_ball_gutter.remove_ball(cue_ball)
-            pool_table.free_place_cue_ball(cue_ball)
+            game_table.free_place_cue_ball(cue_ball)
             self.cue_ball_reset_ttl = None
         
         if self.cue_ball_reset_ttl is None: # No wait timer
@@ -975,7 +1004,7 @@ class App:
                         self.players_gui.redraw()
 
                     self.active_player.end_shot()
-                    pool_table.cue_ball_first_hit_ball = None
+                    game_table.cue_ball_first_hit_ball = None
 
         if self.ui_layer.queued_game_event is not InGameEventEnum.NONE:
             time_to_activate = 2 * 1000
@@ -984,7 +1013,7 @@ class App:
 
     def check_potted_balls_are_player_friendly(self):
         disallowed_balls = [
-            self.game_session.pool_table.cue_ball
+            self.game_session.game_table.cue_ball
         ]
 
         for ball in self.active_player.balls_potted:
@@ -1028,11 +1057,12 @@ class App:
 
         current_mouse_cursor = pygame.mouse.get_cursor()
         new_mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
+
         mouse_cursor_checks = [
             self.game_lobby.hovered_component is not None,
             self.ui_layer.hovered_component is not None,
             self.cue_power_bar.is_hovered and not self.ui_layer.is_active,
-            self.game_session is not None and self.game_session.is_running and self.game_session.pool_table.cue_ball.is_picked_up
+            self.game_session is not None and self.game_session.has_picked_up_cue_ball()
         ]
 
         for check in mouse_cursor_checks:
@@ -1045,7 +1075,8 @@ class App:
 
     def draw_running_game(self):
         self.floor.draw(self.surface)
-        self.game_session.pool_table.draw(self.surface, self.light_source)
+        #TODO: Make this a game_sesson.draw
+        self.game_session.game_table.draw(self.surface, self.light_source)
         self.pool_ball_gutter.draw(self.surface)
         self.cue_power_bar.draw(self.surface)
 

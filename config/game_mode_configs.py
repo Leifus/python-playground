@@ -16,3 +16,9 @@ time_config = GameTimeConfig(60)
 space_config = GameSpaceConfig(1.0 / 60, 3, 10, (0, 0), 0.23, 0.1)
 config = GameModeConfig(GameModeEnum.Snooker, time_config, space_config)
 game_modes[config.identifier] = config
+
+# Circle Pool
+time_config = GameTimeConfig(60)
+space_config = GameSpaceConfig(1.0 / 60, 3, 10, (0, 0), 0.23, 0.1)
+config = GameModeConfig(GameModeEnum.CirclePool, time_config, space_config)
+game_modes[config.identifier] = config

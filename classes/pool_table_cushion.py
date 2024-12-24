@@ -6,7 +6,7 @@ from globals import media_manager
 
 class PoolTableCushion(GameSprite):
     def __init__(self, size, position, poly_points):
-        super(GameSprite, self).__init__()
+        super(PoolTableCushion, self).__init__()
         
         self.draw_mode = pool_table_config.pool_table_cushion_draw_mode
         self.elasticity = pool_table_config.pool_table_cushion_elasticity

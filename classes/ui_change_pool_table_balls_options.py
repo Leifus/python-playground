@@ -7,7 +7,7 @@ from globals import media_manager
 
 class UIChangePoolTableBallsOptions(GameSprite):
     def __init__(self, draw_mode, size, position, on_change_balls):
-        super(GameSprite, self).__init__()
+        super(UIChangePoolTableBallsOptions, self).__init__()
         
         self.draw_mode = draw_mode
         self.position = position

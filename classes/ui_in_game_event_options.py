@@ -7,7 +7,7 @@ from globals import media_manager
 
 class UIInGameEventOptions(GameSprite):
     def __init__(self, draw_mode, size, position):
-        super(GameSprite, self).__init__()
+        super(UIInGameEventOptions, self).__init__()
 
         self.draw_mode = draw_mode
         self.position = position

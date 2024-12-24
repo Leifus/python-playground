@@ -1,4 +1,5 @@
 from classes.game_mode_config import GameModeConfig
+from classes.game_tables.game_table import GameTable
 from classes.game_time_config import GameTimeConfig
 from classes.in_game_event_enum import InGameEventEnum
 from classes.player import Player
@@ -22,10 +23,17 @@ class GameSession():
         self.queued_game_events: OrderedDict[int, InGameEventEnum] = dict()
         self.game_events_to_action: OrderedDict[int, InGameEventEnum] = dict()
 
-        self.pool_table: PoolTable = None
+        self.game_table: GameTable | None = None
+        # self.pool_table: PoolTable = None
         self.pockets_group: pygame.sprite.Group = pygame.sprite.Group()
 
         self.setup_players()
+
+    def has_picked_up_cue_ball(self) -> bool:
+        if not self.is_running or not self.game_table or not self.game_table.cue_ball:
+            return False
+        
+        return self.game_table.cue_ball.is_picked_up
 
     def setup_players(self):
         player_count = 1
