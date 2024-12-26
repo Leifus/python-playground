@@ -1,4 +1,5 @@
 from classes.common.game_sprite import GameSprite
+from classes.enums.collision_type_enum import CollisionTypeEnum
 from config import pool_balls_config, pool_table_config, pygame, pymunk
 from classes.enums.draw_mode_enum import DrawModeEnum
 from classes.common.helper_methods import draw_poly_points
@@ -15,7 +16,7 @@ class PoolTableCushion(GameSprite):
         self.WIREFRAME_outline_width = pool_table_config.pool_table_cushion_DM_WIREFRAME_outline_width
         self.WIREFRAME_poly_point_radius = pool_table_config.pool_table_cushion_DM_WIREFRAME_poly_point_radius
         self.cushion_RICH_media = pool_table_config.pool_table_cushion_DM_RICH_media
-        self.shape_collision_type = pool_balls_config.COLLISION_TYPE_POOL_TABLE_CUSHION
+        self.shape_collision_type = CollisionTypeEnum.COLLISION_TYPE_POOL_TABLE_CUSHION.value
         self.shape_elasticity = pool_table_config.pool_table_cushion_elasticity
         self.shape_friction = pool_table_config.pool_table_cushion_friction
 

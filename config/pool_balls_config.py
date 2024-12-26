@@ -5,14 +5,7 @@ from classes.enums.draw_mode_enum import DrawModeEnum
 # POOL BALLS CONFIG
 # ----------------------------------------------------
 
-# Collision Types
-COLLISION_TYPE_LINE_OF_SIGHT = 5
-COLLISION_TYPE_CUE_BALL = 1000      # NOT USED YET
-COLLISION_TYPE_POOL_BALL = 100
-COLLISION_TYPE_POOL_TABLE_POCKET = 10
-COLLISION_TYPE_POOL_TABLE_CUSHION = 50
-COLLISION_TYPE_FLOATING_BALL = 0
-COLLISION_TYPE_TABLE = 1
+
 # Ball
 # pool_ball_radius = 12
 # pool_ball_mass = 15

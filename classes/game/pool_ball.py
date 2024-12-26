@@ -1,3 +1,4 @@
+from classes.enums.collision_type_enum import CollisionTypeEnum
 from config import pool_balls_config, pygame, pymunk, random, math
 from globals import media_manager, sound_manager
 
@@ -21,7 +22,7 @@ class PoolBall(GameSprite):
         self.max_force = pool_balls_config.pool_ball_max_force
         self.radius = radius
         self.position = position
-        self.shape_collision_type = pool_balls_config.COLLISION_TYPE_POOL_BALL
+        self.shape_collision_type = CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value
         self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
         self.alpha = 255
 
@@ -56,7 +57,7 @@ class PoolBall(GameSprite):
         orig_rect = self.orig_image.get_rect()
         image_radius = self.radius*2 * self.scale_factor
         # if self.image is None or orig_rect.width != image_radius:
-        angle = math.degrees(self.angle)
+        angle = -math.degrees(self.angle)
         scaled = pygame.transform.scale(self.orig_image, (image_radius, image_radius))
         rotated = pygame.transform.rotate(scaled, angle)
         self.image = rotated

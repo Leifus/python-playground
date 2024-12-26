@@ -1,3 +1,4 @@
+from classes.enums.collision_type_enum import CollisionTypeEnum
 from classes.game.decal import Decal
 from classes.configs.game_space_config import GameSpaceConfig
 from classes.common.game_sprite import GameSprite
@@ -133,11 +134,11 @@ class PoolTable(GameSprite):
         self.setup_physical_collision_handlers()
 
     def setup_physical_collision_handlers(self):
-        handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_POOL_BALL)
+        handler = self.space.add_collision_handler(CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value, CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value)
         handler.post_solve = self.on_ball_post_solve_collide_with_ball
         self.handlers.append(handler)
         
-        handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET)
+        handler = self.space.add_collision_handler(CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value, CollisionTypeEnum.COLLISION_TYPE_POOL_TABLE_POCKET.value)
         handler.pre_solve = self.on_ball_collide_with_pocket
         handler.separate = self.on_ball_separate_from_pocket
         self.handlers.append(handler)

@@ -55,7 +55,8 @@ class Shadow(GameSprite):
         new_height = self.orig_size[1] / height_scale
         position = Vector2(self.parent_obj.rect.midbottom) + offset
         scaled = pygame.transform.scale(self.orig_image, (new_width, new_height))
-        rotated = pygame.transform.rotate(scaled, math.degrees(self.angle))
+        angle = -math.degrees(self.angle)
+        rotated = pygame.transform.rotate(scaled, angle)
         self.image = rotated
         self.image.set_alpha(self.alpha)
         self.rect = self.image.get_rect(midbottom=(position[0], position[1]))

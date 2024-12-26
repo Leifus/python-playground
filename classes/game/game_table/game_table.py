@@ -1,7 +1,9 @@
+from classes.enums.collision_type_enum import CollisionTypeEnum
 from classes.game.decal import Decal
 from classes.enums.draw_mode_enum import DrawModeEnum
 from classes.configs.game_space_config import GameSpaceConfig
 from classes.common.game_sprite import GameSprite
+from classes.game.game_table_object import GameTableObject
 from classes.light_source import LightSource
 from classes.game.pool_ball import PoolBall
 from classes.game.pool_table_cushion import PoolTableCushion
@@ -25,6 +27,7 @@ class GameTable(GameSprite):
         self.cue_ball: PoolBall | None = None
         self.cue_ball_first_hit_ball: PoolBall | None = None
 
+        self.game_table_objects = pygame.sprite.Group()
         self.ball_group = pygame.sprite.Group()
         self.shadow_group = pygame.sprite.Group()
         self.pockets_group = pygame.sprite.Group()
@@ -59,14 +62,97 @@ class GameTable(GameSprite):
         self.space.sleep_time_threshold = self.space_config.sleep_time_threshold
 
     def setup_physical_collision_handlers(self):
-        handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_POOL_BALL)
+        # Ball on Ball
+        handler = self.space.add_collision_handler(CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value, CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value)
         handler.post_solve = self.on_ball_post_solve_collide_with_ball
         self.handlers.append(handler)
         
-        handler = self.space.add_collision_handler(pool_balls_config.COLLISION_TYPE_POOL_BALL, pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET)
+        # Ball on Pocket
+        handler = self.space.add_collision_handler(CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value, CollisionTypeEnum.COLLISION_TYPE_POOL_TABLE_POCKET.value)
         handler.pre_solve = self.on_ball_collide_with_pocket
         handler.separate = self.on_ball_separate_from_pocket
         self.handlers.append(handler)
+
+        # Ball on TABLE
+        handler = self.space.add_collision_handler(CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value, CollisionTypeEnum.COLLISION_TYPE_GAME_TABLE.value)
+        handler.separate = self.on_ball_separate_with_table
+        self.handlers.append(handler)
+        
+        # Ball on Flat Game Object
+        handler = self.space.add_collision_handler(CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value, CollisionTypeEnum.COLLISION_TYPE_FLAT_GAME_OBJECT.value)
+        handler.begin = self.on_ball_collide_begin_with_flat_game_object
+        handler.pre_solve = self.on_ball_collide_pre_solve_with_flat_game_object
+        handler.post_solve = self.on_ball_seperate_post_solve_with_flat_game_object
+        handler.separate = self.on_ball_seperate_with_flat_game_object
+        self.handlers.append(handler)
+
+    def on_ball_collide_begin_with_flat_game_object(self, arbiter: pymunk.Arbiter, space, data):
+        shape = arbiter.shapes[1]
+
+        # Get object by shape: Badly
+        game_object = None
+        for _game_object in self.game_table_objects:
+            _game_object: GameTableObject
+            if _game_object.shape == shape:
+                game_object = _game_object
+                break
+
+        if game_object and game_object.on_collide_begin_func is not None:
+            return game_object.on_collide_begin_func(self.time_lapsed, arbiter, space, data)
+
+        return True
+
+    def on_ball_collide_pre_solve_with_flat_game_object(self, arbiter: pymunk.Arbiter, space, data):
+        shape = arbiter.shapes[1]
+
+        # Get object by shape: Badly
+        game_object = None
+        for _game_object in self.game_table_objects:
+            _game_object: GameTableObject
+            if _game_object.shape == shape:
+                game_object = _game_object
+                break
+
+        if game_object and game_object.on_collide_pre_solve_func is not None:
+            return game_object.on_collide_pre_solve_func(arbiter, space, data)
+
+        return True
+
+    def on_ball_seperate_post_solve_with_flat_game_object(self, arbiter: pymunk.Arbiter, space, data):
+        shape = arbiter.shapes[1]
+
+        # Get object by shape: Badly
+        game_object = None
+        for _game_object in self.game_table_objects:
+            _game_object: GameTableObject
+            if _game_object.shape == shape:
+                game_object = _game_object
+                break
+
+        if game_object and game_object.on_collide_post_solve_func is not None:
+            return game_object.on_collide_post_solve_func(arbiter, space, data)
+
+        return True
+
+    def on_ball_seperate_with_flat_game_object(self, arbiter: pymunk.Arbiter, space, data):
+        shape = arbiter.shapes[1]
+
+        # Get object by shape: Badly
+        game_object = None
+        for _game_object in self.game_table_objects:
+            _game_object: GameTableObject
+            if _game_object.shape == shape:
+                game_object = _game_object
+                break
+
+        if game_object and game_object.on_collide_seperate_func is not None:
+            return game_object.on_collide_seperate_func(arbiter, space, data)
+
+        return True
+
+    def on_ball_separate_with_table(self, arbiter: pymunk.Arbiter, space, data):
+        print('on_ball_separate_with_table')
+        return True
 
     def check_cue_ball_is_available(self) -> bool:
         if not self.cue_ball:
@@ -122,6 +208,10 @@ class GameTable(GameSprite):
         self.cushions_group.add(cushion)
         self.space.add(cushion.body, cushion.shape)
         self.redraw()
+
+    def add_game_table_object(self, game_table_object: GameTableObject):
+        self.game_table_objects.add(game_table_object)
+        self.space.add(game_table_object.body, game_table_object.shape)
 
     def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         ball_shape_0 = arbiter.shapes[0]
@@ -305,6 +395,8 @@ class GameTable(GameSprite):
         self.ball_collisions.clear()
         self.time_lapsed = time_lapsed
 
+        self.game_table_objects.update(time_lapsed)
+
         for _ in range(self.space_config.dt_steps):
             self.space.step(self.space_config.dt / self.space_config.dt_steps)
         
@@ -340,6 +432,8 @@ class GameTable(GameSprite):
     def draw(self, surface: pygame.Surface, light_source: LightSource):
         self.surface.fill((0,0,0,0))
         self.surface.blit(self.image, (0,0))
+
+        self.game_table_objects.draw(self.surface)
 
         # TODO: Bake this and change only when needed
         for light_source in self.light_sources:

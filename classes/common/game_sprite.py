@@ -4,6 +4,7 @@ class GameSprite(pygame.sprite.Sprite):
     def __init__(self):
         super( GameSprite, self).__init__()
         
+        self.size = None
         self.position = None
         self.angle = 0
 
@@ -15,5 +16,6 @@ class GameSprite(pygame.sprite.Sprite):
         #TODO: REPLACE THIS TO HANDLE DEAFAULT OBJ ID
         # self._identifier: float = identifier
 
+    #TODO: Tear this down
     def draw(self, surface: pygame.Surface):
         surface.blit(self.image, self.rect)

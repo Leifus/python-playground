@@ -2,6 +2,7 @@ from classes.camera import Camera
 from classes.camera_screen import CameraScreen
 from classes.game.decal import Decal
 from classes.enums.draw_mode_enum import DrawModeEnum
+from classes.game.exploding_mine import ExplodingMine
 from classes.main_menu.game_lobby import GameLobby
 from classes.enums.game_mode_enum import GameModeEnum
 from classes.game.game_session import GameSession
@@ -26,6 +27,13 @@ from classes.game.floor import Floor
 from classes.in_game_ui.ui_layer import UILayer
 from classes.in_game_ui.cue_power_bar import CuePowerBar
 from classes.light_source import LightSource
+
+# TODO: PLACE GAME EVENT SENSORS ON TABLE
+# Extra Ball (when potted)
+# Change size (for remaining turn)
+# Mine (trigger and explode)
+
+# TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
 
 
 class App:
@@ -721,7 +729,8 @@ class App:
         identifier = 'white'
         media_path = f'skeleton_head.png'
         position = (game_table.rect.width/2, 100)
-        cue_ball = PoolBall(identifier, 25, mass, elasticity, friction, position, color, media_path)
+        cue_radius = ball_radius*2
+        cue_ball = PoolBall(identifier, cue_radius, mass, elasticity, friction, position, color, media_path)
         ball_group.add(cue_ball)
 
         # Black balls
@@ -742,6 +751,14 @@ class App:
         for position in positions:
             ball = PoolBall(identifier, ball_radius, mass, elasticity, friction, position, color, media_path)
             ball_group.add(ball)
+
+        # Strange Ball
+        position = (center_position[0], game_table.rect.height - 100)
+        color = pygame.Color('green')
+        media_path = 'turtle_shell.png'
+        strange_radius = ball_radius*1.6
+        ball = PoolBall(identifier, strange_radius, mass, elasticity, friction, position, color, media_path)
+        ball_group.add(ball)
 
         # Red balls
         color = pygame.Color('red')
@@ -828,8 +845,24 @@ class App:
         elif self.game_session.game_mode == GameModeEnum.CirclePool:
             game_table = self.construct_custom_circle_game_table()
 
+        # Exploding Mine Test
+        mine_sensor_radius = 70
+        mine_radius = 35
+        position = (game_table.rect.width/2+180, 120)
+        mine = ExplodingMine(mine_sensor_radius, mine_radius, position)
+        game_table.add_game_table_object(mine)
+
+        position = (200, 235)
+        mine = ExplodingMine(mine_sensor_radius, mine_radius, position)
+        game_table.add_game_table_object(mine)
+
+        position = (300, 105)
+        mine = ExplodingMine(mine_sensor_radius, mine_radius, position)
+        game_table.add_game_table_object(mine)
+
         if game_table:
             game_table.add_light_source(self.light_source)
+            
             self.game_session.game_table = game_table
 
     def setup_game_lobby(self):
@@ -1000,13 +1033,6 @@ class App:
         self.game_session.game_table.update_ball(ball)
 
         print('changing ball size', ball.identifier, radius)
-
-    # TODO: PLACE GAME EVENT SENSORS ON TABLE
-    # Extra Ball (when potted)
-    # Change size (for remaining turn)
-    # Mine (trigger and explode)
-
-    # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
 
     def change_random_ball_mass(self):
         balls = []

@@ -1,4 +1,5 @@
 from classes.common.game_sprite import GameSprite
+from classes.enums.collision_type_enum import CollisionTypeEnum
 from config import pool_balls_config, pool_table_config, pygame, pymunk
 from classes.enums.draw_mode_enum import DrawModeEnum
 from globals import media_manager
@@ -59,4 +60,4 @@ class PoolTablePocket(GameSprite):
         self.body.position = self.position
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.sensor = True
-        self.shape.collision_type = pool_balls_config.COLLISION_TYPE_POOL_TABLE_POCKET # + body_iter
+        self.shape.collision_type = CollisionTypeEnum.COLLISION_TYPE_POOL_TABLE_POCKET.value # + body_iter
