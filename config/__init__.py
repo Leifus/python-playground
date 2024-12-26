@@ -8,7 +8,6 @@ import os
 from typing import Dict, OrderedDict
 from uuid import UUID
 
-from config import pool_balls_config
 
 
 # ----------------------------

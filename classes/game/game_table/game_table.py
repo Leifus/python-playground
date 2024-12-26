@@ -1,9 +1,10 @@
+from operator import delitem
 from classes.enums.collision_type_enum import CollisionTypeEnum
 from classes.game.decal import Decal
 from classes.enums.draw_mode_enum import DrawModeEnum
 from classes.configs.game_space_config import GameSpaceConfig
 from classes.common.game_sprite import GameSprite
-from classes.game.game_table_object import GameTableObject
+from classes.game.game_table_objects.game_table_object import GameTableObject
 from classes.light_source import LightSource
 from classes.game.pool_ball import PoolBall
 from classes.game.pool_table_cushion import PoolTableCushion
@@ -97,24 +98,27 @@ class GameTable(GameSprite):
                 game_object = _game_object
                 break
 
+        # TODO: This is where we reslve lookup up the ball and then pass it onwards to whomever cares..
         if game_object and game_object.on_collide_begin_func is not None:
             return game_object.on_collide_begin_func(self.time_lapsed, arbiter, space, data)
 
         return True
 
     def on_ball_collide_pre_solve_with_flat_game_object(self, arbiter: pymunk.Arbiter, space, data):
-        shape = arbiter.shapes[1]
+        ball_shape = arbiter.shapes[0]
+        game_table_object_shape = arbiter.shapes[1]
 
         # Get object by shape: Badly
         game_object = None
         for _game_object in self.game_table_objects:
             _game_object: GameTableObject
-            if _game_object.shape == shape:
+            if _game_object.shape == game_table_object_shape:
                 game_object = _game_object
                 break
 
         if game_object and game_object.on_collide_pre_solve_func is not None:
-            return game_object.on_collide_pre_solve_func(arbiter, space, data)
+            ball = self.balls_by_shape.get(ball_shape)
+            return game_object.on_collide_pre_solve_func(ball, arbiter, space, data)
 
         return True
 
@@ -395,7 +399,17 @@ class GameTable(GameSprite):
         self.ball_collisions.clear()
         self.time_lapsed = time_lapsed
 
+        # THIS IS SHIT AND DOEASNT WORK.. GOT NO EFFECT TYPE OR VALUE.. 
+        # THIS SHOULD ALL BE WHERE ITS RELEVEANT....
+        # STOP AND THINK ABOUT THE APPROACH
+
+        # Pass the ball_group for now...?
         self.game_table_objects.update(time_lapsed)
+
+        #TODO: Move and recode this away from here.. LAME:
+        # Temp place to test
+        # if ball_shapes_to_effect:
+
 
         for _ in range(self.space_config.dt_steps):
             self.space.step(self.space_config.dt / self.space_config.dt_steps)
@@ -427,6 +441,19 @@ class GameTable(GameSprite):
 
         self.ball_group.update()
         
+        #Bit lame check here to keep dictionaries and such in check...
+        updated_balls = []
+        for ball in self.ball_group:
+            ball: PoolBall
+            if ball.shape_before_updated is None:
+                continue
+            updated_balls.append(ball)
+
+        for ball in updated_balls:
+            self.balls_by_shape[ball.shape] = ball
+            self.balls_by_shape.__delitem__(ball.shape_before_updated)
+            ball.shape_before_updated = None
+
         return super().update(*args, **kwargs)
 
     def draw(self, surface: pygame.Surface, light_source: LightSource):

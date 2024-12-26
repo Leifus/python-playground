@@ -1,8 +1,10 @@
 from classes.camera import Camera
 from classes.camera_screen import CameraScreen
+from classes.enums.ball_modification_enum import BallModificationEnum
 from classes.game.decal import Decal
 from classes.enums.draw_mode_enum import DrawModeEnum
-from classes.game.exploding_mine import ExplodingMine
+from classes.game.game_table_objects.ball_modifier_gem import BallModifierGem
+from classes.game.game_table_objects.exploding_mine import ExplodingMine
 from classes.main_menu.game_lobby import GameLobby
 from classes.enums.game_mode_enum import GameModeEnum
 from classes.game.game_session import GameSession
@@ -31,7 +33,10 @@ from classes.light_source import LightSource
 # TODO: PLACE GAME EVENT SENSORS ON TABLE
 # Extra Ball (when potted)
 # Change size (for remaining turn)
-# Mine (trigger and explode)
+
+# TODO: Include GameTableObject Shadows
+# TODO: Fix whatever degrades the framerate after several session resets.. Presume lack of tear down of pymunk..
+
 
 # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
 
@@ -859,6 +864,44 @@ class App:
         position = (300, 105)
         mine = ExplodingMine(mine_sensor_radius, mine_radius, position)
         game_table.add_game_table_object(mine)
+
+        # Table Ball Modifiers Test
+        size = (40, 40)
+        rand_x = random.randint(size[0]/2, game_table.rect.width-size[0]/2)
+        rand_y = random.randint(size[1]/2, game_table.rect.height-size[1]/2)
+        position = (rand_x, rand_y)
+        color = 'red'
+        ball_modification = BallModificationEnum.RadiusIncrease
+        effect_value = 4
+        modifier = BallModifierGem(color, ball_modification, effect_value, size, position)
+        game_table.add_game_table_object(modifier)
+
+        rand_x = random.randint(size[0]/2, game_table.rect.width-size[0]/2)
+        rand_y = random.randint(size[1]/2, game_table.rect.height-size[1]/2)
+        position = (rand_x, rand_y)
+        color = 'blue'
+        ball_modification = BallModificationEnum.RadiusDecrease
+        effect_value = 4
+        modifier = BallModifierGem(color, ball_modification, effect_value, size, position)
+        game_table.add_game_table_object(modifier)
+
+        rand_x = random.randint(size[0]/2, game_table.rect.width-size[0]/2)
+        rand_y = random.randint(size[1]/2, game_table.rect.height-size[1]/2)
+        position = (rand_x, rand_y)
+        color = 'white'
+        ball_modification = BallModificationEnum.MassDecrease
+        effect_value = 0.2
+        modifier = BallModifierGem(color, ball_modification, effect_value, size, position)
+        game_table.add_game_table_object(modifier)
+
+        rand_x = random.randint(size[0]/2, game_table.rect.width-size[0]/2)
+        rand_y = random.randint(size[1]/2, game_table.rect.height-size[1]/2)
+        position = (rand_x, rand_y)
+        color = 'purple'
+        ball_modification = BallModificationEnum.MassIncrease
+        effect_value = 10.0
+        modifier = BallModifierGem(color, ball_modification, effect_value, size, position)
+        game_table.add_game_table_object(modifier)
 
         if game_table:
             game_table.add_light_source(self.light_source)

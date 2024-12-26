@@ -1,5 +1,6 @@
 from classes.common.game_sprite import GameSprite
-from config import pygame, pymunk
+from classes.game.pool_ball import PoolBall
+from config import pygame, pymunk, Dict
 
 
 class GameTableObject(GameSprite):
@@ -24,3 +25,12 @@ class GameTableObject(GameSprite):
 
     def update(self, time_lapsed, *args, **kwargs):
         return super().update(*args, **kwargs)
+
+    def kill(self):
+        if self.shape.space:
+            self.shape.space.remove(self.shape)
+
+        if self.body.space:
+            self.body.space.remove(self.body)
+
+        super().kill()

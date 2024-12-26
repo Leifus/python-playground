@@ -1,7 +1,8 @@
 from pygame import Vector2
 from classes.enums.collision_type_enum import CollisionTypeEnum
-from classes.game.game_table_object import GameTableObject
-from config import pygame, pymunk, math
+from classes.game.game_table_objects.game_table_object import GameTableObject
+from classes.game.pool_ball import PoolBall
+from config import pygame, pymunk, math, Dict
 from globals import media_manager
 
 class ExplodingMine(GameTableObject):
@@ -20,7 +21,7 @@ class ExplodingMine(GameTableObject):
         self.detonation_time = 2000
         self.is_triggered = False
         self.has_detonated = False
-        self.detonation_force = 500000
+        self.detonation_force = 700000
 
         self.setup_visuals()
         self.setup_physical_space()
@@ -49,7 +50,6 @@ class ExplodingMine(GameTableObject):
         self.impact_radius_shape.sensor = True
         self.impact_radius_shape.collision_type = self.shape_collision_type
         
-
     def setup_visuals(self):
         self.orig_image = self.surface.copy()
         color = pygame.Color('grey20')
@@ -59,7 +59,7 @@ class ExplodingMine(GameTableObject):
         color = pygame.Color('chocolate1')
         pygame.draw.circle(self.orig_image, color, center, self.mine_radius/2)
 
-    def on_collide_pre_solve(self, arbiter: pymunk.Arbiter, space, data):
+    def on_collide_pre_solve(self, ball: PoolBall, arbiter: pymunk.Arbiter, space, data):
         if self.has_detonated or not arbiter.is_first_contact or self.is_triggered:
             return True
 
@@ -120,6 +120,7 @@ class ExplodingMine(GameTableObject):
     def set_trigger(self, time_lapsed):
         # Add Impact Radius Sensor
         self.body.space.add(self.impact_radius_shape)
+        # self.body.space.remove(self.shape)
         self.time_till_detonation = time_lapsed + self.detonation_time
         self.is_triggered = False
 
@@ -133,4 +134,8 @@ class ExplodingMine(GameTableObject):
 
         return super().update(*args, time_lapsed, **kwargs)
         
+    def kill(self):
+        if self.impact_radius_shape.space:
+            self.impact_radius_shape.space.remove(self.impact_radius_shape)
 
+        super().kill()

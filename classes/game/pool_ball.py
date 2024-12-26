@@ -49,6 +49,8 @@ class PoolBall(GameSprite):
 
         self.sounds_cue_hit = 'cue_hit_billiard_ball.wav'
 
+        self.shape_before_updated: pymunk.Shape = None
+
         self.setup_visuals()
         self.setup_physical_space()
         self.redraw()
@@ -86,10 +88,15 @@ class PoolBall(GameSprite):
                 print('No pool ball img:', self.ball_RICH_media)
                 return
 
-    def setup_physical_space(self):
+    def setup_physical_space(self, existing_body: pymunk.Body = None):
         inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
-        self.body = pymunk.Body(self.mass, inertia)
-        self.body.position = self.position
+
+        if not existing_body:
+            self.body = pymunk.Body(self.mass, inertia)
+            self.body.position = self.position
+        else:
+            self.body = existing_body
+
         self.shape = pymunk.Circle(self.body, self.radius)
 
         # IGNORE THIS FOR NOW......
@@ -103,36 +110,29 @@ class PoolBall(GameSprite):
     def reconstruct_physical_body(self):
         space = self.body.space
         if space is not None:
+            body_before_updated = self.body
+            self.shape_before_updated = self.shape
             space.remove(self.body, self.shape)
-            space.step(1)
-            self.setup_physical_space()
+            self.setup_physical_space(body_before_updated)
             space.add(self.body, self.shape)
-            space.step(1)
         else:
             self.setup_physical_space()
 
-    def set_mass(self, mass):
-        self.mass = mass
+            
 
-        # TODO: Maybe reuse construct_physical_body
-        # What about the inertia moment? Does this need changing?
+    def set_mass(self, mass):
+        print('new mass', self.mass, mass)
+        self.mass = mass
         self.body.mass = mass
-        inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)
-        self.body.moment = inertia
+        
+        self.reconstruct_physical_body()
+        self.redraw()
 
     def set_radius(self, radius):
         self.radius = radius
         
         self.reconstruct_physical_body()
         self.redraw()
-
-        # TODO: Maybe reuse construct_physical_body
-        # TODO: FINSIH tHIS!!!
-        # self.body.space.
-        # pymunk.
-
-        # TODO: FINSIH tHIS!!!
-        # self.redraw()
 
     def stop_moving(self):
         self.body.velocity = (0,0)
