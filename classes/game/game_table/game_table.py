@@ -217,6 +217,9 @@ class GameTable(GameSprite):
         self.game_table_objects.add(game_table_object)
         self.space.add(game_table_object.body, game_table_object.shape)
 
+        # shadow = Shadow(game_table_object)
+        # self.shadow_group.add(shadow)
+
     def on_ball_post_solve_collide_with_ball(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         ball_shape_0 = arbiter.shapes[0]
         ball_shape_1 = arbiter.shapes[1]

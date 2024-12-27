@@ -42,3 +42,11 @@ def aspect_scale(img, size):
             sy = by
 
     return pygame.transform.scale(img, (sx,sy))
+
+def scale_poly_points(scale, poly_points):
+    sized_poly_points = []
+    for point in poly_points:
+        resized = (point[0] * scale[0], point[1] * scale[1])
+        sized_poly_points.append(resized)
+
+    return sized_poly_points

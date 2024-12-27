@@ -118,8 +118,6 @@ class PoolBall(GameSprite):
         else:
             self.setup_physical_space()
 
-            
-
     def set_mass(self, mass):
         print('new mass', self.mass, mass)
         self.mass = mass

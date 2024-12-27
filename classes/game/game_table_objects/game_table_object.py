@@ -1,7 +1,5 @@
 from classes.common.game_sprite import GameSprite
-from classes.game.pool_ball import PoolBall
-from config import pygame, pymunk, Dict
-
+from config import pygame, pymunk
 
 class GameTableObject(GameSprite):
     def __init__(self, size, position):
@@ -22,6 +20,8 @@ class GameTableObject(GameSprite):
         self.on_collide_pre_solve_func = None
         self.on_collide_post_solve_func = None
         self.on_collide_seperate_func = None
+        
+        self.z_distance_from_floor = 0.01
 
     def update(self, time_lapsed, *args, **kwargs):
         return super().update(*args, **kwargs)

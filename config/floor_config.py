@@ -13,7 +13,11 @@ floor_DM_RICH_medias = [    #path, scale
     ['floor/floor_carpet.png', 0.4],
     ['floor/floor_tile.png', 0.5],
     ['floor/floor_wood.png', 0.6],
-    ['floor/space_bg.jpg', 0.3]
+    ['floor/space_bg.jpg', 0.3],
+    ['SBS - Tiny Texture Pack 2 - 512x512/512x512/Tile/Tile_11-512x512.png', 0.4],
+    ['SBS - Tiny Texture Pack 2 - 512x512/512x512/Elements/Elements_04-512x512.png', 1.6],
+    ['SBS - Tiny Texture Pack 2 - 512x512/512x512/Elements/Elements_15-512x512.png', 2.0],
+    ['2D Textures Pack/Other Textures/Fur.jpg', 0.3],
 ]
 floor_DM_RAW_colors = [
     pygame.Color('black'),

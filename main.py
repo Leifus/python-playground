@@ -30,16 +30,8 @@ from classes.in_game_ui.ui_layer import UILayer
 from classes.in_game_ui.cue_power_bar import CuePowerBar
 from classes.light_source import LightSource
 
-# TODO: PLACE GAME EVENT SENSORS ON TABLE
-# Extra Ball (when potted)
-# Change size (for remaining turn)
-
 # TODO: Include GameTableObject Shadows
-# TODO: Fix whatever degrades the framerate after several session resets.. Presume lack of tear down of pymunk..
-
-
 # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
-
 
 class App:
     def __init__(self):
@@ -867,6 +859,7 @@ class App:
 
         # Table Ball Modifiers Test
         size = (40, 40)
+        # size = (80, 80)
         rand_x = random.randint(size[0]/2, game_table.rect.width-size[0]/2)
         rand_y = random.randint(size[1]/2, game_table.rect.height-size[1]/2)
         position = (rand_x, rand_y)
@@ -876,6 +869,7 @@ class App:
         modifier = BallModifierGem(color, ball_modification, effect_value, size, position)
         game_table.add_game_table_object(modifier)
 
+        # size = (40, 40)
         rand_x = random.randint(size[0]/2, game_table.rect.width-size[0]/2)
         rand_y = random.randint(size[1]/2, game_table.rect.height-size[1]/2)
         position = (rand_x, rand_y)
@@ -885,6 +879,7 @@ class App:
         modifier = BallModifierGem(color, ball_modification, effect_value, size, position)
         game_table.add_game_table_object(modifier)
 
+        # size = (20, 20)
         rand_x = random.randint(size[0]/2, game_table.rect.width-size[0]/2)
         rand_y = random.randint(size[1]/2, game_table.rect.height-size[1]/2)
         position = (rand_x, rand_y)

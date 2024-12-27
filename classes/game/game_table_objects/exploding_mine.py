@@ -34,6 +34,7 @@ class ExplodingMine(GameTableObject):
         self.surface.blit(image, (0,0))
         self.image = self.surface
         self.rect = self.image.get_rect(center=self.position)
+        self.mask = pygame.mask.from_surface(self.image)
 
     def setup_physical_space(self):
         # Mine
@@ -60,7 +61,7 @@ class ExplodingMine(GameTableObject):
         pygame.draw.circle(self.orig_image, color, center, self.mine_radius/2)
 
     def on_collide_pre_solve(self, ball: PoolBall, arbiter: pymunk.Arbiter, space, data):
-        if self.has_detonated or not arbiter.is_first_contact or self.is_triggered:
+        if not ball or not ball.is_in_active_play or ball.is_picked_up or self.has_detonated or not arbiter.is_first_contact or self.is_triggered:
             return True
 
         self.is_triggered = True

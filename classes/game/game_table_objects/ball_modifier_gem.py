@@ -1,5 +1,5 @@
 from classes.common import media_manager
-from classes.common.helper_methods import aspect_scale
+from classes.common.helper_methods import aspect_scale, scale_poly_points
 from classes.enums.ball_modification_enum import BallModificationEnum
 from classes.enums.collision_type_enum import CollisionTypeEnum
 from classes.game.game_table_objects.game_table_object import GameTableObject
@@ -21,7 +21,7 @@ class BallModifierGem(GameTableObject):
 
         # TODO: What about resizing this?
         # Gem Poly Points
-        self.shape_poly_points = [(-11, -13), (11, -12), (17, -4), (0, 22), (-17, -5)]
+        self.shape_poly_points = [(-11, -13), (11, -13), (17, -4), (0, 22), (-17, -5)]
 
         self.balls_to_modify = pygame.sprite.Group()
         self.is_active = True
@@ -32,17 +32,24 @@ class BallModifierGem(GameTableObject):
 
     def redraw(self):
         self.surface.fill((0,0,0,0))
-
+        
         image = aspect_scale(self.orig_image, self.size)
         self.surface.blit(image, (0,0))
         self.image = self.surface
         self.rect = self.image.get_rect(center=self.position)
+        self.mask = pygame.mask.from_surface(self.image)
 
     def setup_physical_space(self):
+        orig_size = self.orig_image.get_size()
+        x_scale = self.size[0] / orig_size[0]
+        y_scale = self.size[1] / orig_size[1]
+        scale = (x_scale, y_scale)
+        scaled_points = scale_poly_points(scale, self.shape_poly_points)
+
         self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-        physical_position_offset = (1, -6)
+        physical_position_offset = (0, -6)  #cheap hack for physical obj from visual img.
         self.body.position = (self.position[0] + physical_position_offset[0], self.position[1] + physical_position_offset[1])
-        self.shape = pymunk.Poly(self.body, self.shape_poly_points)
+        self.shape = pymunk.Poly(self.body, scaled_points)
         self.shape.sensor = True
         self.shape.collision_type = self.shape_collision_type
 
@@ -77,10 +84,10 @@ class BallModifierGem(GameTableObject):
         self.kill()
 
     def on_collide_pre_solve(self, ball: PoolBall, arbiter: pymunk.Arbiter, space, data):
-        if not self.is_active or not arbiter.is_first_contact:
+        if not ball or not ball.is_in_active_play or ball.is_picked_up or not self.is_active or not arbiter.is_first_contact:
             return True
 
-        if ball is not None and not self.balls_to_modify.has(ball):
+        if not self.balls_to_modify.has(ball):
             self.balls_to_modify.add(ball)
             print('BallModifierGem triggered!', ball)
 
