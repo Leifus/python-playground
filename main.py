@@ -20,6 +20,7 @@ from classes.game.pool_table_pocket import PoolTablePocket
 from config import *
 import config
 from config import pool_table_config
+from config import pool_balls_config
 import config.pool_ball_gutter_config as pool_ball_gutter_config
 import config.cue_power_bar_config as cue_power_bar_config
 from globals import media_manager
@@ -32,6 +33,9 @@ from classes.light_source import LightSource
 
 # TODO: Include GameTableObject Shadows
 # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
+# TODO: Handle rotating the rolling axis of the balls (they currently show as top-down and only rotate left and right angle)
+#       THIS WOULD IMPLY A 3D Ball though, like it has another side to flip over onto...
+#       Not sure how to deal with that.. maybe 2 flat surfaces (top and bottom)?
 
 class App:
     def __init__(self):
@@ -92,9 +96,35 @@ class App:
         self.construct_game_table()
 
     def reset_table(self):
-        self.game_session.game_table.clear_balls()
+        if self.game_session.game_table:
+            self.game_session.game_table.clear_balls()
+
         if self.pool_ball_gutter:
             self.pool_ball_gutter.clear_balls()
+
+    def construct_matte_billiard_balls(self, table_rect: pygame.Rect):
+        ball_group = pygame.sprite.Group()
+
+        identifier = 'matte_test'
+        radius = 20
+        mass = 7
+        elasticity = 0.8
+        friction = 0.2
+
+        color = (255,255,255)
+        media = 'balls/flat_matte_billiards/poolballs0.png'
+        position = (60, table_rect.height/2)
+        cue_ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media, make_a_ball=True)
+        ball_group.add(cue_ball)
+
+        color = (0,0,0)
+        media = 'balls/flat_matte_billiards/poolballs9.png'
+        position = (table_rect.width/2, table_rect.height/2)
+        ball = PoolBall(identifier, radius, mass, elasticity, friction, position, color, media, make_a_ball=True)
+        ball_group.add(ball)
+
+        return cue_ball, ball_group
+
 
     def construct_billiards_balls(self, table_rect: pygame.Rect):
         ball_group = pygame.sprite.Group()
@@ -844,7 +874,7 @@ class App:
 
         # Exploding Mine Test
         mine_sensor_radius = 70
-        mine_radius = 35
+        mine_radius = 25
         position = (game_table.rect.width/2+180, 120)
         mine = ExplodingMine(mine_sensor_radius, mine_radius, position)
         game_table.add_game_table_object(mine)
@@ -929,7 +959,7 @@ class App:
         lumens = 32  #255 max at the moment.
         show_light = False
         self.light_source = LightSource(lumens, radius, position, z_position, show_light)
-        
+                
         self.general_light_dim_surface = pygame.Surface(self.rect.size, pygame.SRCALPHA)
 
     def setup_floor(self):
@@ -997,9 +1027,9 @@ class App:
     def quit_to_menu(self):
         if self.game_session is not None:
             self.game_session.is_running = False
+            self.game_session = self.game_session.kill()
             #TODO: Gentle tear down (and reporting/logging)
         
-        self.game_session = None
         self.game_lobby.is_active = True
 
     def on_event(self, event: pygame.event.Event):
@@ -1192,9 +1222,6 @@ class App:
         return True
 
     def create_new_game_session(self, game_mode: str):
-        # TODO: End existing game session (if exists)
-
-        # Create new game and session
         game_mode_enum = GameModeEnum[game_mode]
         game_id = f'{game_mode} Game'
         self.game_session = GameSession(game_id, game_mode_enum)
@@ -1209,11 +1236,20 @@ class App:
         self.setup_ball_gutter()
         self.setup_camera_screen()
 
+        # TODO: Rework the light source
+        # Light tracking test
+        # This wont work here, the position is offset by the table, so we'll need to rework the light_source
+        # self.light_source.target_to_track = self.game_session.game_table.cue_ball
+        # self.light_source.move_light_with_target = True
+
+
     def update(self):
         self.game_lobby.update()
         if self.game_lobby.is_active:
             if self.game_session is not None:
                 self.game_session.is_running = False    #Force this for now
+                if self.game_lobby.start_new_game:
+                    self.game_session.kill()
 
             if self.game_lobby.start_new_game:
                 self.game_lobby.start_new_game = False
@@ -1221,8 +1257,7 @@ class App:
                 self.game_lobby.is_active = False
                 self.game_lobby.hovered_component = None
                 self.game_session.is_running = True
-
-        if self.game_session is not None and self.game_session.is_running:
+        elif self.game_session is not None and self.game_session.is_running:
             self.update_active_game_session()
 
         current_mouse_cursor = pygame.mouse.get_cursor()

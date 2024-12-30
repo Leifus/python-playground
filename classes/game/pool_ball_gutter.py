@@ -171,4 +171,7 @@ class PoolBallGutter(pygame.sprite.Sprite):
 
         surface.blit(self.surface, self.rect)
         
-    
+    # # IS THIS NECESSARY?
+    # def kill(self):
+    #     del self.space
+    #     super().kill()

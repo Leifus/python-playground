@@ -121,8 +121,5 @@ class GameLobby(GameSprite):
         self.start_new_game = True
         self.selected_game_mode = button.value
 
-    def update(self, *args, **kwargs):
-        return super().update(*args, **kwargs)
-
     def draw(self, surface: pygame.Surface):
         surface.blit(self.image, self.rect)

@@ -1,4 +1,3 @@
-from operator import delitem
 from classes.enums.collision_type_enum import CollisionTypeEnum
 from classes.game.decal import Decal
 from classes.enums.draw_mode_enum import DrawModeEnum
@@ -228,8 +227,6 @@ class GameTable(GameSprite):
             other_ball = ball_shape_0 if self.cue_ball.shape == ball_shape_0 else ball_shape_1
             self.cue_ball_first_hit_ball = self.balls_by_shape.get(other_ball)
 
-        #TODO: Handle multi-step collision.. yes no?
-
         # Make collision sound        
         base_volume = 0.8
         volume = base_volume
@@ -402,17 +399,7 @@ class GameTable(GameSprite):
         self.ball_collisions.clear()
         self.time_lapsed = time_lapsed
 
-        # THIS IS SHIT AND DOEASNT WORK.. GOT NO EFFECT TYPE OR VALUE.. 
-        # THIS SHOULD ALL BE WHERE ITS RELEVEANT....
-        # STOP AND THINK ABOUT THE APPROACH
-
-        # Pass the ball_group for now...?
         self.game_table_objects.update(time_lapsed)
-
-        #TODO: Move and recode this away from here.. LAME:
-        # Temp place to test
-        # if ball_shapes_to_effect:
-
 
         for _ in range(self.space_config.dt_steps):
             self.space.step(self.space_config.dt / self.space_config.dt_steps)
@@ -466,6 +453,7 @@ class GameTable(GameSprite):
         self.game_table_objects.draw(self.surface)
 
         # TODO: Bake this and change only when needed
+        # ALT TODO: Move this to individual object shadow casting instead!?
         for light_source in self.light_sources:
             light_source: LightSource
             overlap_mask = light_source.mask.overlap_mask(self.mask, (0,0))

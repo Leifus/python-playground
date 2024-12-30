@@ -1,3 +1,4 @@
+from classes.common.helper_methods import aspect_scale
 from classes.enums.collision_type_enum import CollisionTypeEnum
 from config import pool_balls_config, pygame, pymunk, random, math
 from globals import media_manager, sound_manager
@@ -6,7 +7,7 @@ from classes.enums.draw_mode_enum import DrawModeEnum
 from classes.common.game_sprite import GameSprite
 
 class PoolBall(GameSprite):
-    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media):
+    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media, make_a_ball=False):
         super(PoolBall, self).__init__()
 
         #TODO: REPLACE THIS FOR BETTER UID type
@@ -25,12 +26,8 @@ class PoolBall(GameSprite):
         self.shape_collision_type = CollisionTypeEnum.COLLISION_TYPE_POOL_BALL.value
         self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
         self.alpha = 255
-
-        # self.image: pygame.Surface | None = None
-        # self.orig_image: pygame.Surface | None = None
-        # self.mask: pygame.mask.Mask | None = None
-        # self.rect: pygame.Rect | None = None
-
+        self.make_a_ball = make_a_ball
+        
         self.base_scale_factor = 1.0
         self.scale_factor = self.base_scale_factor
         
@@ -44,7 +41,7 @@ class PoolBall(GameSprite):
         self.is_in_active_play = False
         self.is_picked_up = False
 
-        self.base_z_distance_from_floor = 0.01
+        self.base_z_distance_from_floor = 0.001
         self.z_distance_from_floor = self.base_z_distance_from_floor
 
         self.sounds_cue_hit = 'cue_hit_billiard_ball.wav'
@@ -58,10 +55,11 @@ class PoolBall(GameSprite):
     def redraw(self):
         orig_rect = self.orig_image.get_rect()
         image_radius = self.radius*2 * self.scale_factor
-        # if self.image is None or orig_rect.width != image_radius:
+
+        image = pygame.transform.smoothscale(self.orig_image, (image_radius, image_radius))
         angle = -math.degrees(self.angle)
-        scaled = pygame.transform.scale(self.orig_image, (image_radius, image_radius))
-        rotated = pygame.transform.rotate(scaled, angle)
+        rotated = pygame.transform.rotate(image, angle)
+
         self.image = rotated
         self.image.set_alpha(self.alpha)
         self.rect = self.image.get_rect(center=self.position)
@@ -83,10 +81,24 @@ class PoolBall(GameSprite):
             pygame.draw.circle(self.orig_image, self.ball_RAW_color, (self.radius, self.radius), self.radius, outline_width)
         elif self.draw_mode in DrawModeEnum.Rich:
             # Ball
-            self.orig_image = media_manager.get(self.ball_RICH_media)
+            self.orig_image = media_manager.get(self.ball_RICH_media, convert=True)
             if not self.orig_image:
                 print('No pool ball img:', self.ball_RICH_media)
                 return
+
+            if self.make_a_ball:
+                # Make a circle mask
+                orig_image_rect = self.orig_image.get_rect()
+
+                surface = pygame.Surface(orig_image_rect.size, pygame.SRCALPHA)
+                pygame.draw.circle(surface, self.ball_RAW_color, orig_image_rect.center, orig_image_rect.width/2)
+                mask = pygame.mask.from_surface(surface)
+
+                # clip the image based on mask/or surface - however its done.
+                self.orig_image = mask.to_surface(setsurface=self.orig_image, unsetcolor=None)
+                
+                
+
 
     def setup_physical_space(self, existing_body: pymunk.Body = None):
         inertia = pymunk.moment_for_circle(self.mass, 0, self.radius)

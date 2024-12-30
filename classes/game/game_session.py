@@ -1,3 +1,4 @@
+from classes.common.game_sprite import GameSprite
 from classes.configs.game_mode_config import GameModeConfig
 from classes.game.game_table.game_table import GameTable
 from classes.configs.game_time_config import GameTimeConfig
@@ -8,8 +9,10 @@ from classes.enums.game_mode_enum import GameModeEnum
 import config.game_mode_configs as game_mode_configs
 
 #TODO: Add Floor here and convert to GameSprite
-class GameSession():
+class GameSession(GameSprite):
     def __init__(self, game_id, game_mode: GameModeEnum):
+        super(GameSession, self).__init__()
+
         self.game_id: str = game_id
         self.game_mode: GameModeEnum = game_mode
         self.game_mode_config: GameModeConfig = game_mode_configs.game_modes[game_mode.name]
@@ -28,8 +31,6 @@ class GameSession():
         self.pockets_group: pygame.sprite.Group = pygame.sprite.Group()
 
         self.setup_players()
-
-    # def add_mine(self, )
 
     def has_picked_up_cue_ball(self) -> bool:
         if not self.is_running or not self.game_table or not self.game_table.cue_ball:
@@ -106,7 +107,7 @@ class GameSession():
             for key in keys_to_remove:
                 del self.queued_game_events[key]
 
-    def update(self):
+    def update(self, *args, **kwargs):
         self.time_lapsed = pygame.time.get_ticks()
         self.clock.tick(self.time_config.fps)
 
@@ -114,3 +115,10 @@ class GameSession():
 
         #TODO: Move this out of here
         pygame.display.set_caption(f'{self.game_id} ({round(self.clock.get_fps(),3)} fps) | {round(self.time_lapsed / 1000)} secs')
+        
+        return super().update(*args, **kwargs)
+
+    def kill(self):
+        self.is_running = False    #Force this for now
+        self.game_table = self.game_table.kill()
+        print('ending session')

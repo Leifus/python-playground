@@ -23,6 +23,8 @@ class LightSource(GameSprite):
         self.surface: pygame.Surface = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
         self.rect: pygame.Rect = self.surface.get_rect(center=self.position)
 
+        self.move_light_with_target = False
+        self.target_to_track: GameSprite = None
 
         self.setup_visuals()
         self.redraw()
@@ -50,8 +52,12 @@ class LightSource(GameSprite):
             self.lumens = self.base_lumens * self.light_strength_scale
             redraw = True
 
-        if light_options.move_light:
+        if light_options.move_light_to_mouse_position:
             self.position = mouse_position
+            self.rect = self.image.get_rect(center=self.position)
+            redraw = True
+        elif self.move_light_with_target and self.target_to_track is not None:
+            self.position = self.target_to_track.position
             self.rect = self.image.get_rect(center=self.position)
             redraw = True
 

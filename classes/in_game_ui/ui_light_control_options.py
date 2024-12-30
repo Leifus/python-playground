@@ -32,7 +32,7 @@ class UILightControlOptions(GameSprite):
         self.relative_mouse_position = None
         self.hovered_component = None
 
-        self.move_light = False
+        self.move_light_to_mouse_position = False
         self.light_size_scale = 1.0
         self.light_strength_scale = 1.0
 
@@ -146,7 +146,7 @@ class UILightControlOptions(GameSprite):
             self.light_strength_scale = 3.0
 
     def on_move_light_button_press(self, button: Button):
-        self.move_light = button.value
+        self.move_light_to_mouse_position = button.value
         button.value = not button.value
 
     def on_event(self, parent_mouse_position, event: pygame.event.Event):
