@@ -1,5 +1,6 @@
 from classes.camera import Camera
 from classes.camera_screen import CameraScreen
+from classes.common import sprite_sheet
 from classes.enums.ball_modification_enum import BallModificationEnum
 from classes.game.decal import Decal
 from classes.enums.draw_mode_enum import DrawModeEnum
@@ -30,12 +31,14 @@ from classes.game.floor import Floor
 from classes.in_game_ui.ui_layer import UILayer
 from classes.in_game_ui.cue_power_bar import CuePowerBar
 from classes.light_source import LightSource
+from classes.common.sprite_sheet import GreenBlobCharacterSpriteSheet
 
-# TODO: Include GameTableObject Shadows
+# TODO: Include GameTableObject Shadows - Didn't look too great tbh with the mines and gems.. needs more consideration and specification
 # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
 # TODO: Handle rotating the rolling axis of the balls (they currently show as top-down and only rotate left and right angle)
 #       THIS WOULD IMPLY A 3D Ball though, like it has another side to flip over onto...
-#       Not sure how to deal with that.. maybe 2 flat surfaces (top and bottom)?
+#       Not sure how to deal with that.. maybe 2 flat surfaces (top and bottom)? This is knarly...
+
 
 class App:
     def __init__(self):
@@ -124,7 +127,6 @@ class App:
         ball_group.add(ball)
 
         return cue_ball, ball_group
-
 
     def construct_billiards_balls(self, table_rect: pygame.Rect):
         ball_group = pygame.sprite.Group()
@@ -846,6 +848,7 @@ class App:
         game_table.add_decals(decal_group)
 
         # Balls
+        # cue_ball, ball_group = self.construct_matte_billiard_balls(game_table.rect)
         cue_ball, ball_group = self.construct_billiards_balls(game_table.rect)
         
         game_table.clear_balls()
@@ -991,7 +994,9 @@ class App:
         self.cue_power_bar = CuePowerBar(draw_mode, size, position)
         self.cue_power_bar.on_init()
 
-    def setup_camera_screen(self):
+    def setup_camera_screens(self):
+        self.camera_screens.empty()
+
         # Cue Ball Camera
         size = (200, 200)
         target_offset_rect = self.game_session.game_table.rect
@@ -1234,7 +1239,7 @@ class App:
 
         self.construct_game_table()
         self.setup_ball_gutter()
-        self.setup_camera_screen()
+        self.setup_camera_screens()
 
         # TODO: Rework the light source
         # Light tracking test
@@ -1281,6 +1286,8 @@ class App:
     def draw_running_game(self):
         self.game_surface.fill((0,0,0,0))
 
+        # Surely this is all the Game Session resonsiboliigyt?
+
         # Game Floor, Table, Gutter
         self.floor.draw(self.game_surface)
         self.game_session.game_table.draw(self.game_surface, self.light_source)
@@ -1299,6 +1306,8 @@ class App:
 
         # Cameras
         self.camera_screens.draw(self.surface)
+
+        self.game_session.test_GreenBlobCharacterSpriteSheet.draw(self.surface)
 
         # UI Layers
         self.ui_layer.draw(self.surface)
@@ -1330,15 +1339,6 @@ class App:
 
             self.update()
             self.draw()
-
-            # if self.game_session is not None:
-            #     self.game_session.update()
-
-            # time_lapsed = pygame.time.get_ticks()
-            # self.update(time_lapsed)
-            
-            # self.clock.tick(config.time_fps)
-            # pygame.display.set_caption(f"Pool Table: {round(self.clock.get_fps(),3)} fps | {round(time_lapsed / 1000)} secs")
 
         self.on_cleanup()
 

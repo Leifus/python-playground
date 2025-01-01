@@ -7,6 +7,7 @@ class MediaManager():
         self.root_path = config.media_root_path
         self.media = dict()
 
+    #TODO Allow the media manager to determine the convert
     def get(self, path, convert=False, convert_alpha=False):
         file_path = f'{self.root_path}/{path}'
 

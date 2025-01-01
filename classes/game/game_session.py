@@ -1,4 +1,5 @@
 from classes.common.game_sprite import GameSprite
+from classes.common.sprite_sheet import GreenBlobCharacterSpriteSheet
 from classes.configs.game_mode_config import GameModeConfig
 from classes.game.game_table.game_table import GameTable
 from classes.configs.game_time_config import GameTimeConfig
@@ -30,7 +31,14 @@ class GameSession(GameSprite):
         # self.pool_table: PoolTable = None
         self.pockets_group: pygame.sprite.Group = pygame.sprite.Group()
 
+        self.test_GreenBlobCharacterSpriteSheet = None
+
         self.setup_players()
+        self.test_setup_sprite_sheet()
+
+    def test_setup_sprite_sheet(self):
+        position = (100,100)
+        self.test_GreenBlobCharacterSpriteSheet = GreenBlobCharacterSpriteSheet(position)
 
     def has_picked_up_cue_ball(self) -> bool:
         if not self.is_running or not self.game_table or not self.game_table.cue_ball:
@@ -112,6 +120,8 @@ class GameSession(GameSprite):
         self.clock.tick(self.time_config.fps)
 
         self.update_queued_game_events()
+
+        self.test_GreenBlobCharacterSpriteSheet.update(self.time_lapsed)
 
         #TODO: Move this out of here
         pygame.display.set_caption(f'{self.game_id} ({round(self.clock.get_fps(),3)} fps) | {round(self.time_lapsed / 1000)} secs')
