@@ -429,7 +429,7 @@ class GameTable(GameSprite):
             position = (x, y)
             self.cue_ball.position = position
 
-        self.ball_group.update()
+        self.ball_group.update(self.time_lapsed)
         
         #Bit lame check here to keep dictionaries and such in check...
         updated_balls = []

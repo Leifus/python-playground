@@ -6,6 +6,7 @@ from classes.game.decal import Decal
 from classes.enums.draw_mode_enum import DrawModeEnum
 from classes.game.game_table_objects.ball_modifier_gem import BallModifierGem
 from classes.game.game_table_objects.exploding_mine import ExplodingMine
+from classes.game.spritesheets.orange_ball_character_sprite_sheet import OrangeBallCharacterSpriteSheet
 from classes.main_menu.game_lobby import GameLobby
 from classes.enums.game_mode_enum import GameModeEnum
 from classes.game.game_session import GameSession
@@ -31,7 +32,6 @@ from classes.game.floor import Floor
 from classes.in_game_ui.ui_layer import UILayer
 from classes.in_game_ui.cue_power_bar import CuePowerBar
 from classes.light_source import LightSource
-from classes.common.sprite_sheet import GreenBlobCharacterSpriteSheet
 
 # TODO: Include GameTableObject Shadows - Didn't look too great tbh with the mines and gems.. needs more consideration and specification
 # TODO: DISPLAY UPCOMING QUEUED GAME EVENTS
@@ -759,7 +759,10 @@ class App:
         media_path = f'skeleton_head.png'
         position = (game_table.rect.width/2, 100)
         cue_radius = ball_radius*2
-        cue_ball = PoolBall(identifier, cue_radius, mass, elasticity, friction, position, color, media_path)
+        
+        sprite_sheet_to_use = OrangeBallCharacterSpriteSheet(position)
+        # sprite_sheet_to_use.animate = False
+        cue_ball = PoolBall(identifier, cue_radius, mass, elasticity, friction, position, color, media_path, sprite_sheet_to_use=sprite_sheet_to_use)
         ball_group.add(cue_ball)
 
         # Black balls
@@ -1307,7 +1310,7 @@ class App:
         # Cameras
         self.camera_screens.draw(self.surface)
 
-        self.game_session.test_GreenBlobCharacterSpriteSheet.draw(self.surface)
+        self.game_session.sprite_sheet_group.draw(self.surface)
 
         # UI Layers
         self.ui_layer.draw(self.surface)

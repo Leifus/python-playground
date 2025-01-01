@@ -1,4 +1,6 @@
+from pygame import Vector2
 from classes.common.helper_methods import aspect_scale
+from classes.common.sprite_sheet import SpriteSheet
 from classes.enums.collision_type_enum import CollisionTypeEnum
 from config import pool_balls_config, pygame, pymunk, random, math
 from globals import media_manager, sound_manager
@@ -7,7 +9,7 @@ from classes.enums.draw_mode_enum import DrawModeEnum
 from classes.common.game_sprite import GameSprite
 
 class PoolBall(GameSprite):
-    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media, make_a_ball=False):
+    def __init__(self, identifier, radius, mass, elasticity, friction, position, color, media, make_a_ball=False, sprite_sheet_to_use: SpriteSheet = None):
         super(PoolBall, self).__init__()
 
         #TODO: REPLACE THIS FOR BETTER UID type
@@ -27,6 +29,7 @@ class PoolBall(GameSprite):
         self.WIREFRAME_outline_width = pool_balls_config.pool_ball_DM_WIREFRAME_outline_width
         self.alpha = 255
         self.make_a_ball = make_a_ball
+        self.sprite_sheet_to_use = sprite_sheet_to_use
         
         self.base_scale_factor = 1.0
         self.scale_factor = self.base_scale_factor
@@ -53,10 +56,14 @@ class PoolBall(GameSprite):
         self.redraw()
 
     def redraw(self):
+        if self.sprite_sheet_to_use is not None:
+            self.orig_image = self.sprite_sheet_to_use.image
+
         orig_rect = self.orig_image.get_rect()
         image_radius = self.radius*2 * self.scale_factor
 
         image = pygame.transform.smoothscale(self.orig_image, (image_radius, image_radius))
+        
         angle = -math.degrees(self.angle)
         rotated = pygame.transform.rotate(image, angle)
 
@@ -64,11 +71,6 @@ class PoolBall(GameSprite):
         self.image.set_alpha(self.alpha)
         self.rect = self.image.get_rect(center=self.position)
         self.mask = pygame.mask.from_surface(self.image)
-
-        # if self.mask is None:
-        #     self.mask = pygame.mask.from_surface(self.image)
-
-        # self.image.set_alpha(100)
 
     def setup_visuals(self):
         if self.draw_mode in DrawModeEnum.Raw | DrawModeEnum.Wireframe:
@@ -165,13 +167,35 @@ class PoolBall(GameSprite):
         self.alpha = 120
         self.redraw()
 
-    def update(self, *args, **kwargs):
+    def update(self, time_lapsed, *args, **kwargs):
         if not self.is_picked_up:
             self.angle = self.body.angle
             self.position = self.body.position
         elif self.is_picked_up:
             self.body.position = self.position  #Wont collide if its a sensor
         
+        if self.sprite_sheet_to_use is not None:
+            # This allows for idle animation triggers but we'll want to set the speed I think and then within check for 0 or max
+            min_ke = 0.1
+            ke = self.body.kinetic_energy
+            
+            self.sprite_sheet_to_use.animate = ke > min_ke
+            # print('vel', self.body.velocity)
+            if ke > min_ke:
+                arbitrary_base_ke = 100000
+                ke_ratio = ke / arbitrary_base_ke
+                base_anim_speed = 1000
+                anim_speed = base_anim_speed / ke_ratio
+                lowest_speed = 2000
+
+            # if anim_speed < lowest_speed:
+                # reverse_anim = self.body.velocity[0] < 0 or self.body.velocity[1] < 0
+                reverse_anim = False
+                print('speed', anim_speed, reverse_anim, self.body.velocity, base_anim_speed, ke_ratio, self.body.kinetic_energy)
+                self.sprite_sheet_to_use.set_animation_speed(anim_speed, reverse_anim)
+            
+            self.sprite_sheet_to_use.update(time_lapsed)   #u sure?
+
         self.redraw()
         
         #TODO: Consider the 'is_moving' again - am I checking already for this?

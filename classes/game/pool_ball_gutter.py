@@ -156,7 +156,7 @@ class PoolBallGutter(pygame.sprite.Sprite):
         for _ in range(self.space_config.dt_steps):
             self.space.step(self.space_config.dt / self.space_config.dt_steps)
 
-        self.ball_group.update()
+        self.ball_group.update(0) #TODO: Fix this Needs passing time_lapsed at the moment!
         return super().update(*args, **kwargs)
 
     def draw(self, surface: pygame.Surface):

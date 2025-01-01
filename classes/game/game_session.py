@@ -1,10 +1,12 @@
 from classes.common.game_sprite import GameSprite
-from classes.common.sprite_sheet import GreenBlobCharacterSpriteSheet
 from classes.configs.game_mode_config import GameModeConfig
 from classes.game.game_table.game_table import GameTable
 from classes.configs.game_time_config import GameTimeConfig
 from classes.enums.in_game_event_enum import InGameEventEnum
 from classes.game.player import Player
+from classes.game.spritesheets.green_blob_character_sprite_sheet import GreenBlobCharacterSpriteSheet
+from classes.game.spritesheets.orange_ball_character_sprite_sheet import OrangeBallCharacterSpriteSheet
+from classes.game.spritesheets.red_blob_character_sprite_sheet import RedBlobCharacterSpriteSheet
 from config import pygame, game_mode_time_config, OrderedDict, Dict
 from classes.enums.game_mode_enum import GameModeEnum
 import config.game_mode_configs as game_mode_configs
@@ -31,14 +33,23 @@ class GameSession(GameSprite):
         # self.pool_table: PoolTable = None
         self.pockets_group: pygame.sprite.Group = pygame.sprite.Group()
 
-        self.test_GreenBlobCharacterSpriteSheet = None
+        self.sprite_sheet_group: pygame.sprite.Group = pygame.sprite.Group()
 
         self.setup_players()
         self.test_setup_sprite_sheet()
 
     def test_setup_sprite_sheet(self):
         position = (100,100)
-        self.test_GreenBlobCharacterSpriteSheet = GreenBlobCharacterSpriteSheet(position)
+        green_blob = GreenBlobCharacterSpriteSheet(position)
+        self.sprite_sheet_group.add(green_blob)
+
+        position = (200,100)
+        orange_ball = OrangeBallCharacterSpriteSheet(position)
+        self.sprite_sheet_group.add(orange_ball)
+
+        position = (300,100)
+        red_blob = RedBlobCharacterSpriteSheet(position)
+        self.sprite_sheet_group.add(red_blob)
 
     def has_picked_up_cue_ball(self) -> bool:
         if not self.is_running or not self.game_table or not self.game_table.cue_ball:
@@ -121,7 +132,7 @@ class GameSession(GameSprite):
 
         self.update_queued_game_events()
 
-        self.test_GreenBlobCharacterSpriteSheet.update(self.time_lapsed)
+        self.sprite_sheet_group.update(self.time_lapsed)
 
         #TODO: Move this out of here
         pygame.display.set_caption(f'{self.game_id} ({round(self.clock.get_fps(),3)} fps) | {round(self.time_lapsed / 1000)} secs')
@@ -131,4 +142,6 @@ class GameSession(GameSprite):
     def kill(self):
         self.is_running = False    #Force this for now
         self.game_table = self.game_table.kill()
+        
+        self.sprite_sheet_group.empty() # Not reqd meethinks
         print('ending session')
