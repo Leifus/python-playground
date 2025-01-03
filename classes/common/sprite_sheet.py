@@ -1,6 +1,6 @@
 from classes.common.game_sprite import GameSprite
 from classes.configs.sprite_animation_config import SpriteAnimationConfig
-from config import pygame, Dict
+from config import pygame, Dict, math
 from globals import media_manager
 
 class SpriteSheet(GameSprite):
@@ -16,11 +16,14 @@ class SpriteSheet(GameSprite):
         self.anim_update_ttl = None
         self.animate = animate
         self.animate_reverse_order = False
+        self.scale = 1.0
 
     def redraw(self):
         x, y = self.current_animation.position
         width, height = self.current_animation.size
-        self.image = self.get_sprite_by_data(x, y, width, height, self.current_animation_step)
+        image = self.get_sprite_by_data(x, y, width, height, self.current_animation_step, self.scale)
+        # image.set_alpha(100)
+        self.image = pygame.transform.rotate(image, self.current_animation.rotation_offset-self.angle)
         self.image.set_colorkey(self.color_key)
         self.rect = self.image.get_rect(center=self.position)
 
@@ -60,9 +63,13 @@ class SpriteSheet(GameSprite):
 
         return super().update(*args, **kwargs)
 
-    def get_sprite_by_data(self, x, y, width, height, step):
+    def get_sprite_by_data(self, x, y, width, height, frame, scale):
         image = pygame.Surface((width, height), pygame.SRCALPHA)
-        image.blit(self.orig_image, (0, 0), area=(x + (width * step), y, width, height))
+        image.blit(self.orig_image, (0, 0), area=(x + (width * frame), y, width, height))
+        scaled_width = width * scale
+        scaled_height = height * scale
+        if scaled_width != width or scaled_height != height:
+            image = pygame.transform.scale(image, (scaled_width, scaled_height))
 
         return image
     
