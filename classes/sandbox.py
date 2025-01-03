@@ -67,15 +67,16 @@ class Sandbox(GameSprite):
 
     def add_food_sources(self):
         food_source_count = 20
-        size = (50, 40)
 
         food_source_bodies = []
         food_source_shapes = []
         for i in range(food_source_count):
-            rand_x = random.randint(size[0]/2, self.rect.width-size[0]/2)
-            rand_y = random.randint(size[1]/2, self.rect.height-size[1]/2)
+            width = random.randint(10, 50)
+            height = random.randint(10, 50)
+            rand_x = random.randint(round(width/2), round(self.rect.width-width/2))
+            rand_y = random.randint(round(height/2), round(self.rect.height-height/2))
             position = (rand_x, rand_y)
-            food_source = FoodSource(size, position)
+            food_source = FoodSource((width, height), position)
             food_source_bodies.append(food_source.body)
             food_source_shapes.append(food_source.shape)
             self.sources_groups.add(food_source)
@@ -101,8 +102,8 @@ class Sandbox(GameSprite):
     def add_cow_actor(self):
         cow = CowActor(birth_date=self.time_lapsed)
 
-        rand_x = random.randint(cow.rect.width/2, self.rect.width - cow.rect.width/2)
-        rand_y = random.randint(cow.rect.height/2, self.rect.height - cow.rect.height/2)
+        rand_x = random.randint(round(cow.rect.width/2), round(self.rect.width - cow.rect.width/2))
+        rand_y = random.randint(round(cow.rect.height/2), round(self.rect.height - cow.rect.height/2))
         cow.update_position((rand_x, rand_y))
 
         rand_angle = random.randint(0, 360)

@@ -12,6 +12,7 @@ class SpriteSheet(GameSprite):
         self.animation_data = animation_data
         self.current_animation_step = 0
         self.current_animation: SpriteAnimationConfig = current_animation
+        self.current_animation_speed = current_animation.animation_speed
         self.color_key = color_key
         self.anim_update_ttl = None
         self.animate = animate
@@ -29,14 +30,14 @@ class SpriteSheet(GameSprite):
 
     def set_animation_speed(self, speed, reverse_animation):
         if self.anim_update_ttl is not None:
-            current_speed = self.current_animation.animation_speed
+            # current_speed = self.current_animation.animation_speed
 
-            if speed < current_speed:   #speed up timers
-                self.anim_update_ttl -= current_speed - speed
+            if speed < self.current_animation_speed:   #speed up timers
+                self.anim_update_ttl -= self.current_animation_speed - speed
             else:   #slow down timers
-                self.anim_update_ttl += speed - current_speed
+                self.anim_update_ttl += speed - self.current_animation_speed
 
-        self.current_animation.animation_speed = speed
+        self.current_animation_speed = speed
         self.animate_reverse_order = reverse_animation
             
 
@@ -56,9 +57,9 @@ class SpriteSheet(GameSprite):
     def update(self, time_lapsed, *args, **kwargs):
         if self.animate:
             if self.anim_update_ttl is None:
-                self.anim_update_ttl = time_lapsed + self.current_animation.animation_speed
+                self.anim_update_ttl = time_lapsed + self.current_animation_speed
             elif time_lapsed > self.anim_update_ttl:
-                self.anim_update_ttl = time_lapsed + self.current_animation.animation_speed
+                self.anim_update_ttl = time_lapsed + self.current_animation_speed
                 self.step_animation()
 
         return super().update(*args, **kwargs)

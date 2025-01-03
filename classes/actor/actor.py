@@ -14,6 +14,7 @@ class Actor(SpriteSheet):
 
     def update(self, time_lapsed, *args, **kwargs):
         self.well_being.update(time_lapsed)
+        return super().update(time_lapsed, *args, **kwargs)
         
     def update_position(self, position):
         if self.body:
