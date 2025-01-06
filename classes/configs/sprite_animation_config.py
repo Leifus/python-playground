@@ -1,6 +1,6 @@
 
 class SpriteAnimationConfig():
-    def __init__(self, label, position, size, steps, animation_speed, rotation_offset=0):
+    def __init__(self, label, position, size, steps, animation_speed, rotation_offset):
         self.label = label
         self.position = position
         self.size = size

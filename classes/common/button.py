@@ -5,7 +5,7 @@ class Button(GameSprite):
     def __init__(self, surface: pygame.Surface, position, value, on_hover, on_press, on_release):
         super(Button, self).__init__()
 
-        self.image = surface
+        self.image: pygame.Surface = surface
         self.rect = self.image.get_rect(topleft=position)
         self.position = position
         
@@ -16,22 +16,29 @@ class Button(GameSprite):
         self.is_hovered = False
         self.is_pressed = False
 
-    def on_event(self, parent_mouse_position, event: pygame.event.Event):
-        self.is_hovered = False
+    def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
+        is_in_x = False
+        is_in_y = False
+        if mouse_position:
+            is_in_x = mouse_position.x >= self.rect.left and mouse_position.x <= self.rect.right
+            is_in_y = mouse_position.y >= self.rect.top and mouse_position.y <= self.rect.bottom
 
-        if event.type not in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION]:
-            return
-        
-        self.relative_mouse_position = (parent_mouse_position[0] - self.rect.left, parent_mouse_position[1] - self.rect.top)
-        
-        if self.relative_mouse_position[0] >= 0 and self.relative_mouse_position[0] <= self.rect.width and self.relative_mouse_position[1] >= 0 and self.relative_mouse_position[1] <= self.rect.height:
-            self.is_hovered = True
-            if self.on_hover is not None:
+        self.is_hovered = is_in_x and is_in_y
+
+        if self.is_hovered:
+            if self.on_hover:
                 self.on_hover(self)
-
-        if self.is_pressed and event.type == pygame.MOUSEBUTTONUP and self.on_release is not None:
-            self.on_release(self)
-
-        self.is_pressed = pygame.mouse.get_pressed()[0] and self.is_hovered
-        if self.is_pressed and self.on_press is not None:
-            self.on_press(self)
+            
+            if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
+                buttons_pressed = pygame.mouse.get_pressed()
+                if event.type == pygame.MOUSEBUTTONDOWN and buttons_pressed[0]:
+                    self.is_pressed = True
+                    if self.on_press:
+                        self.on_press(self)
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    self.is_pressed = False
+                    if self.on_release:
+                        self.on_release(self)
+        else:
+            self.is_pressed = False
+            
