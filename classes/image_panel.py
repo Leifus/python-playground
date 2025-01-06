@@ -98,6 +98,10 @@ class ImagePanel(GameSprite):
         self.live_poly_points_every = int(biggest_side / log)
         self.live_poly_points = self.sprite_mask.outline(self.live_poly_points_every)
 
+    def update_poly_points_every(self, point_every):
+        self.live_poly_points_every = point_every
+        self.live_poly_points = self.sprite_mask.outline(self.live_poly_points_every)
+
     def on_event(self, mouse_position: Vector2, event: pygame.event.Event):
         self.mouse_position = mouse_position
         self.is_hovered = False

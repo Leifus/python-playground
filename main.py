@@ -19,7 +19,7 @@ class App:
 
         # self.image_source: ImageSource = None
         # self.sprites_group = pygame.sprite.Group()
-        self.left_menu: LeftMenuUI = None
+        # self.left_menu: LeftMenuUI = None
         self.main_draw_space: MainDrawSpace = None
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
 
@@ -57,19 +57,22 @@ class App:
     def setup_image_panel_toolbar(self):
         self.toolbar = ImagePanelToolbar()
 
-    def setup_left_menu(self):
-        size = (150,self.rect.height)
-        position = (size[0]/2,size[1]/2)
-        self.left_menu = LeftMenuUI(size, position)
-        # self.sprites_group.add(self.left_menu)
+    # def setup_left_menu(self):
+    #     size = (150,self.rect.height)
+    #     position = (size[0]/2,size[1]/2)
+    #     self.left_menu = LeftMenuUI(size, position)
+    #     # self.sprites_group.add(self.left_menu)
 
     def setup_main_draw_space(self):
-        size = (self.rect.width-self.left_menu.rect.width,self.rect.height)
-        position = (self.rect.width/2+self.left_menu.rect.width/2, self.rect.height/2)
+        # size = (self.rect.width-self.left_menu.rect.width,self.rect.height)
+        # position = (self.rect.width/2+self.left_menu.rect.width/2, self.rect.height/2)
+
+        size = (self.rect.width,self.rect.height)
+        position = (self.rect.width/2, self.rect.height/2)
         self.main_draw_space = MainDrawSpace(size, position)
 
     def setup_main_interface(self):
-        self.setup_left_menu()
+        # self.setup_left_menu()
         self.setup_main_draw_space()
 
     def on_event(self, event: pygame.event.Event):
@@ -96,7 +99,7 @@ class App:
                             self.toolbar.link_to_image_panel(self.active_image_panel)
                             break
                     
-        self.left_menu.on_event(event)
+        # self.left_menu.on_event(event)
         self.toolbar.on_event(self.mouse_position, event)
         self.main_draw_space.on_event(event)
         
@@ -127,7 +130,7 @@ class App:
         self.main_draw_space.add_image_panel(panel)
 
     def update(self):
-        self.left_menu.update()
+        # self.left_menu.update()
         self.toolbar.update()
 
         if self.toolbar.copy_poly_points:
@@ -136,14 +139,11 @@ class App:
 
         self.main_draw_space.update()
 
-        if not self.left_menu.is_hovered and not self.toolbar.is_hovered:
+        if not self.toolbar.is_hovered:
             self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
             pygame.mouse.set_cursor(self.mouse_cursor)
         else:
-            if self.left_menu.is_hovered and self.mouse_cursor is not self.left_menu.mouse_cursor:
-                self.mouse_cursor = self.left_menu.mouse_cursor
-                pygame.mouse.set_cursor(self.mouse_cursor)
-            elif self.toolbar.is_hovered and self.mouse_cursor is not self.toolbar.mouse_cursor:
+            if self.toolbar.is_hovered and self.mouse_cursor is not self.toolbar.mouse_cursor:
                 self.mouse_cursor = self.toolbar.mouse_cursor
                 pygame.mouse.set_cursor(self.mouse_cursor)
 
@@ -151,7 +151,7 @@ class App:
         bg_fill = config.display_bg_color
         self.surface.fill(bg_fill)
 
-        self.left_menu.draw(self.surface)
+        # self.left_menu.draw(self.surface)
         self.main_draw_space.draw(self.surface)
         self.toolbar.draw(self.surface)
         

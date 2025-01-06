@@ -2,7 +2,7 @@ from classes.common.game_sprite import GameSprite
 from config import pygame
 
 class TextBox(GameSprite):
-    def __init__(self, label, textbox_size, position, value, on_submit):
+    def __init__(self, label, textbox_size, position, value, on_submit, font_size=14):
         super(TextBox, self).__init__()
 
         self.label = label
@@ -10,7 +10,7 @@ class TextBox(GameSprite):
         self.value: str = str(value)
         self.is_focused = False
         self.is_hovered = False
-        self.font_size = 14
+        self.font_size = font_size
         self.textbox_size = textbox_size
         self.label_font_size = 12
         self.font_color = pygame.Color('black')
@@ -38,7 +38,7 @@ class TextBox(GameSprite):
         # Textbox
         self.textbox_surface = pygame.Surface(self.textbox_size, pygame.SRCALPHA)
         self.textbox_surface.fill('white')
-        pygame.draw.rect(self.textbox_surface, self.font_color, (0,0,self.textbox_size[0], self.textbox_size[1]), 2)
+        pygame.draw.rect(self.textbox_surface, self.font_color, (0,0,self.textbox_size[0], self.textbox_size[1]), 1)
         textbox_rect = self.textbox_surface.get_rect()
         label_rect.midleft = (textbox_rect.right + label_margin_x, textbox_rect.height/2)
         self.label_rect = label_rect
@@ -91,7 +91,7 @@ class TextBox(GameSprite):
         # Value
         value_font = pygame.font.Font('freesansbold.ttf', self.font_size)
         value_image = value_font.render(f'{self.value}', True, self.font_color)
-        value_rect = value_image.get_rect(topleft=(5, self.textbox_size[1]/2 - self.font_size/2))
+        value_rect = value_image.get_rect(topleft=(3, self.textbox_size[1]/2 - self.font_size/2))
         self.surface.blit(value_image, value_rect)
 
         if self.is_focused:

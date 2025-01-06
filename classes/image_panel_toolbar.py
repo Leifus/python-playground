@@ -1,6 +1,7 @@
 
 from classes.common.button import Button
 from classes.common.game_sprite import GameSprite
+from classes.common.text_box import TextBox
 from classes.image_panel import ImagePanel
 from config import pygame
 from globals import media_manager
@@ -21,6 +22,8 @@ class ImagePanelToolbar(GameSprite):
         self.toggle_poly_trace_button_on_image: pygame.Surface = None
         self.copy_poly_off_image: pygame.Surface = None
         self.buttons_group = pygame.sprite.Group()
+        self.inputs_group = pygame.sprite.Group()
+        self.input_size = (34, self.button_size-4)
         self.is_hovered = False
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
         self.mouse_position = None
@@ -34,17 +37,22 @@ class ImagePanelToolbar(GameSprite):
         self.copy_poly_points = False
         self.button_gap = 5
         self.has_killed_panel = False
+        self.trash_button_gap = 40
+        self.button_is_hovered = False
+        self.input_is_hovered = False
 
         self.move_button: Button = None
         self.show_image_button: Button = None
         self.show_mask_button: Button = None
         self.show_live_polys_button: Button = None
         self.copy_poly_button: Button = None
+        self.set_poly_points_input: TextBox = None
 
         self.setup_button_visuals()
-        self.setup_buttons()
+        self.setup_toolbar()
 
-        width = self.button_size*len(self.buttons_group) + self.button_gap*(len(self.buttons_group)+1)
+        buttons_width = self.button_size*len(self.buttons_group) + self.button_gap*(len(self.buttons_group)+1) + self.trash_button_gap
+        width = buttons_width + len(self.inputs_group)*self.input_size[0] + self.button_gap*(len(self.inputs_group))
         height = self.button_size + self.button_gap*2
         self.size = (width, height)
         self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
@@ -81,6 +89,8 @@ class ImagePanelToolbar(GameSprite):
         button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
         icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
         button_image = button_surface.copy()
+        color = pygame.Color('lightpink1')
+        button_image.fill(color)
         button_image.blit(button_icon, icon_rect)
         self.trash_button_image = button_image
 
@@ -144,10 +154,11 @@ class ImagePanelToolbar(GameSprite):
         main_button_image.blit(button_image, small_button_rect)
         self.copy_poly_off_image = main_button_image
 
-    def setup_buttons(self):
+    def setup_toolbar(self):
         x = self.button_gap
         y = self.button_gap
 
+        # Move Button
         position = (x,y)
         value = 1,
         on_hover = None
@@ -156,7 +167,8 @@ class ImagePanelToolbar(GameSprite):
         self.move_button = Button(self.move_button_image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(self.move_button)
 
-        x = position[0] + self.button_size + self.button_gap
+        # Show Image Button
+        x += self.button_size + self.button_gap
         position = (x, y)
         value = 1,
         on_hover = None
@@ -166,7 +178,8 @@ class ImagePanelToolbar(GameSprite):
         self.show_image_button = Button(image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(self.show_image_button)
 
-        x = position[0] + self.button_size + self.button_gap
+        # Show Mask Button
+        x += self.button_size + self.button_gap
         position = (x, y)
         value = 1,
         on_hover = None
@@ -176,7 +189,8 @@ class ImagePanelToolbar(GameSprite):
         self.show_mask_button = Button(image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(self.show_mask_button)
 
-        x = position[0] + self.button_size + self.button_gap
+        # Show Polys Button
+        x += self.button_size + self.button_gap
         position = (x, y)
         value = 1,
         on_hover = None
@@ -186,7 +200,17 @@ class ImagePanelToolbar(GameSprite):
         self.show_live_polys_button = Button(image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(self.show_live_polys_button)
 
-        x = position[0] + self.button_size + self.button_gap
+        # Set Poly Points Every
+        x += self.button_size + self.button_gap
+        position = (x, y+2)
+        value = ''
+        on_submit = self.on_set_poly_points_input_submit
+        font_size = 12
+        self.set_poly_points_input = TextBox('', self.input_size, position, value, on_submit, font_size)
+        self.inputs_group.add(self.set_poly_points_input)
+
+        # Copy Polys Button
+        x += self.input_size[0] + self.button_gap
         position = (x, y)
         value = 1,
         on_hover = None
@@ -196,7 +220,8 @@ class ImagePanelToolbar(GameSprite):
         self.copy_poly_button = Button(image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(self.copy_poly_button)
 
-        x = position[0] + self.button_size + self.button_gap
+        # Trash Panel Button
+        x += self.button_size + self.button_gap + self.trash_button_gap
         position = (x, y)
         value = 1,
         on_hover = None
@@ -224,6 +249,9 @@ class ImagePanelToolbar(GameSprite):
         self.show_live_polys = not self.show_live_polys
         button.image = self.toggle_poly_trace_button_on_image if self.show_live_polys else self.toggle_poly_trace_button_off_image
 
+    def on_set_poly_points_input_submit(self, textbox: TextBox):
+        self.linked_image_panel.update_poly_points_every(int(textbox.value))
+
     def on_move_button_press(self, button: Button):
         # print('on_move_button_press', self.follow_mouse)
         if self.move_by_mouse:
@@ -243,6 +271,8 @@ class ImagePanelToolbar(GameSprite):
     def on_event(self, parent_mouse_position, event):
         self.has_killed_panel = False
         self.is_hovered = False
+        self.button_is_hovered = False
+        self.input_is_hovered = False
         
         if not self.linked_image_panel:
             return
@@ -253,20 +283,25 @@ class ImagePanelToolbar(GameSprite):
             mouse_x, mouse_y = self.parent_mouse_position
             self.mouse_position = pygame.Vector2(mouse_x - self.rect.left, mouse_y - self.rect.top)
             
+        for input in self.inputs_group:
+            input: TextBox
+            input.on_event(self.mouse_position, event)
+            if input.is_hovered: 
+                self.input_is_hovered = True
+
         button_pressed = None
-        is_hovered = False
         if not self.move_by_mouse:
             for button in self.buttons_group:
                 button: Button
                 button.on_event(self.mouse_position, event)
                 if button.is_hovered:
-                    is_hovered = True
+                    self.button_is_hovered = True
                 
                 if button.is_pressed:
                     button_pressed = button
 
-        self.is_hovered = is_hovered
-        
+        self.is_hovered = self.button_is_hovered or self.input_is_hovered
+
         if not button_pressed and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.move_by_mouse:
                 self.move_by_mouse = False
@@ -289,8 +324,19 @@ class ImagePanelToolbar(GameSprite):
             # self.stick_to_top_of_image_panel()
 
     def update(self, *args, **kwargs):
-        if self.is_hovered:
+        self.buttons_group.update()
+        self.inputs_group.update(self.mouse_position)
+
+        for input in self.inputs_group:
+            input: TextBox
+            if input.is_hovered:
+                self.mouse_cursor = pygame.SYSTEM_CURSOR_IBEAM
+                break
+
+        if self.button_is_hovered:
             self.mouse_cursor = pygame.SYSTEM_CURSOR_HAND
+        elif self.input_is_hovered:
+            self.mouse_cursor = pygame.SYSTEM_CURSOR_IBEAM
         else:
             self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
 
@@ -322,7 +368,8 @@ class ImagePanelToolbar(GameSprite):
         self.show_image = False
         self.show_mask = False
         self.show_live_polys = False
-        self.is_hovered = False
+        self.button_is_hovered = False
+        self.input_is_hovered = False
         self.copy_poly_points = False
         self.has_killed_panel = False
         self.update_buttons()
@@ -341,6 +388,7 @@ class ImagePanelToolbar(GameSprite):
         self.show_image = image_panel.show_image
         self.show_mask = image_panel.show_mask
         self.show_live_polys = image_panel.show_live_polys
+        self.set_poly_points_input.value = str(image_panel.live_poly_points_every)
         self.update_buttons()
 
         image_panel.is_active = True
@@ -359,5 +407,10 @@ class ImagePanelToolbar(GameSprite):
 
             self.surface.blit(self.housing_image, (0,0))
             self.buttons_group.draw(self.surface)
+
+            for input in self.inputs_group:
+                input: TextBox
+                input.draw(self.surface)
+
         
         surface.blit(self.surface, self.rect)
