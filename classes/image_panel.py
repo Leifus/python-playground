@@ -1,12 +1,14 @@
 from pygame import Vector2
 from classes.common.game_sprite import GameSprite
 from classes.common.helper_methods import aspect_scale
-from config import pygame, pymunk
+from classes.physical_shape_output import PhysicalShapeOutput
+from config import pygame, pymunk, json
 
 class ImagePanel(GameSprite):
-    def __init__(self, position, orig_image: pygame.Surface, max_sprite_loading_size):
+    def __init__(self, identifier, position, orig_image: pygame.Surface, max_sprite_loading_size):
         super(ImagePanel, self).__init__()
 
+        self.identifier = identifier
         self.position = position
         self.orig_image = orig_image
         self.mask_setcolor = pygame.Color('black')
@@ -44,6 +46,8 @@ class ImagePanel(GameSprite):
         self.start_cut_poly_point_idx = None
         self.end_cut_poly_point_idx = None
         self.show_physics = False
+        self.physical_shapes = []
+        self.panel_copy_count = 0
 
         self.space = pymunk.Space()
         self.body: pymunk.Body = None
@@ -65,6 +69,7 @@ class ImagePanel(GameSprite):
     def move_by(self, offset):
         self.position = (self.position[0] + offset[0], self.position[1] + offset[1])
         self.rect.center = self.position
+        self.construct_physical_body()
 
     def deactivate(self):
         self.is_active = False
@@ -135,7 +140,8 @@ class ImagePanel(GameSprite):
         shape_colors = ["cadetblue3", "chartreuse3", "coral", "darkolivegreen3", "darksalmon"]
         shape_color_idx = 0
         shapes = []
-        for i, points in enumerate(shape_point_sets):
+        self.physical_shapes = []
+        for shape_iter, points in enumerate(shape_point_sets):
             positioned_points = []
             for point in points:
                 offset_x = -self.sprite_rect.width/2
@@ -143,6 +149,8 @@ class ImagePanel(GameSprite):
                 positioned_point = (offset_x + point[0], offset_y + point[1])
                 positioned_points.append(positioned_point)
 
+            physical_shape_output = PhysicalShapeOutput(f'Shape {shape_iter}', positioned_points)
+            self.physical_shapes.append(physical_shape_output)
             shape = pymunk.Poly(body, positioned_points)
             shape.mass = 10
             color = pygame.Color(shape_colors[shape_color_idx])
@@ -154,6 +162,7 @@ class ImagePanel(GameSprite):
 
         self.body = body
         self.space.add(self.body, *shapes)
+        self.is_saved = False
     
     def redraw_mask_image(self):
         self.sprite_mask_image = self.sprite_mask.to_surface(setcolor=self.mask_setcolor, unsetcolor=None)
@@ -206,6 +215,7 @@ class ImagePanel(GameSprite):
     def stop_moving_poly_point(self):
         self.move_active_poly_point = False
         self.move_active_poly_point_initial_position = None
+        self.is_saved = False
         if self.active_poly_point and self.hovered_poly_point is not self.active_poly_point:
             self.active_poly_point = None
         self.construct_physical_body()
@@ -289,6 +299,32 @@ class ImagePanel(GameSprite):
 
         self.redraw()
 
+    def save_to_file(self):
+        points = self.poly_points if len(self.poly_points) > 0 else self.live_poly_points
+        physical_shapes = []
+        for shape in self.physical_shapes:
+            shape: PhysicalShapeOutput
+            physical_shapes.append({
+                'label': shape.label,
+                'points': shape.points
+            })
+
+        data = {
+            'dimensions': self.sprite_rect.size,
+            'poly_points': points,
+            'physical_shapes': physical_shapes
+        }
+
+        json_string = json.dumps(data, indent=2)
+        folder = 'outputs'
+        try:
+            with open(f"{folder}/output_{self.identifier}.txt", 'w') as filehandle:
+                filehandle.write(json_string)
+
+            self.is_saved = True
+        except:
+            print(f"Error occurred while writing to file.")
+
     def update_poly_point(self, existing_point, new_point):
         idx = -1
         use_baked_poly_points = len(self.poly_points) > 0
@@ -315,6 +351,7 @@ class ImagePanel(GameSprite):
         if self.move_active_poly_point:
             offset = (self.mouse_position.x - self.move_active_poly_point_initial_position[0], self.mouse_position.y - self.move_active_poly_point_initial_position[1])
             if offset[0] != 0 or offset[1] != 0:
+                self.has_moved_a_point = True
                 new_point = (self.active_poly_point[0] + offset[0], self.active_poly_point[1] + offset[1])
                 self.update_poly_point(self.active_poly_point, new_point)
                 self.active_poly_point = new_point
@@ -324,7 +361,7 @@ class ImagePanel(GameSprite):
 
         return super().update(*args, **kwargs)
     
-    def draw_image_dimensions(self):
+    def draw_image_info(self):
         orig_size = self.orig_image_rect.size
         current_size = self.sprite_rect.size
         
@@ -333,7 +370,7 @@ class ImagePanel(GameSprite):
         font_bg = pygame.Color('gray90')
         font = pygame.font.Font('freesansbold.ttf', font_size)
 
-        text = f'{current_size[0]} x {current_size[1]}  (orig: {orig_size[0]} x {orig_size[1]})'
+        text = f'{current_size[0]} x {current_size[1]}  (orig: {orig_size[0]} x {orig_size[1]}) -- {self.identifier}'
         text_surface = font.render(text, True, font_color, font_bg)
         text_rect = text_surface.get_rect()
         # text_surface.set_alpha(170)
@@ -425,7 +462,7 @@ class ImagePanel(GameSprite):
                         pygame.draw.line(self.surface, 'darkgreen', start_pos, end_pos, 2)
 
             # Image Dimensions
-            self.draw_image_dimensions()
+            self.draw_image_info()
             
         if self.show_physics:
             space_draw_options = pymunk.pygame_util.DrawOptions(surface)

@@ -22,6 +22,8 @@ class App:
     def on_init(self):
         pygame.init()
 
+        self.clear_output_files()
+
         self.surface = pygame.display.set_mode(config.display_size, config.display_flags, config.display_depth)
         self.rect = self.surface.get_rect()
         self.game_surface = pygame.Surface(self.rect.size, pygame.SRCALPHA)
@@ -37,15 +39,28 @@ class App:
 
         image_path = 'sandground_3.png'
         orig_image = media_manager.get(image_path, convert_alpha=True)
-        image_panel = self.create_image_panel(orig_image)
+        identifier = image_path
+        image_panel = self.create_initial_image_panel(identifier, orig_image)
         self.active_image_panel = image_panel
         self.toolbar.link_to_image_panel(self.active_image_panel)
 
         self.app_is_running = True
 
-    def create_image_panel(self, image_surface: pygame.Surface):
+    def clear_output_files(self):
+        folder = 'outputs'
+        
+        try:
+            files = os.listdir(folder)
+            for file in files:
+                file_path = os.path.join(folder, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+        except OSError:
+            print(f"Error occurred while deleting files from {folder}.")
+
+    def create_initial_image_panel(self, identifier, image_surface: pygame.Surface):
         position = (self.rect.width/2, self.rect.height/2)
-        image_panel = ImagePanel(position, image_surface, self.main_draw_space.max_sprite_loading_size)
+        image_panel = ImagePanel(identifier, position, image_surface, self.main_draw_space.max_sprite_loading_size)
         self.main_draw_space.add_image_panel(image_panel)
 
         return image_panel
@@ -121,7 +136,9 @@ class App:
         pygame.draw.polygon(base_polygon, pygame.Color('red'), poly_points, 0)
 
         position = self.active_image_panel.position
-        panel = ImagePanel(position, base_polygon, self.main_draw_space.max_sprite_loading_size)
+        self.active_image_panel.panel_copy_count += 1
+        identifier = f'{self.active_image_panel.identifier} [{self.active_image_panel.panel_copy_count}]'
+        panel = ImagePanel(identifier, position, base_polygon, self.main_draw_space.max_sprite_loading_size)
         panel.poly_points = poly_points.copy()
         self.main_draw_space.add_image_panel(panel)
 

@@ -2,7 +2,7 @@ from classes.common.button import Button
 from classes.common.game_sprite import GameSprite
 from classes.common.text_box import TextBox
 from classes.image_panel import ImagePanel
-from config import pygame
+from config import pygame, os
 from globals import media_manager
 
 class ImagePanelToolbar(GameSprite):
@@ -24,6 +24,8 @@ class ImagePanelToolbar(GameSprite):
         self.cut_button_off_image: pygame.Surface = None
         self.physics_button_on_image: pygame.Surface = None
         self.physics_button_off_image: pygame.Surface = None
+        self.save_button_off_image: pygame.Surface = None
+        self.save_button_on_image: pygame.Surface = None
         self.buttons_group = pygame.sprite.Group()
         self.inputs_group = pygame.sprite.Group()
         self.input_size = (34, self.button_size-4)
@@ -45,15 +47,18 @@ class ImagePanelToolbar(GameSprite):
         self.input_is_hovered = False
         self.cut_shape = False
         self.show_physics = False
+        self.is_saved = False
 
         self.move_button: Button = None
         self.show_image_button: Button = None
+        self.set_image_alpha_input: TextBox = None
         self.show_mask_button: Button = None
         self.show_live_polys_button: Button = None
         self.copy_poly_button: Button = None
         self.set_poly_points_input: TextBox = None
         self.cut_shape_button: Button = None
         self.physics_button: Button = None
+        self.save_button: Button = None
         self.trash_panel_button: Button = None
 
         self.setup_button_visuals()
@@ -129,6 +134,20 @@ class ImagePanelToolbar(GameSprite):
         button_image.fill(color)
         button_image.blit(button_icon, icon_rect)
         self.trash_button_image = button_image
+
+        # Save Button
+        image = media_manager.get('icons/save_icon.png', convert_alpha=True)
+        icon_scale = 0.8
+        button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
+        icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
+        button_image = button_surface.copy()
+        button_image.blit(button_icon, icon_rect)
+        self.save_button_off_image = button_image
+
+        button_image = button_surface.copy()
+        button_image.fill(button_active_bg_color)
+        button_image.blit(button_icon, icon_rect)
+        self.save_button_on_image = button_image
 
         # Toggle Image Button
         image = media_manager.get('icons/image_icon.png', convert_alpha=True)
@@ -214,8 +233,17 @@ class ImagePanelToolbar(GameSprite):
         self.show_image_button = Button(image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(self.show_image_button)
 
-        # Show Mask Button
+        # Set Image Alpha
         x += self.button_size + self.button_gap
+        position = (x, y+2)
+        value = 255
+        on_submit = self.on_set_image_alpha_input_submit
+        font_size = 12
+        self.set_image_alpha_input = TextBox('', self.input_size, position, value, on_submit, font_size)
+        self.inputs_group.add(self.set_image_alpha_input)
+
+        # Show Mask Button
+        x += self.input_size[0] + self.button_gap
         position = (x, y)
         value = 1,
         on_hover = None
@@ -278,6 +306,17 @@ class ImagePanelToolbar(GameSprite):
         self.physics_button = Button(image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(self.physics_button)
 
+        # Save Button
+        x += self.button_size + self.button_gap
+        position = (x, y)
+        value = 1,
+        on_hover = None
+        on_press = self.on_save_button_press
+        on_release = None
+        image = self.save_button_on_image if self.is_saved else self.save_button_off_image
+        self.save_button = Button(image, position, value, on_hover, on_press, on_release)
+        self.buttons_group.add(self.save_button)
+
         # Trash Panel Button
         x += self.button_size + self.button_gap + self.trash_button_gap
         position = (x, y)
@@ -299,6 +338,15 @@ class ImagePanelToolbar(GameSprite):
 
     def on_trash_button_press(self, button: Button):
         self.unlink_image_panel(kill_panel=True)
+
+    def on_save_button_press(self, button: Button):
+        self.linked_image_panel.save_to_file()
+        self.toggle_save_button(True)
+
+    def toggle_save_button(self, is_saved):
+        self.is_saved = is_saved
+        self.save_button.image = self.save_button_on_image if self.is_saved else self.save_button_off_image
+        self.save_button
 
     def on_copy_poly_button_press(self, button: Button):
         self.copy_poly_points = True
@@ -325,7 +373,14 @@ class ImagePanelToolbar(GameSprite):
         self.linked_image_panel.show_physics = self.show_physics
 
     def on_set_poly_points_input_submit(self, textbox: TextBox):
-        self.linked_image_panel.update_poly_points_every(int(textbox.value))
+        point_every = int(textbox.value)
+        if point_every != self.linked_image_panel.live_poly_points_every:
+            self.linked_image_panel.update_poly_points_every(point_every)
+            self.toggle_save_button(False)
+
+    def on_set_image_alpha_input_submit(self, textbox: TextBox):
+        self.linked_image_panel.image_alpha = int(textbox.value)
+        self.linked_image_panel.redraw_sprite_image()
 
     def on_move_button_press(self, button: Button):
         # print('on_move_button_press', self.follow_mouse)
@@ -416,6 +471,8 @@ class ImagePanelToolbar(GameSprite):
             self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
 
         if self.linked_image_panel:
+            self.toggle_save_button(self.linked_image_panel.is_saved)
+                
             if self.move_by_mouse and self.mouse_position != self.move_initial_position:
                 self.move_linked_image_panel()
 
@@ -465,6 +522,7 @@ class ImagePanelToolbar(GameSprite):
         self.show_image = image_panel.show_image
         self.show_mask = image_panel.show_mask
         self.show_live_polys = image_panel.show_live_polys
+        self.set_image_alpha_input.value = str(image_panel.image_alpha)
         self.set_poly_points_input.value = str(image_panel.live_poly_points_every)
         self.update_buttons()
 
