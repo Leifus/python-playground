@@ -1,5 +1,3 @@
-from classes.OLDimage_source import ImageSource
-from classes.common.helper_methods import aspect_scale
 from classes.image_panel import ImagePanel
 from classes.image_panel_toolbar import ImagePanelToolbar
 from classes.main_draw_space import MainDrawSpace
@@ -17,8 +15,6 @@ class App:
 
         self.game_surface: pygame.Surface = None
 
-        # self.image_source: ImageSource = None
-        # self.sprites_group = pygame.sprite.Group()
         # self.left_menu: LeftMenuUI = None
         self.main_draw_space: MainDrawSpace = None
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
@@ -130,6 +126,7 @@ class App:
         self.main_draw_space.add_image_panel(panel)
 
     def update(self):
+
         # self.left_menu.update()
         self.toolbar.update()
 
@@ -154,7 +151,7 @@ class App:
         # self.left_menu.draw(self.surface)
         self.main_draw_space.draw(self.surface)
         self.toolbar.draw(self.surface)
-        
+
         pygame.display.update()
  
     def on_cleanup(self):

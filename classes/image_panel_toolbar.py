@@ -1,4 +1,3 @@
-
 from classes.common.button import Button
 from classes.common.game_sprite import GameSprite
 from classes.common.text_box import TextBox
@@ -21,6 +20,10 @@ class ImagePanelToolbar(GameSprite):
         self.toggle_poly_trace_button_off_image: pygame.Surface = None
         self.toggle_poly_trace_button_on_image: pygame.Surface = None
         self.copy_poly_off_image: pygame.Surface = None
+        self.cut_button_on_image: pygame.Surface = None
+        self.cut_button_off_image: pygame.Surface = None
+        self.physics_button_on_image: pygame.Surface = None
+        self.physics_button_off_image: pygame.Surface = None
         self.buttons_group = pygame.sprite.Group()
         self.inputs_group = pygame.sprite.Group()
         self.input_size = (34, self.button_size-4)
@@ -40,6 +43,8 @@ class ImagePanelToolbar(GameSprite):
         self.trash_button_gap = 40
         self.button_is_hovered = False
         self.input_is_hovered = False
+        self.cut_shape = False
+        self.show_physics = False
 
         self.move_button: Button = None
         self.show_image_button: Button = None
@@ -47,6 +52,9 @@ class ImagePanelToolbar(GameSprite):
         self.show_live_polys_button: Button = None
         self.copy_poly_button: Button = None
         self.set_poly_points_input: TextBox = None
+        self.cut_shape_button: Button = None
+        self.physics_button: Button = None
+        self.trash_panel_button: Button = None
 
         self.setup_button_visuals()
         self.setup_toolbar()
@@ -82,6 +90,34 @@ class ImagePanelToolbar(GameSprite):
         button_image = button_surface.copy()
         button_image.blit(button_icon, icon_rect)
         self.move_button_image = button_image
+
+        # Cut Button
+        image = media_manager.get('icons/cut_icon.png', convert_alpha=True)
+        icon_scale = 0.8
+        button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
+        icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
+        button_image = button_surface.copy()
+        button_image.blit(button_icon, icon_rect)
+        self.cut_button_off_image = button_image
+
+        button_image = button_surface.copy()
+        button_image.fill(button_active_bg_color)
+        button_image.blit(button_icon, icon_rect)
+        self.cut_button_on_image = button_image
+
+        # Physics Button
+        image = media_manager.get('icons/gravity_icon.png', convert_alpha=True)
+        icon_scale = 0.8
+        button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
+        icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
+        button_image = button_surface.copy()
+        button_image.blit(button_icon, icon_rect)
+        self.physics_button_off_image = button_image
+
+        button_image = button_surface.copy()
+        button_image.fill(button_active_bg_color)
+        button_image.blit(button_icon, icon_rect)
+        self.physics_button_on_image = button_image
 
         # Trash Button
         image = media_manager.get('icons/bin_icon.png', convert_alpha=True)
@@ -220,6 +256,28 @@ class ImagePanelToolbar(GameSprite):
         self.copy_poly_button = Button(image, position, value, on_hover, on_press, on_release)
         self.buttons_group.add(self.copy_poly_button)
 
+        # Cut Shape Button
+        x += self.button_size + self.button_gap
+        position = (x, y)
+        value = 1,
+        on_hover = None
+        on_press = self.on_cut_shape_button_press
+        on_release = None
+        image = self.cut_button_on_image if self.cut_shape else self.cut_button_off_image
+        self.cut_shape_button = Button(image, position, value, on_hover, on_press, on_release)
+        self.buttons_group.add(self.cut_shape_button)
+
+        # Physics Button
+        x += self.button_size + self.button_gap
+        position = (x, y)
+        value = 1,
+        on_hover = None
+        on_press = self.on_toggle_show_physics_button_press
+        on_release = None
+        image = self.physics_button_on_image if self.show_physics else self.physics_button_off_image
+        self.physics_button = Button(image, position, value, on_hover, on_press, on_release)
+        self.buttons_group.add(self.physics_button)
+
         # Trash Panel Button
         x += self.button_size + self.button_gap + self.trash_button_gap
         position = (x, y)
@@ -228,8 +286,8 @@ class ImagePanelToolbar(GameSprite):
         on_press = self.on_trash_button_press
         on_release = None
         image = self.trash_button_image
-        self.copy_poly_button = Button(image, position, value, on_hover, on_press, on_release)
-        self.buttons_group.add(self.copy_poly_button)
+        self.trash_panel_button = Button(image, position, value, on_hover, on_press, on_release)
+        self.buttons_group.add(self.trash_panel_button)
 
     def on_toggle_image_button_press(self, button: Button):
         self.show_image = not self.show_image
@@ -245,9 +303,26 @@ class ImagePanelToolbar(GameSprite):
     def on_copy_poly_button_press(self, button: Button):
         self.copy_poly_points = True
 
+    def on_cut_shape_button_press(self, button: Button):
+        self.cut_shape = not self.cut_shape
+
+        if self.cut_shape and self.show_live_polys: # Hacky
+            self.on_toggle_live_polys_button_press(self.show_live_polys_button)
+
+        button.image = self.cut_button_on_image if self.cut_shape else self.cut_button_off_image
+        self.linked_image_panel.edit_cut_shapes = self.cut_shape
+
     def on_toggle_live_polys_button_press(self, button: Button):
         self.show_live_polys = not self.show_live_polys
+        if self.show_live_polys and self.cut_shape: # Hacky
+            self.on_cut_shape_button_press(self.cut_shape_button)
+
         button.image = self.toggle_poly_trace_button_on_image if self.show_live_polys else self.toggle_poly_trace_button_off_image
+
+    def on_toggle_show_physics_button_press(self, button: Button):
+        self.show_physics = not self.show_physics
+        button.image = self.physics_button_on_image if self.show_physics else self.physics_button_off_image
+        self.linked_image_panel.show_physics = self.show_physics
 
     def on_set_poly_points_input_submit(self, textbox: TextBox):
         self.linked_image_panel.update_poly_points_every(int(textbox.value))
@@ -363,6 +438,7 @@ class ImagePanelToolbar(GameSprite):
         self.show_image_button.image = self.toggle_image_button_on_image if self.show_image else self.toggle_image_button_off_image
         self.show_mask_button.image = self.toggle_mask_button_on_image if self.show_mask else self.toggle_mask_button_off_image
         self.show_live_polys_button.image = self.toggle_poly_trace_button_on_image if self.show_live_polys else self.toggle_poly_trace_button_off_image
+        self.cut_shape_button.image = self.cut_button_on_image if self.cut_shape else self.cut_button_off_image
 
     def unlink_image_panel(self, kill_panel=False):
         self.show_image = False
@@ -372,6 +448,7 @@ class ImagePanelToolbar(GameSprite):
         self.input_is_hovered = False
         self.copy_poly_points = False
         self.has_killed_panel = False
+        self.cut_shape = False
         self.update_buttons()
         
         if self.linked_image_panel:
