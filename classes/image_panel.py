@@ -114,7 +114,6 @@ class ImagePanel(GameSprite):
                             cut_at_point_idx = current_idx
                             current_idx = cut_point[1]
                         elif cut_point[1] == shape_start_idx:
-                            hey = 1
                             break
                         else:
                             current_idx += 1
@@ -123,7 +122,6 @@ class ImagePanel(GameSprite):
                             cut_at_point_idx = current_idx
                             current_idx = cut_point[0]
                         elif cut_point[0] == shape_start_idx:
-                            hey = 1
                             break
                         else:
                             current_idx += 1
