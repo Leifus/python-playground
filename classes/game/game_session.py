@@ -1,147 +1,113 @@
 from classes.common.game_sprite import GameSprite
 from classes.configs.game_mode_config import GameModeConfig
-from classes.game.game_table.game_table import GameTable
 from classes.configs.game_time_config import GameTimeConfig
-from classes.enums.in_game_event_enum import InGameEventEnum
-from classes.game.player import Player
-from classes.game.spritesheets.green_blob_character_sprite_sheet import GreenBlobCharacterSpriteSheet
-from classes.game.spritesheets.orange_ball_character_sprite_sheet import OrangeBallCharacterSpriteSheet
-from classes.game.spritesheets.red_blob_character_sprite_sheet import RedBlobCharacterSpriteSheet
-from config import pygame, game_mode_time_config, OrderedDict, Dict
+from classes.configs.sprite_animation_config import SpriteAnimationConfig
 from classes.enums.game_mode_enum import GameModeEnum
+from classes.enums.gems_merge_object_color_enum import GemsMergeObjectColorEnum
+from classes.enums.merge_object_size_enum import MergeObjectSizeEnum
+from classes.game.gems_merge_object import GemsMergeObject
+from classes.game.main_containment_box import MainContainmentBox
+from classes.game.merge_object import MergeObject
 import config.game_mode_configs as game_mode_configs
+from config import pygame, pymunk, Dict, random
 
-#TODO: Add Floor here and convert to GameSprite
 class GameSession(GameSprite):
-    def __init__(self, game_id, game_mode: GameModeEnum):
+    def __init__(self, display_size, game_id, game_mode: GameModeEnum):
         super(GameSession, self).__init__()
 
         self.game_id: str = game_id
         self.game_mode: GameModeEnum = game_mode
-        self.game_mode_config: GameModeConfig = game_mode_configs.game_modes[game_mode.name]
-        self.players: Dict[str, Player] = dict()
-        self.active_player: Player = None
+        self.game_config: GameModeConfig = game_mode_configs.game_modes[game_mode.name]
+        
+        self.surface = pygame.Surface(display_size, pygame.SRCALPHA)
+        self.rect = self.surface.get_rect()
+
         self.clock = pygame.time.Clock()
-        self.time_lapsed = 0
-        self.time_config: GameTimeConfig = game_mode_time_config.game_mode_times[self.game_mode]
+        self.space = pymunk.Space()
+        self.space.gravity = self.game_config.space_config.gravity
+        self.space.damping = self.game_config.space_config.damping
+        self.space.iterations = self.game_config.space_config.iterations
+        self.space.sleep_time_threshold = self.game_config.space_config.sleep_time_threshold
+        self.space_debug_draw = True
+
+        self.total_time_lapsed = 0
         self.is_running = False
+        self.time_per_spawn = 3000
+        self.time_till_next_spawn = 0
 
-        self.queued_game_events: OrderedDict[int, InGameEventEnum] = dict()
-        self.game_events_to_action: OrderedDict[int, InGameEventEnum] = dict()
+        self.containment_box: MainContainmentBox = None
 
-        self.game_table: GameTable | None = None
-        # self.pool_table: PoolTable = None
-        self.pockets_group: pygame.sprite.Group = pygame.sprite.Group()
-
-        self.sprite_sheet_group: pygame.sprite.Group = pygame.sprite.Group()
+        self.sprites_group = pygame.sprite.Group()
+        self.merge_objects_group = pygame.sprite.Group()
 
         self.setup_players()
-        self.test_setup_sprite_sheet()
+        self.setup_containment_box()
 
-    def test_setup_sprite_sheet(self):
-        position = (100,100)
-        green_blob = GreenBlobCharacterSpriteSheet(position)
-        self.sprite_sheet_group.add(green_blob)
-
-        position = (200,100)
-        orange_ball = OrangeBallCharacterSpriteSheet(position)
-        self.sprite_sheet_group.add(orange_ball)
-
-        position = (300,100)
-        red_blob = RedBlobCharacterSpriteSheet(position)
-        self.sprite_sheet_group.add(red_blob)
-
-    def has_picked_up_cue_ball(self) -> bool:
-        if not self.is_running or not self.game_table or not self.game_table.cue_ball:
-            return False
-        
-        return self.game_table.cue_ball.is_picked_up
+    def setup_containment_box(self):
+        size = (400, 600)
+        position = (self.rect.width/2 - size[0]/2, self.rect.height/2 - size[1]/2)
+        self.containment_box = MainContainmentBox(size, position)
+        self.sprites_group.add(self.containment_box)
+        self.space.add(self.containment_box.body, *self.containment_box.shapes)
 
     def setup_players(self):
-        player_count = 1
-        if self.game_mode in GameModeEnum.Billiards | GameModeEnum.Snooker:
-            player_count = 2
-
-        for i in range(player_count):
-            name = f'Player {i+1}'
-            identifier = f'{i}'
-            player = Player(identifier, name)
-            self.players[identifier] = player
-
-    def get_first_player(self) -> Player:
-        first_player_id = list(self.players.keys())[0]
-        return self.players[first_player_id]
-
-    def queue_game_event(self, game_event: InGameEventEnum, activation_time):
-        #TODO: Check for dupe activation times
-        self.queued_game_events[self.time_lapsed + activation_time] = game_event
-
-    def set_active_player(self, player: Player):
-        self.active_player = player
-        self.active_player.is_playing = True
+        pass
         
     def on_event(self, event: pygame.event.Event):
         if not self.is_running:
             return
         
-        if event.type not in [pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
+    def spawn_merge_object(self):
+        # Spawn new merge object
+        gem_colors = []
+        for gem_color in GemsMergeObjectColorEnum:
+            gem_colors.append(gem_color)
+        rand_gem_color = random.randint(0, len(gem_colors)-1)
+        
+        size = MergeObjectSizeEnum.Large
+        merge_object = GemsMergeObject(rand_gem_color, size)
+        self.merge_objects_group.add(merge_object)
+        
+        # Set spawn timer
+        self.time_till_next_spawn = self.time_per_spawn
+        
+    def update(self, *args, **kwargs):
+        if not self.is_running:
             return
         
-        mouse_pos = event.pos
+        for _ in range(self.game_config.space_config.dt_steps):
+            self.space.step(self.game_config.space_config.dt / self.game_config.space_config.dt_steps)
         
-    def move_to_next_player(self) -> Player:
-        player_ids = list(self.players.keys())
-        current_player_idx = -1
-        if self.active_player is not None:
-            current_player_idx = player_ids.index(self.active_player.identifier)
+        self.total_time_lapsed = pygame.time.get_ticks()
+        self.clock.tick(self.game_config.time_config.fps)
+        time_lapsed = self.clock.get_time()
 
-        next_player_idx = current_player_idx + 1
-        if next_player_idx >= len(player_ids):
-            next_player_idx = 0
+        self.time_till_next_spawn -= time_lapsed
+        if self.time_till_next_spawn <= 0:
+            self.spawn_merge_object()
 
-        if next_player_idx == current_player_idx:
-            return self.active_player
-        
-        self.active_player.is_playing = False
-        self.active_player.can_take_shot = False
-
-        next_player_id = player_ids[next_player_idx]
-        next_player = self.players[next_player_id]
-
-        self.set_active_player(next_player)
-        
-        return self.active_player
-
-    def update_queued_game_events(self):
-        event_times = list(self.queued_game_events.keys())
-        self.game_events_to_action.clear()
-
-        keys_to_remove = []
-        for event_time in event_times:
-            if self.time_lapsed > event_time:
-                keys_to_remove.append(event_time)
-                self.game_events_to_action[event_time] = self.queued_game_events[event_time]
-        
-        if len(keys_to_remove) > 0:
-            for key in keys_to_remove:
-                del self.queued_game_events[key]
-
-    def update(self, *args, **kwargs):
-        self.time_lapsed = pygame.time.get_ticks()
-        self.clock.tick(self.time_config.fps)
-
-        self.update_queued_game_events()
-
-        self.sprite_sheet_group.update(self.time_lapsed)
+        self.sprites_group.update(time_lapsed)
+        self.merge_objects_group.update(time_lapsed)
 
         #TODO: Move this out of here
-        pygame.display.set_caption(f'{self.game_id} ({round(self.clock.get_fps(),3)} fps) | {round(self.time_lapsed / 1000)} secs')
+        pygame.display.set_caption(f'{self.game_id} ({round(self.clock.get_fps(),3)} fps) | {round(self.total_time_lapsed / 1000)} secs')
         
         return super().update(*args, **kwargs)
 
     def kill(self):
         self.is_running = False    #Force this for now
-        self.game_table = self.game_table.kill()
         
-        self.sprite_sheet_group.empty() # Not reqd meethinks
+        self.sprites_group.empty() # Not reqd meethinks
+        self.merge_objects_group.empty() # Not reqd meethinks
         print('ending session')
+
+    def draw(self, surface):
+        if self.space_debug_draw:
+            self.space.debug_draw(pymunk.pygame_util.DrawOptions(self.surface))
+
+        # self.sprites_group.draw(self.surface)
+        self.merge_objects_group.draw(self.surface)
+
+
+        self.image = self.surface
+        return super().draw(surface)
