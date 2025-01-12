@@ -4,7 +4,7 @@ import config
 
 class MediaManager():
     def __init__(self):
-        self.root_path = config.media_root_path
+        self.root_path = f'{os.getcwd()}/{config.media_root_path}'
         self.media = dict()
 
     #TODO Allow the media manager to determine the convert
