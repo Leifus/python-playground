@@ -1,0 +1,6 @@
+cffi==1.17.1
+numpy==2.0.2
+pycparser==2.22
+pygame==2.6.1
+pygame-widgets==1.0.0
+pymunk==6.9.0
