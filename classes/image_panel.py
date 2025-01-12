@@ -2,7 +2,7 @@ from pygame import Vector2
 from classes.common.game_sprite import GameSprite
 from classes.common.helper_methods import aspect_scale
 from classes.physical_shape_output import PhysicalShapeOutput
-from config import pygame, pymunk, json
+from config import pygame, pymunk, json, os
 
 class ImagePanel(GameSprite):
     def __init__(self, identifier, position, orig_image: pygame.Surface, max_sprite_loading_size):
@@ -314,7 +314,7 @@ class ImagePanel(GameSprite):
         }
 
         json_string = json.dumps(data, indent=2)
-        folder = 'outputs'
+        folder = f'{os.getcwd()}/outputs'
         try:
             with open(f"{folder}/output_{self.identifier}.txt", 'w') as filehandle:
                 filehandle.write(json_string)

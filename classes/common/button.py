@@ -39,6 +39,10 @@ class Button(GameSprite):
                     self.is_pressed = False
                     if self.on_release:
                         self.on_release(self)
+
         else:
             self.is_pressed = False
-            
+    
+    def set_position(self, position):
+        self.position = position
+        self.rect.center = self.position

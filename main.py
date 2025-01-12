@@ -1,7 +1,8 @@
+from classes.common import media_manager
 from classes.image_panel import ImagePanel
 from classes.image_panel_toolbar import ImagePanelToolbar
 from classes.main_draw_space import MainDrawSpace
-from classes.ui.left_menu_ui import LeftMenuUI
+from classes.media_explorer import MediaExplorer
 from config import *
 import config
 from globals import media_manager
@@ -15,7 +16,9 @@ class App:
 
         self.game_surface: pygame.Surface = None
 
-        # self.left_menu: LeftMenuUI = None
+        self.sprites_group = pygame.sprite.Group()
+
+        self.media_explorer: MediaExplorer = None
         self.main_draw_space: MainDrawSpace = None
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
 
@@ -37,17 +40,10 @@ class App:
         self.setup_main_interface()
         self.setup_image_panel_toolbar()
 
-        image_path = 'sandground_3.png'
-        orig_image = media_manager.get(image_path, convert_alpha=True)
-        identifier = image_path
-        image_panel = self.create_initial_image_panel(identifier, orig_image)
-        self.active_image_panel = image_panel
-        self.toolbar.link_to_image_panel(self.active_image_panel)
-
         self.app_is_running = True
 
     def clear_output_files(self):
-        folder = 'outputs'
+        folder = f'{os.getcwd()}/outputs'
         
         try:
             files = os.listdir(folder)
@@ -57,33 +53,26 @@ class App:
                     os.remove(file_path)
         except OSError:
             print(f"Error occurred while deleting files from {folder}.")
-
-    def create_initial_image_panel(self, identifier, image_surface: pygame.Surface):
-        position = (self.rect.width/2, self.rect.height/2)
-        image_panel = ImagePanel(identifier, position, image_surface, self.main_draw_space.max_sprite_loading_size)
-        self.main_draw_space.add_image_panel(image_panel)
-
-        return image_panel
     
     def setup_image_panel_toolbar(self):
         self.toolbar = ImagePanelToolbar()
 
-    # def setup_left_menu(self):
-    #     size = (150,self.rect.height)
-    #     position = (size[0]/2,size[1]/2)
-    #     self.left_menu = LeftMenuUI(size, position)
-    #     # self.sprites_group.add(self.left_menu)
+    def setup_media_explorer(self):
+        size = (250, self.rect.height)
+        position = (size[0]/2,size[1]/2)
+        self.media_explorer = MediaExplorer(size, position)
+        self.sprites_group.add(self.media_explorer)
 
     def setup_main_draw_space(self):
-        # size = (self.rect.width-self.left_menu.rect.width,self.rect.height)
-        # position = (self.rect.width/2+self.left_menu.rect.width/2, self.rect.height/2)
+        size = (self.rect.width-self.media_explorer.rect.width,self.rect.height)
+        position = (self.rect.width/2+self.media_explorer.rect.width/2, self.rect.height/2)
 
-        size = (self.rect.width,self.rect.height)
-        position = (self.rect.width/2, self.rect.height/2)
+        # size = (self.rect.width,self.rect.height)
+        # position = (self.rect.width/2, self.rect.height/2)
         self.main_draw_space = MainDrawSpace(size, position)
 
     def setup_main_interface(self):
-        # self.setup_left_menu()
+        self.setup_media_explorer()
         self.setup_main_draw_space()
 
     def on_event(self, event: pygame.event.Event):
@@ -110,7 +99,7 @@ class App:
                             self.toolbar.link_to_image_panel(self.active_image_panel)
                             break
                     
-        # self.left_menu.on_event(event)
+        self.media_explorer.on_event(event)
         self.toolbar.on_event(self.mouse_position, event)
         self.main_draw_space.on_event(event)
         
@@ -142,9 +131,23 @@ class App:
         panel.poly_points = poly_points.copy()
         self.main_draw_space.add_image_panel(panel)
 
-    def update(self):
+    def add_selected_media(self):
+        media = self.media_explorer.selected_media_item
+        identifier = media.file_name
+        file_path = os.path.join(media.folder_name, media.file_name)
+        orig_image = media_manager.get(file_path, convert_alpha=True)
+        position = (self.main_draw_space.rect.width/2, self.main_draw_space.rect.height/2)
+        image_panel = ImagePanel(identifier, position, orig_image, self.main_draw_space.max_sprite_loading_size)
+        self.main_draw_space.add_image_panel(image_panel)
+        self.media_explorer.add_selected_media = False
 
-        # self.left_menu.update()
+        return image_panel
+
+    def update(self):
+        self.media_explorer.update()
+        if self.media_explorer.add_selected_media:
+            self.add_selected_media()
+
         self.toolbar.update()
 
         if self.toolbar.copy_poly_points:
@@ -153,20 +156,23 @@ class App:
 
         self.main_draw_space.update()
 
-        if not self.toolbar.is_hovered:
-            self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
+        mouse_cursor = self.mouse_cursor
+        if self.toolbar.is_hovered:
+            mouse_cursor = self.toolbar.mouse_cursor
+        elif self.media_explorer.mouse_cursor is not self.mouse_cursor:
+            mouse_cursor = self.media_explorer.mouse_cursor
+
+
+        if mouse_cursor is not self.mouse_cursor:
+            self.mouse_cursor = mouse_cursor
             pygame.mouse.set_cursor(self.mouse_cursor)
-        else:
-            if self.toolbar.is_hovered and self.mouse_cursor is not self.toolbar.mouse_cursor:
-                self.mouse_cursor = self.toolbar.mouse_cursor
-                pygame.mouse.set_cursor(self.mouse_cursor)
 
     def draw(self):
         bg_fill = config.display_bg_color
         self.surface.fill(bg_fill)
 
-        # self.left_menu.draw(self.surface)
         self.main_draw_space.draw(self.surface)
+        self.media_explorer.draw(self.surface)
         self.toolbar.draw(self.surface)
 
         pygame.display.update()
