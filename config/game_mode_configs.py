@@ -7,6 +7,6 @@ game_modes = dict()
 
 # Default
 time_config = GameTimeConfig(60)
-space_config = GameSpaceConfig(1.0 / 60, 3, 10, (0, 0), 0.23, 0.1)
+space_config = GameSpaceConfig(1.0 / 60, 3, 10, (0, 980), 0.98, 0.1)
 config = GameModeConfig(GameModeEnum.Default, time_config, space_config)
 game_modes[config.identifier] = config

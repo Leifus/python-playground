@@ -6,3 +6,5 @@ class SpriteAnimationConfig():
         self.size = size
         self.steps = steps
         self.animation_speed = animation_speed
+        self.poly_base_dimensions = []
+        self.poly_points = []

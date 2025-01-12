@@ -13,7 +13,7 @@ class SpriteSheet(GameSprite):
         self.current_animation_step = 0
         self.current_animation: SpriteAnimationConfig = current_animation
         self.color_key = color_key
-        self.anim_update_ttl = None
+        self.time_to_step_animation = None
         self.animate = animate
         self.animate_reverse_order = False
 
@@ -22,21 +22,21 @@ class SpriteSheet(GameSprite):
         width, height = self.current_animation.size
         self.image = self.get_sprite_by_data(x, y, width, height, self.current_animation_step)
         self.image.set_colorkey(self.color_key)
-        self.rect = self.image.get_rect(center=self.position)
+        self.rect = self.image.get_rect()
+        # pygame.draw.rect(self.image, 'blue', pygame.Rect(0, 0, self.rect.width, self.rect.height), 1)
 
     def set_animation_speed(self, speed, reverse_animation):
-        if self.anim_update_ttl is not None:
+        if self.time_to_step_animation is not None:
             current_speed = self.current_animation.animation_speed
 
             if speed < current_speed:   #speed up timers
-                self.anim_update_ttl -= current_speed - speed
+                self.time_to_step_animation -= current_speed - speed
             else:   #slow down timers
-                self.anim_update_ttl += speed - current_speed
+                self.time_to_step_animation += speed - current_speed
 
         self.current_animation.animation_speed = speed
         self.animate_reverse_order = reverse_animation
             
-
     def step_animation(self):
         if self.animate_reverse_order:
             self.current_animation_step -= 1
@@ -52,11 +52,14 @@ class SpriteSheet(GameSprite):
 
     def update(self, time_lapsed, *args, **kwargs):
         if self.animate:
-            if self.anim_update_ttl is None:
-                self.anim_update_ttl = time_lapsed + self.current_animation.animation_speed
-            elif time_lapsed > self.anim_update_ttl:
-                self.anim_update_ttl = time_lapsed + self.current_animation.animation_speed
-                self.step_animation()
+            pass
+            # if self.time_to_step_animation is None:
+            #     self.time_to_step_animation = self.current_animation.animation_speed
+            # else:
+            #     self.time_to_step_animation -= time_lapsed 
+            # elif time_lapsed > self.time_to_step_animation:
+            #     self.time_to_step_animation = time_lapsed + self.current_animation.animation_speed
+            #     self.step_animation()
 
         return super().update(*args, **kwargs)
 
