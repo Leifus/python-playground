@@ -7,7 +7,7 @@ from classes.game.gems_merge_object import GemsMergeObject
 from classes.game.main_containment_box import MainContainmentBox
 from classes.game.up_next_panel import UpNextPanel
 import config.game_mode_configs as game_mode_configs
-from config import pygame, pymunk, random
+from config import pygame, pymunk, random, math
 
 class GameSession(GameSprite):
     def __init__(self, display_size, game_id, game_mode: GameModeEnum):
@@ -61,7 +61,7 @@ class GameSession(GameSprite):
                 handler.pre_solve = self.on_gem_collide_pre_solve
 
     def on_gem_collide_pre_solve(self, arbiter: pymunk.Arbiter, space, data):
-        if arbiter.is_first_contact: # and len(arbiter.shapes) >= 3: # Merge
+        if arbiter.is_first_contact:
             col_type = arbiter.shapes[0].collision_type
             gem_color_collision_type = int(col_type / self.collision_type_multiplier)
             gem_color_enum = GemsMergeObjectColorEnum(gem_color_collision_type)
@@ -70,11 +70,11 @@ class GameSession(GameSprite):
 
             if size_enum in [MergeObjectSizeEnum.Small, MergeObjectSizeEnum.Medium]:
                 new_size_enum = MergeObjectSizeEnum(size_enum.value+1)
-                print('Merge Up!', gem_color_enum.name, new_size_enum.name)
                 position = arbiter.contact_point_set.points[0].point_a
                 self.shapes_to_create.append((gem_color_enum, new_size_enum, position))
             elif size_enum == MergeObjectSizeEnum.Large:
-                print('Final Merge', gem_color_enum.name, size_enum.name)
+                # print('Final Merge', gem_color_enum.name, size_enum.name)
+                pass
             
             for shape in arbiter.shapes:
                 self.shapes_to_remove.append(shape)
@@ -102,13 +102,31 @@ class GameSession(GameSprite):
             return
         
         if event.type in [pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
-            mouse_x, mouse_y = event.pos
             self.mouse_position = event.pos
-            # self.mouse_position = pygame.Vector2(mouse_x - self.containment_box.rect.left, mouse_y - self.containment_box.rect.top)
-
-        # if event.type == pygame.MOUSEBUTTONUP and event.button[0]:
-        #     self.
+            
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self.fire_merge_object()
         
+    def fire_merge_object(self):
+        merge_object = self.up_next_panel.up_next.pop(0)
+        self.space.add(merge_object.body, *merge_object.shapes)
+        
+        base_force = merge_object.body.mass * 30000
+        angle_to_mouse = math.atan2(self.mouse_position[1] - merge_object.position[1], self.mouse_position[0] - merge_object.position[0])
+        force_x = math.cos(angle_to_mouse) * base_force
+        force_y = math.sin(angle_to_mouse) * base_force
+        force = (force_x, force_y)
+        
+        # TODO: HANDLE ANGLE OF BODY
+        merge_object.body.apply_force_at_local_point(force)
+        # print('fire', angle_to_mouse, force, merge_object.body.mass)
+
+        self.merge_objects_group.add(merge_object)
+
+        new_merge_object = self.create_gem_merge_object(position=self.up_next_panel.position)
+        self.up_next_panel.up_next.append(new_merge_object)
+        self.up_next_panel.next_object = None
+
     def create_gem_merge_object(self, position, gem_color: GemsMergeObjectColorEnum = None, size: MergeObjectSizeEnum = None) -> GemsMergeObject:
         if gem_color is None:
             gem_colors = []
@@ -123,32 +141,6 @@ class GameSession(GameSprite):
         merge_object = GemsMergeObject(gem_color, size)
         merge_object.set_position(position)
         return merge_object
-    
-    
-    # def spawn_gem_merge_object(self, gem_color: GemsMergeObjectColorEnum = None, size: MergeObjectSizeEnum = None, position=None):
-    #     # Spawn new merge object
-    #     if gem_color is None:
-    #         gem_colors = []
-    #         for gem_color in GemsMergeObjectColorEnum:
-    #             gem_colors.append(gem_color)
-    #         gem_color = gem_colors[random.randint(0, len(gem_colors)-1)]
-        
-    #     if size is None:
-    #         sizes = [MergeObjectSizeEnum.Large, MergeObjectSizeEnum.Medium, MergeObjectSizeEnum.Small]
-    #         size = sizes[random.randint(0, len(sizes)-1)]
-        
-    #     merge_object = GemsMergeObject(gem_color, size)
-
-    #     if position is None:
-    #         container_min_x = self.containment_box.rect.left + self.containment_box.wall_thickness
-    #         container_max_x = self.containment_box.rect.right - self.containment_box.wall_thickness
-    #         rand_x_pos = random.uniform(container_min_x + merge_object.rect.width/2, container_max_x - merge_object.rect.width/2)
-    #         y_pos = self.containment_box.rect.top + self.containment_box.wall_thickness + merge_object.rect.height/2
-    #         position = (rand_x_pos, y_pos)
-            
-    #     merge_object.set_position(position)
-    #     self.space.add(merge_object.body, *merge_object.shapes)
-    #     self.merge_objects_group.add(merge_object)
     
     def move_up_next_panel(self):
         if not self.mouse_position or not self.up_next_panel.follow_mouse:
@@ -181,7 +173,7 @@ class GameSession(GameSprite):
         if len(self.shapes_to_create) > 0:
             for gem_color, size, position in self.shapes_to_create:
                 merge_object = GemsMergeObject(gem_color, size)
-                merge_object.position = position
+                merge_object.set_position(position)
                 self.merge_objects_group.add(merge_object)
                 self.space.add(merge_object.body, *merge_object.shapes)
             

@@ -10,8 +10,8 @@ class MainContainmentBox(GameSprite):
         self.position = position
         self.body: pymunk.Body = None
         self.shapes: list[pymunk.Shape] = []
-        self.elasticity = 0.2
-        self.friction = 0.99
+        self.elasticity = 0.99
+        self.friction = 0.9
         self.wall_thickness = 15
         self.wall_vertices = [
             [ # Top

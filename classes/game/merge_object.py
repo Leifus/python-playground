@@ -20,9 +20,9 @@ class MergeObject(GameSprite):
         
         self.body: pymunk.Body = None
         self.shapes: list[pymunk.Shape] = []
-        self.angle = random.randint(0, 360)
-        self.elasticity = 0.1
-        self.friction = 0.8
+        self.angle = 0 #random.randint(0, 360)
+        self.elasticity = 0.3
+        self.friction = 0.9
         
         self.construct_physical_body()
         self.redraw()
@@ -31,7 +31,7 @@ class MergeObject(GameSprite):
         # mass_scale = 1.0
         # self.object_size == MergeObjectSizeEnum.Large:
 
-        base_mass = 1
+        base_mass = 5
         base_vertices_dimensions = self.sprite_sheet.current_animation.size
         base_vertices = self.sprite_sheet.current_animation.poly_points
         

@@ -58,8 +58,11 @@ class UpNextPanel(GameSprite):
         self.rect = self.image.get_rect(center=self.position)
     
     def update(self, *args, **kwargs):
-        if len(self.up_next) > 0 and self.next_object is None:
-            self.next_object = self.up_next[0]
-            self.redraw()
+        if len(self.up_next) > 0:
+            if self.next_object is None:
+                self.next_object = self.up_next[0]
+                self.redraw()
+        else:
+            self.next_object = None
 
         return super().update(*args, **kwargs)
