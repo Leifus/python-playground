@@ -9,7 +9,7 @@ class ImagePanelToolbar(GameSprite):
     def __init__(self):
         super(ImagePanelToolbar, self).__init__()
 
-        self.button_size = 26
+        self.button_size = 28
         self.linked_image_panel: ImagePanel = None
         self.housing_image: pygame.Surface = None
         self.move_button_image: pygame.Surface = None

@@ -25,7 +25,7 @@ class App:
     def on_init(self):
         pygame.init()
 
-        self.clear_output_files()
+        # self.clear_output_files()
 
         self.surface = pygame.display.set_mode(config.display_size, config.display_flags, config.display_depth)
         self.rect = self.surface.get_rect()

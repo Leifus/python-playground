@@ -1,4 +1,3 @@
-
 from classes.common.button import Button
 from classes.common.game_sprite import GameSprite
 from classes.media_folder import MediaFolder
@@ -17,7 +16,7 @@ class MediaExplorer(GameSprite):
         self.is_hovered = False
         self.media_listing = []
         self.allowed_image_formats = ['.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif', '.webp']
-        self.excluded_media_folders = [] #['/icons']
+        self.excluded_media_folders = ['/icons']
         self.media_folders = pygame.sprite.Group()
         self.folder_indent = 10
         self.folder_gap = 15
@@ -111,29 +110,10 @@ class MediaExplorer(GameSprite):
                 self.selected_media_item = None
             self.show_media_buttons = False
 
-    def on_add_media_button_press(self, button):
-        self.add_selected_media = True
-
-    def setup_media_buttons(self):
-        # Add to Main Space Button
-        x = self.rect.width - self.button_size[0]
-        y = 10
-        position = (x,y)
-        value = 1,
-        on_hover = None
-        on_press = self.on_add_media_button_press
-        on_release = None
-        self.add_button = Button(self.add_button_image, position, value, on_hover, on_press, on_release)
-        self.buttons_group.add(self.add_button)
-
     def redraw(self):
         # Housing
         self.image = pygame.transform.scale(self.orig_image, self.size)
         self.rect = self.image.get_rect(center=self.position)
-
-    def set_media_buttons_to_selected_item(self):
-        self.show_media_buttons = True
-        self.add_button.set_position((self.add_button.position[0], self.selected_media_item.rect.centery))
 
     def update(self, *args, **kwargs):
         if self.selected_media_item:
@@ -156,6 +136,26 @@ class MediaExplorer(GameSprite):
 
         
         surface.blit(self.surface, self.rect)
+
+
+    def on_add_media_button_press(self, button):
+        self.add_selected_media = True
+
+    def setup_media_buttons(self):
+        # Add to Main Space Button
+        x = self.rect.width - self.button_size[0]
+        y = 10
+        position = (x,y)
+        value = 1,
+        on_hover = None
+        on_press = self.on_add_media_button_press
+        on_release = None
+        self.add_button = Button(self.add_button_image, position, value, on_hover, on_press, on_release)
+        self.buttons_group.add(self.add_button)
+
+    def set_media_buttons_to_selected_item(self):
+        self.show_media_buttons = True
+        self.add_button.set_position((self.add_button.position[0], self.selected_media_item.rect.centery))
 
     def setup_media_items(self):
         x_pos = self.folder_indent

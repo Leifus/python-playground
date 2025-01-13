@@ -11,7 +11,7 @@ class MainDrawSpace(GameSprite):
         self.position = position
         self.poly_point_radius = 2
         self.scale = 1.0
-        self.max_sprite_loading_size = (800,600)
+        self.max_sprite_loading_size = (5000,5000)
         self.sprite_size = self.max_sprite_loading_size
         self.mouse_position = None
         self.sprite_position = None
