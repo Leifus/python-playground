@@ -13,7 +13,9 @@ class MediaExplorer(GameSprite):
         self.size = size
         self.position = position
         self.padding = 12
+        self.is_active = False
         self.is_hovered = False
+        self.hovered_button: Button = None
         self.media_listing = []
         self.allowed_image_formats = ['.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif', '.webp']
         self.excluded_media_folders = ['/icons']
@@ -42,7 +44,7 @@ class MediaExplorer(GameSprite):
 
     def setup_visuals(self):
         # Housing
-        color = pygame.Color('gray80')
+        color = pygame.Color('gray90')
         self.orig_image.fill(color)
 
         # Housing Edge
@@ -70,6 +72,9 @@ class MediaExplorer(GameSprite):
         self.is_hovered = False
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
 
+        if not self.is_active:
+            return
+
         if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION]:
             mouse_x, mouse_y = event.pos
             self.relative_mouse_position = pygame.Vector2(mouse_x - self.rect.left, mouse_y - self.rect.top)
@@ -80,7 +85,7 @@ class MediaExplorer(GameSprite):
 
         if self.is_hovered:
             hovered_item = None
-            hovered_button = None
+            self.hovered_button = None
             for folder in self.media_folders:
                 folder: MediaFolder
                 folder.on_event(self.relative_mouse_position, event)
@@ -96,9 +101,9 @@ class MediaExplorer(GameSprite):
                     button: Button
                     button.on_event(self.relative_mouse_position, event)
                     if button.is_hovered:
-                        hovered_button = button
+                        self.hovered_button = button
 
-            if hovered_button:
+            if self.hovered_button:
                 self.mouse_cursor = pygame.SYSTEM_CURSOR_HAND
             
             self.show_media_buttons = hovered_item is not None
@@ -116,24 +121,26 @@ class MediaExplorer(GameSprite):
         self.rect = self.image.get_rect(center=self.position)
 
     def update(self, *args, **kwargs):
-        if self.selected_media_item:
-            self.set_media_buttons_to_selected_item()
+        if self.is_active:
+            if self.selected_media_item:
+                self.set_media_buttons_to_selected_item()
 
-        self.buttons_group.update()
+            self.buttons_group.update()
 
         return super().update(*args, **kwargs)
     
     def draw(self, surface: pygame.Surface):
         self.surface.fill((0,0,0,0))
-        self.surface.blit(self.image, (0,0))
 
-        for folder in self.media_folders:
-            folder: MediaFolder
-            folder.draw(self.surface)
+        if self.is_active:
+            self.surface.blit(self.image, (0,0))
 
-        if self.show_media_buttons:
-            self.buttons_group.draw(self.surface)
+            for folder in self.media_folders:
+                folder: MediaFolder
+                folder.draw(self.surface)
 
+            if self.show_media_buttons:
+                self.buttons_group.draw(self.surface)
         
         surface.blit(self.surface, self.rect)
 
@@ -150,7 +157,7 @@ class MediaExplorer(GameSprite):
         on_hover = None
         on_press = self.on_add_media_button_press
         on_release = None
-        self.add_button = Button(self.add_button_image, position, value, on_hover, on_press, on_release)
+        self.add_button = Button(self.add_button_image, position, value, on_hover, on_press, on_release, tooltip='Add media')
         self.buttons_group.add(self.add_button)
 
     def set_media_buttons_to_selected_item(self):
@@ -159,7 +166,7 @@ class MediaExplorer(GameSprite):
 
     def setup_media_items(self):
         x_pos = self.folder_indent
-        y_pos = 20
+        y_pos = 40
         housing_width = self.rect.width-self.folder_indent
         line_gap = 5
         for folder, files in self.media_listing:

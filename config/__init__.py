@@ -20,7 +20,7 @@ import json
 display_size = (1400, 800)
 display_flags = DOUBLEBUF
 display_depth = 32
-display_bg_color = pygame.Color('gray75')
+display_bg_color = pygame.Color('black')
 
 media_root_path = 'media'
 sounds_root_path = 'sounds'
