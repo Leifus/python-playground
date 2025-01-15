@@ -50,7 +50,7 @@ class App:
         self.app_is_running = True
 
     def setup_main_toolbar(self):
-        size = (100, self.rect.height-self.menu.rect.height)
+        size = (200, self.rect.height-self.menu.rect.height)
         position = (size[0]/2, self.menu.rect.height/2 + self.rect.height/2)
         self.toolbar = Toolbar(position, size)
         if self.menu.active_button and self.menu.active_button.value == 'Tools':
@@ -76,6 +76,17 @@ class App:
         position = (size[0]/2, size[1]/2)
         self.menu = Menu(size, position)
 
+    def set_active_panel(self, active_panel):
+        if self.active_image_panel:
+            self.active_image_panel.is_active = False
+            self.active_image_panel.redraw_housing_box()
+
+        self.active_image_panel = active_panel
+        self.active_image_panel.is_active = True
+        self.active_image_panel.redraw_housing_box()
+
+        self.toolbar.set_active_image_panel(self.active_image_panel)
+
     def on_event(self, event: pygame.event.Event):
         if event.type == QUIT:
             self.app_is_running = False
@@ -87,18 +98,34 @@ class App:
         if event.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
             self.mouse_position = Vector2(event.pos[0], event.pos[1])
 
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if not self.active_image_panel or not self.active_image_panel.is_hovered:
-                if not self.floating_toolbar.is_hovered and not self.floating_toolbar.move_by_mouse:
-                    self.floating_toolbar.unlink_image_panel()
-                    self.active_image_panel = None
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if not self.toolbar.is_hovered and not self.menu.is_hovered and not self.media_explorer.is_hovered:
+                #Nothing demands focus.
 
-                    for panel in self.main_draw_space.image_panels:
-                        panel: ImagePanel
-                        if panel.is_hovered:
-                            self.active_image_panel = panel
-                            self.floating_toolbar.link_to_image_panel(self.active_image_panel)
-                            break
+                hovered_panel = None
+                for panel in self.main_draw_space.image_panels:
+                    panel: ImagePanel
+                    if panel.is_hovered:
+                        hovered_panel = panel
+                
+                if hovered_panel is not None and hovered_panel is not self.active_image_panel:
+                    self.set_active_panel(hovered_panel)
+                    
+            # if not self.active_image_panel: # or not self.active_image_panel.is_hovered:
+            #     if not self.floating_toolbar.is_hovered and not self.floating_toolbar.move_by_mouse:
+            #         self.floating_toolbar.unlink_image_panel()
+            #         self.active_image_panel = None
+
+            #         active_panel = None
+            #         for panel in self.main_draw_space.image_panels:
+            #             panel: ImagePanel
+            #             if panel.is_hovered:
+            #                 active_panel = panel
+            #                 self.floating_toolbar.link_to_image_panel(self.active_image_panel)
+            #                 break
+
+            #         if not active_panel:
+
                     
         self.menu.on_event(self.mouse_position, event)
         self.toolbar.on_event(self.mouse_position, event)
@@ -142,6 +169,7 @@ class App:
         position = (self.main_draw_space.rect.width/2, self.main_draw_space.rect.height/2)
         image_panel = ImagePanel(identifier, position, orig_image, self.main_draw_space.max_sprite_loading_size)
         self.main_draw_space.add_image_panel(image_panel)
+        self.set_active_panel(image_panel)
         self.media_explorer.add_selected_media = False
 
         return image_panel

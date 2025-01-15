@@ -48,8 +48,8 @@ class TextBox(GameSprite):
         is_in_x = False
         is_in_y = False
         if mouse_position:
-            is_in_x = mouse_position.x >= self.rect.left and mouse_position.x <= self.rect.right
-            is_in_y = mouse_position.y >= self.rect.top and mouse_position.y <= self.rect.bottom
+            is_in_x = mouse_position[0] >= self.rect.left and mouse_position[0] <= self.rect.right
+            is_in_y = mouse_position[1] >= self.rect.top and mouse_position[1] <= self.rect.bottom
 
         self.is_hovered = is_in_x and is_in_y
 
@@ -96,10 +96,10 @@ class TextBox(GameSprite):
 
         if self.is_focused:
             # Input Cursor line
-            start_pos = (value_rect.right + 2, value_rect.top)
+            start_pos = (value_rect.right, value_rect.top)
             end_pos = (start_pos[0], value_rect.bottom)
             width = 2
-            cursor_color = pygame.Color('chartreuse3')
+            cursor_color = pygame.Color('darkgoldenrod1')
             pygame.draw.line(self.surface, cursor_color, start_pos, end_pos, width)
         
         surface.blit(self.surface, self.rect)
