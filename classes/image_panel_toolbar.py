@@ -370,12 +370,12 @@ class ImagePanelToolbar(GameSprite):
     def on_toggle_show_physics_button_press(self, button: Button):
         self.show_physics = not self.show_physics
         button.image = self.physics_button_on_image if self.show_physics else self.physics_button_off_image
-        self.linked_image_panel.show_physics = self.show_physics
+        self.linked_image_panel.show_physical_body = self.show_physics
 
     def on_set_poly_points_input_submit(self, textbox: TextBox):
         point_every = int(textbox.value)
-        if point_every != self.linked_image_panel.live_poly_points_every:
-            self.linked_image_panel.update_poly_points_every(point_every)
+        if point_every != self.linked_image_panel.pixel_length_per_poly_point:
+            self.linked_image_panel.create_new_poly_points(point_every)
             self.toggle_save_button(False)
 
     def on_set_image_alpha_input_submit(self, textbox: TextBox):
@@ -478,7 +478,7 @@ class ImagePanelToolbar(GameSprite):
 
             self.linked_image_panel.show_image = self.show_image
             self.linked_image_panel.show_mask = self.show_mask
-            self.linked_image_panel.show_live_polys = self.show_live_polys
+            self.linked_image_panel.show_poly_points = self.show_live_polys
         
         return super().update(*args, **kwargs)
     
@@ -521,9 +521,9 @@ class ImagePanelToolbar(GameSprite):
     def link_to_image_panel(self, image_panel: ImagePanel):
         self.show_image = image_panel.show_image
         self.show_mask = image_panel.show_mask
-        self.show_live_polys = image_panel.show_live_polys
+        self.show_live_polys = image_panel.show_poly_points
         self.set_image_alpha_input.value = str(image_panel.image_alpha)
-        self.set_poly_points_input.value = str(image_panel.live_poly_points_every)
+        self.set_poly_points_input.value = str(image_panel.pixel_length_per_poly_point)
         self.update_buttons()
 
         image_panel.is_active = True

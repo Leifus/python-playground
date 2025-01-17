@@ -2,9 +2,10 @@ from classes.common.game_sprite import GameSprite
 from config import pygame
 
 class TextBox(GameSprite):
-    def __init__(self, label, textbox_size, position, value, on_submit, font_size=14):
+    def __init__(self, label, textbox_size, position, value, on_submit, font_size=14, tooltip=''):
         super(TextBox, self).__init__()
 
+        self.tooltip = tooltip
         self.label = label
         self.position = position
         self.value: str = str(value)
@@ -86,7 +87,8 @@ class TextBox(GameSprite):
         self.surface.blit(self.textbox_surface, (0,0))
 
         # Label
-        self.surface.blit(self.label_surface, self.label_rect)
+        if len(self.label) > 0:
+            self.surface.blit(self.label_surface, self.label_rect)
 
         # Value
         value_font = pygame.font.Font('freesansbold.ttf', self.font_size)

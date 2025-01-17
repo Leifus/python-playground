@@ -37,7 +37,6 @@ class App:
         self.game_surface_rect = self.game_surface.get_rect()
 
         self.orig_image: pygame.Surface = None
-        self.floating_toolbar: ImagePanelToolbar = None
 
         self.active_image_panel: ImagePanel = None
 
@@ -45,7 +44,6 @@ class App:
         self.setup_media_explorer()
         self.setup_main_toolbar()
         self.setup_main_draw_space()
-        self.setup_image_panel_toolbar()
 
         self.app_is_running = True
 
@@ -55,9 +53,6 @@ class App:
         self.toolbar = Toolbar(position, size)
         if self.menu.active_button and self.menu.active_button.value == 'Tools':
             self.toolbar.is_active = True
-
-    def setup_image_panel_toolbar(self):
-        self.floating_toolbar = ImagePanelToolbar()
 
     def setup_media_explorer(self):
         size = (250, self.rect.height-self.menu.rect.height)
@@ -111,47 +106,30 @@ class App:
                 if hovered_panel is not None and hovered_panel is not self.active_image_panel:
                     self.set_active_panel(hovered_panel)
                     
-            # if not self.active_image_panel: # or not self.active_image_panel.is_hovered:
-            #     if not self.floating_toolbar.is_hovered and not self.floating_toolbar.move_by_mouse:
-            #         self.floating_toolbar.unlink_image_panel()
-            #         self.active_image_panel = None
-
-            #         active_panel = None
-            #         for panel in self.main_draw_space.image_panels:
-            #             panel: ImagePanel
-            #             if panel.is_hovered:
-            #                 active_panel = panel
-            #                 self.floating_toolbar.link_to_image_panel(self.active_image_panel)
-            #                 break
-
-            #         if not active_panel:
 
                     
         self.menu.on_event(self.mouse_position, event)
         self.toolbar.on_event(self.mouse_position, event)
         self.media_explorer.on_event(event)
-        self.floating_toolbar.on_event(self.mouse_position, event)
         self.main_draw_space.on_event(event)
         
-        if self.floating_toolbar.has_killed_panel:
-            self.active_image_panel = None
+        # if self.floating_toolbar.has_killed_panel:
+        #     self.active_image_panel = None
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a: # zoom in
-                if self.active_image_panel:
-                    self.active_image_panel.zoom_at_scale(1.1)
-                    self.floating_toolbar.stick_to_top_of_image_panel()
-            elif event.key == pygame.K_z: # zoom out
-                if self.active_image_panel:
-                    self.active_image_panel.zoom_at_scale(0.9)
-                    self.floating_toolbar.stick_to_top_of_image_panel()
+        # if event.type == pygame.KEYDOWN:
+        #     if event.key == pygame.K_a: # zoom in
+        #         if self.active_image_panel:
+        #             self.active_image_panel.zoom_at_scale(1.1)
+        #     elif event.key == pygame.K_z: # zoom out
+        #         if self.active_image_panel:
+        #             self.active_image_panel.zoom_at_scale(0.9)
 
     def create_image_panel_from_poly_points(self):
         if not self.active_image_panel:
             return
         
         base_polygon = pygame.Surface(self.active_image_panel.sprite_rect.size, pygame.SRCALPHA)
-        poly_points = self.active_image_panel.live_poly_points
+        poly_points = self.active_image_panel.poly_points
         pygame.draw.polygon(base_polygon, pygame.Color('red'), poly_points, 0)
 
         position = self.active_image_panel.position
@@ -202,27 +180,31 @@ class App:
         self.toolbar.is_active = self.menu.active_button and self.menu.active_button.value == 'Tools'
         self.toolbar.update()
         self.menu.update()
-        self.floating_toolbar.update()
 
-        if self.floating_toolbar.copy_poly_points:
-            self.create_image_panel_from_poly_points()
-            self.floating_toolbar.copy_poly_points = False
+        # if self.floating_toolbar.copy_poly_points:
+        #     self.create_image_panel_from_poly_points()
+        #     self.floating_toolbar.copy_poly_points = False
 
         self.main_draw_space.update()
 
         self.tooltip_image = None
         mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
+        tooltip = None
         if self.menu.is_hovered:
             mouse_cursor = self.menu.mouse_cursor
         elif self.toolbar.is_hovered:
             mouse_cursor = self.toolbar.mouse_cursor
             if self.toolbar.hovered_button and self.toolbar.hovered_button.tooltip:
-                self.set_tooltip(self.toolbar.hovered_button.tooltip)
+                tooltip = self.toolbar.hovered_button.tooltip
+            elif self.toolbar.hovered_input and self.toolbar.hovered_input.tooltip:
+                tooltip = self.toolbar.hovered_input.tooltip
         elif self.media_explorer.is_hovered:
             mouse_cursor = self.media_explorer.mouse_cursor
             if self.media_explorer.hovered_button and self.media_explorer.hovered_button.tooltip:
-                self.set_tooltip(self.media_explorer.hovered_button.tooltip)
+                tooltip = self.media_explorer.hovered_button.tooltip
 
+        if tooltip:
+            self.set_tooltip(tooltip)
 
         if mouse_cursor is not self.mouse_cursor:
             self.mouse_cursor = mouse_cursor
@@ -234,7 +216,6 @@ class App:
 
         self.main_draw_space.draw(self.surface)
         self.media_explorer.draw(self.surface)
-        self.floating_toolbar.draw(self.surface)
         self.toolbar.draw(self.surface)
         self.menu.draw(self.surface)
 

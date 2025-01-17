@@ -131,7 +131,7 @@ class Menu(GameSprite):
         media_button = Button(self.orig_media_explorer_default_image, position, value, on_hover, on_press, on_release, hover_surface=self.orig_media_explorer_hover_image, active_surface=self.orig_media_explorer_active_image)
         self.buttons_group.add(media_button)
 
-        self.set_active_button(tools_button)
+        self.set_active_button(media_button)
 
     def set_active_button(self, button: Button):
         if self.active_button:
