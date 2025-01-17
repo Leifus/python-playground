@@ -48,6 +48,8 @@ class ImagePanel(GameSprite):
         self.show_physical_body = False
         self.physical_shapes = []
         self.panel_copy_count = 0
+        self.move_panel = False
+
 
         self.space = pymunk.Space()
         self.body: pymunk.Body = None
@@ -72,11 +74,17 @@ class ImagePanel(GameSprite):
         self.rect.center = self.position
         self.construct_physical_body()
 
+    def move_panel_with_mouse(self):
+        offset = self.mouse_position - self.move_initial_position
+        if offset.x != 0 or offset.y != 0:
+            self.move_initial_position = self.mouse_position
+            self.move_by(offset)
+
     def deactivate(self):
         self.is_active = False
         self.active_poly_point = None
         self.move_active_poly_point = False
-        self.move_active_poly_point_initial_position = None
+        self.move_initial_position = None
         self.start_cut_poly_point_idx = None
         self.end_cut_poly_point_idx = None
 
@@ -206,7 +214,7 @@ class ImagePanel(GameSprite):
 
     def stop_moving_poly_point(self):
         self.move_active_poly_point = False
-        self.move_active_poly_point_initial_position = None
+        self.move_initial_position = None
         self.is_saved = False
         if self.active_poly_point and self.hovered_poly_point is not self.active_poly_point:
             self.active_poly_point = None
@@ -246,6 +254,7 @@ class ImagePanel(GameSprite):
                         break
 
         if event.type == pygame.MOUSEBUTTONUP:
+            self.move_panel = False
             if self.move_active_poly_point:
                 self.stop_moving_poly_point()
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -258,7 +267,10 @@ class ImagePanel(GameSprite):
             elif not self.move_active_poly_point and self.hovered_poly_point:
                 self.active_poly_point = self.hovered_poly_point
                 self.move_active_poly_point = True
-                self.move_active_poly_point_initial_position = self.mouse_position
+                self.move_initial_position = self.mouse_position
+            elif self.is_hovered: # Move panel
+                self.move_panel = True
+                self.move_initial_position = self.mouse_position
         
                 
         if event.type == pygame.KEYDOWN:
@@ -327,18 +339,21 @@ class ImagePanel(GameSprite):
     def update(self, *args, **kwargs):
         if not self.is_active:
             return super().update(*args, **kwargs)
+        
+        if self.move_panel:
+            self.move_panel_with_mouse()
 
         if self.body:
             self.body.position = self.position
 
         if self.move_active_poly_point:
-            offset = (self.mouse_position.x - self.move_active_poly_point_initial_position[0], self.mouse_position.y - self.move_active_poly_point_initial_position[1])
+            offset = (self.mouse_position.x - self.move_initial_position[0], self.mouse_position.y - self.move_initial_position[1])
             if offset[0] != 0 or offset[1] != 0:
                 self.has_moved_a_point = True
                 new_point = (int(self.active_poly_point[0] + offset[0]), int(self.active_poly_point[1] + offset[1]))
                 self.update_poly_point(self.active_poly_point, new_point)
                 self.active_poly_point = new_point
-                self.move_active_poly_point_initial_position = self.mouse_position
+                self.move_initial_position = self.mouse_position
 
         return super().update(*args, **kwargs)
     
