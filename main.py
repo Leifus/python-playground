@@ -1,6 +1,7 @@
 from pygame import Vector2
 from classes.common import media_manager
 from classes.image_panel import ImagePanel
+from classes.instructions_panel import InstructionsPanel
 from classes.main_draw_space import MainDrawSpace
 from classes.media_explorer import MediaExplorer
 from classes.menu import Menu
@@ -40,6 +41,7 @@ class App:
         self.active_image_panel: ImagePanel = None
 
         self.setup_menu()
+        self.setup_instructions_panel()
         self.setup_media_explorer()
         self.setup_main_toolbar()
         self.setup_main_draw_space()
@@ -69,6 +71,10 @@ class App:
         size = (250, 40)
         position = (size[0]/2, size[1]/2)
         self.menu = Menu(size, position)
+
+    def setup_instructions_panel(self):
+        position = (self.menu.rect.right + 10, 10)
+        self.instructions_panel = InstructionsPanel(position)
 
     def set_active_panel(self, active_panel):
         if self.active_image_panel:
@@ -107,6 +113,7 @@ class App:
                     
 
         self.menu.on_event(self.mouse_position, event)
+        self.instructions_panel.on_event(self.mouse_position, event)
         self.toolbar.on_event(self.mouse_position, event)
         self.media_explorer.on_event(event)
         self.main_draw_space.on_event(event)
@@ -162,7 +169,7 @@ class App:
 
     def update(self):
         self.menu.update()
-        
+        self.instructions_panel.update()
         self.media_explorer.is_active = self.menu.active_button and self.menu.active_button.value == 'Media'
         self.media_explorer.update()
         if self.media_explorer.add_selected_media:
@@ -209,6 +216,7 @@ class App:
         self.media_explorer.draw(self.surface)
         self.toolbar.draw(self.surface)
         self.menu.draw(self.surface)
+        self.instructions_panel.draw(self.surface)
 
         if self.tooltip_image:
             self.surface.blit(self.tooltip_image, self.tooltip_rect)
