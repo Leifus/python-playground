@@ -49,6 +49,7 @@ class ImagePanel(GameSprite):
         self.physical_shapes = []
         self.panel_copy_count = 0
         self.move_panel = False
+        self.is_locked = False
 
 
         self.space = pymunk.Space()
@@ -75,6 +76,9 @@ class ImagePanel(GameSprite):
         self.construct_physical_body()
 
     def move_panel_with_mouse(self):
+        if self.is_locked:
+            return
+        
         offset = self.mouse_position - self.move_initial_position
         if offset.x != 0 or offset.y != 0:
             self.move_initial_position = self.mouse_position
@@ -413,6 +417,9 @@ class ImagePanel(GameSprite):
         self.surface.blit(poly_surface, (0,0))
 
     def draw_focused_poly_points(self):
+        if not self.show_poly_points:
+            return
+        
         focused_points = []
         if self.active_poly_point:
             focused_points.append(self.active_poly_point)
