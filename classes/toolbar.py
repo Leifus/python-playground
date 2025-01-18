@@ -23,6 +23,8 @@ class Toolbar(GameSprite):
         self.remove_image_panel_button_image: pygame.Surface = None
         self.unsaved_data_button_image: pygame.Surface = None
         self.saved_data_button_image: pygame.Surface = None
+        self.flip_x_button_image: pygame.Surface = None
+        self.flip_y_button_image: pygame.Surface = None
         self.buttons_group = pygame.sprite.Group()
         self.inputs_group = pygame.sprite.Group()
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
@@ -44,6 +46,8 @@ class Toolbar(GameSprite):
         self.toggle_lock_image_panel_button: Button = None
         self.remove_image_panel_button: Button = None
         self.save_data_button: Button = None
+        self.flip_x_button: Button = None
+        self.flip_y_button: Button = None
 
         self.toggle_show_physical_body_button: Button = None
 
@@ -121,12 +125,28 @@ class Toolbar(GameSprite):
         button_image.blit(button_icon, icon_rect)
         self.lock_image_panel_on_button_image = button_image
 
+
+        # Flip H Button
+        image = media_manager.get('icons/flip_h_icon.png', convert_alpha=True)
+        icon_scale = 0.7
+        button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
+        icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
+        button_image = button_surface.copy()
+        button_image.blit(button_border_surface, (0,0))
+        button_image.blit(button_icon, icon_rect)
+        self.flip_x_button_image = button_image
+
+        button_image = pygame.transform.rotate(self.flip_x_button_image, 90)
+        self.flip_y_button_image = button_image
+
+
         font = pygame.font.Font('freesansbold.ttf', 12)
+        button_font = pygame.font.Font('freesansbold.ttf', 11)
         font_color = pygame.Color('black')
 
 
         # Delete Button
-        label_surface = font.render('Remove image panel', True, font_color, button_danger_bg_color)
+        label_surface = button_font.render('REMOVE PANEL', True, font_color, button_danger_bg_color)
         label_rect = label_surface.get_rect()
 
         button_size = (label_rect.width + self.button_size + 6, self.button_size)
@@ -147,7 +167,7 @@ class Toolbar(GameSprite):
 
         
         # Create poly points Button
-        label_surface = font.render('Create poly points', True, font_color, button_success_bg_color)
+        label_surface = button_font.render('CREATE POLY POINTS', True, font_color, button_success_bg_color)
         label_rect = label_surface.get_rect()
 
         button_size = (label_rect.width + self.button_size + 6, self.button_size)
@@ -293,6 +313,29 @@ class Toolbar(GameSprite):
         on_release = None
         self.toggle_lock_image_panel_button = Button(self.lock_image_panel_off_button_image, position, value, on_hover, on_press, on_release, active_surface=self.lock_image_panel_on_button_image, tooltip=tooltip)
         self.buttons_group.add(self.toggle_lock_image_panel_button)
+        
+
+        # Flip Horizontal Button
+        x += self.button_size + self.button_gap
+        position = (x,y)
+        value = True
+        tooltip = 'Flip Horizontal'
+        on_hover = None
+        on_press = self.on_flip_x_button_press
+        on_release = None
+        self.flip_x_button = Button(self.flip_x_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
+        self.buttons_group.add(self.flip_x_button)
+
+        # Flip Vertical Button
+        x += self.button_size + self.button_gap
+        position = (x,y)
+        value = True
+        tooltip = 'Flip Vertical'
+        on_hover = None
+        on_press = self.on_flip_y_button_press
+        on_release = None
+        self.flip_y_button = Button(self.flip_y_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
+        self.buttons_group.add(self.flip_y_button)
         
         
         # Save Data Button
@@ -500,9 +543,15 @@ class Toolbar(GameSprite):
 
     def on_image_alpha_submit(self, textbox: TextBox):
         self.active_image_panel.image_alpha = int(textbox.value)
-        self.active_image_panel.redraw_sprite_image()
+        self.active_image_panel.redraw()
         self.image_alpha_textbox.is_focused = True
     
+    def on_flip_x_button_press(self, button: Button):
+        self.active_image_panel.flip(flip_x=True, flip_y=False)
+
+    def on_flip_y_button_press(self, button: Button):
+        self.active_image_panel.flip(flip_x=False, flip_y=True)
+
     def on_save_data_button_press(self, button: Button):
         self.active_image_panel.save_to_file()
 

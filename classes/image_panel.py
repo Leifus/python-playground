@@ -10,7 +10,7 @@ class ImagePanel(GameSprite):
         self.identifier = identifier
         self.position = position
         self.orig_image = orig_image
-        self.orig_mask = pygame.mask.from_surface(self.orig_image)
+        self.orig_mask: pygame.Mask = None
         self.mask_setcolor = pygame.Color('black')
         self.show_image = True
         self.image_alpha = 255
@@ -50,6 +50,8 @@ class ImagePanel(GameSprite):
         self.panel_copy_count = 0
         self.move_panel = False
         self.is_locked = False
+        self.flip_x = False
+        self.flip_y = False
 
 
         self.space = pymunk.Space()
@@ -182,9 +184,8 @@ class ImagePanel(GameSprite):
         self.sprite_mask_image = self.sprite_mask.to_surface(setcolor=self.mask_setcolor, unsetcolor=None)
         self.sprite_mask_image.set_alpha(self.mask_alpha)
 
-    def redraw_sprite_image(self):
-        # Setup Main Image
-        self.sprite_image = aspect_scale(self.orig_image, self.image_size)
+    def redraw_sprite_image(self, orig_image):
+        self.sprite_image = aspect_scale(orig_image, self.image_size)
         self.sprite_rect = self.sprite_image.get_rect()
         self.sprite_mask = pygame.mask.from_surface(self.sprite_image)
         self.sprite_image.set_alpha(self.image_alpha)
@@ -201,7 +202,13 @@ class ImagePanel(GameSprite):
         self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=self.position)
 
-        self.redraw_sprite_image()
+        orig_image = self.orig_image
+        if self.flip_x or self.flip_y:
+            orig_image = pygame.transform.flip(orig_image, flip_x=self.flip_x, flip_y=self.flip_y)
+
+        self.orig_mask = pygame.mask.from_surface(orig_image)
+
+        self.redraw_sprite_image(orig_image)
         self.redraw_mask_image()
         self.redraw_housing_box()
 
@@ -211,6 +218,32 @@ class ImagePanel(GameSprite):
         #Ensure to use the original size for poly construction.
         self.poly_points = self.orig_mask.outline(self.pixel_length_per_poly_point)
         self.construct_physical_body()
+
+    def flip(self, flip_x: bool, flip_y: bool):
+        self.hovered_poly_point = None
+        self.active_poly_point = None
+
+        if len(self.poly_points) > 0:
+            flipped_points = []
+            for point in self.poly_points:
+                x, y = point
+
+                if flip_x:
+                    x = self.sprite_rect.width - x
+                if flip_y:
+                    y = self.sprite_rect.height - y
+
+                flipped_points.append((x, y))
+
+            self.poly_points = flipped_points
+
+        if flip_x:
+            self.flip_x = not self.flip_x
+        if flip_y:
+            self.flip_y = not self.flip_y
+
+        self.redraw()
+        # self.construct_physical_body()
 
     def finish_shape_cutting(self):
         if self.end_cut_poly_point_idx:
@@ -351,7 +384,6 @@ class ImagePanel(GameSprite):
             self.body.position = self.position
 
         if self.move_active_poly_point:
-            # scaled_point = (self.active_poly_point[0] * self.draw_scale, self.active_poly_point[1] * self.draw_scale)
             offset = (self.mouse_position.x - self.move_initial_position[0], self.mouse_position.y - self.move_initial_position[1])
             scaled_back_offset = (offset[0] * (1.0/self.draw_scale), offset[1] * (1.0/self.draw_scale))
             if scaled_back_offset[0] != 0 or scaled_back_offset[1] != 0:
@@ -396,7 +428,10 @@ class ImagePanel(GameSprite):
         scaled_and_positioned_poly_points = []
         for point in self.poly_points:
             scaled_point = (point[0] * self.draw_scale, point[1] * self.draw_scale)
-            scaled_and_positioned_poly_points.append((scaled_point[0] + self.sprite_rect.left, scaled_point[1] + self.sprite_rect.top))
+            x = self.sprite_rect.left + scaled_point[0]
+            y = self.sprite_rect.top + scaled_point[1]
+            positioned_point = (x, y)
+            scaled_and_positioned_poly_points.append(positioned_point)
 
         pygame.draw.polygon(poly_surface, line_color, scaled_and_positioned_poly_points, line_width)
         
@@ -407,7 +442,9 @@ class ImagePanel(GameSprite):
         font = pygame.font.Font('freesansbold.ttf', font_size)
         for idx, point in enumerate(self.poly_points):
             scaled_point = (point[0] * self.draw_scale, point[1] * self.draw_scale)
-            positioned_point = (scaled_point[0] + self.sprite_rect.left, scaled_point[1] + self.sprite_rect.top)
+            x = self.sprite_rect.left + scaled_point[0]
+            y = self.sprite_rect.top + scaled_point[1]
+            positioned_point = (x, y)
             dot_point = (positioned_point[0] + point_radius/2, positioned_point[1] + point_radius/2)
             pygame.draw.circle(poly_surface, point_color, dot_point, point_radius)
             if self.show_poly_point_numbers:
@@ -433,12 +470,15 @@ class ImagePanel(GameSprite):
         
         for point in focused_points:
             scaled_point = (point[0] * self.draw_scale, point[1] * self.draw_scale)
+            x = self.sprite_rect.left + scaled_point[0]
+            y = self.sprite_rect.top + scaled_point[1]
+            positioned_point = (x, y)
 
             point_label = f'{int(point[0]),int(point[1])}'
             point_label_surface = font.render(point_label, True, font_color, font_bg)
             point_label_rect = point_label_surface.get_rect()
             offset = (0, -5-point_label_rect.height)
-            point_label_rect.center = (self.sprite_rect.left + scaled_point[0] + offset[0], self.sprite_rect.top + scaled_point[1] + offset[1])
+            point_label_rect.center = (positioned_point[0] + offset[0], positioned_point[1] + offset[1])
 
             self.surface.blit(point_label_surface, point_label_rect)
 
