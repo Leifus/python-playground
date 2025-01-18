@@ -116,13 +116,12 @@ class App:
         # if self.floating_toolbar.has_killed_panel:
         #     self.active_image_panel = None
 
-        # if event.type == pygame.KEYDOWN:
-        #     if event.key == pygame.K_a: # zoom in
-        #         if self.active_image_panel:
-        #             self.active_image_panel.zoom_at_scale(1.1)
-        #     elif event.key == pygame.K_z: # zoom out
-        #         if self.active_image_panel:
-        #             self.active_image_panel.zoom_at_scale(0.9)
+        if self.active_image_panel:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_a: # zoom in
+                    self.active_image_panel.zoom_at_scale(0.1)
+                elif event.key == pygame.K_z: # zoom out
+                    self.active_image_panel.zoom_at_scale(-0.1)
 
     def create_image_panel_from_poly_points(self):
         if not self.active_image_panel:
