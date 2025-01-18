@@ -1,7 +1,6 @@
 from pygame import Vector2
 from classes.common import media_manager
 from classes.image_panel import ImagePanel
-from classes.image_panel_toolbar import ImagePanelToolbar
 from classes.main_draw_space import MainDrawSpace
 from classes.media_explorer import MediaExplorer
 from classes.menu import Menu

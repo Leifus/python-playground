@@ -70,6 +70,11 @@ class Button(GameSprite):
             if self.hover_surface and self.image is not self.orig_image:
                 self.image = self.orig_image
     
+    def set_is_active(self, is_active):
+        if self.is_active is not is_active:
+            self.is_active = is_active
+            self.redraw()
+
     def set_position(self, position):
         self.position = position
         self.rect.center = self.position
