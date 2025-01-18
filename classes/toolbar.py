@@ -20,6 +20,7 @@ class Toolbar(GameSprite):
         self.lock_image_panel_off_button_image: pygame.Surface = None
         self.lock_image_panel_on_button_image: pygame.Surface = None
         self.create_poly_points_button_image: pygame.Surface = None
+        self.remove_image_panel_button_image: pygame.Surface = None
         self.buttons_group = pygame.sprite.Group()
         self.inputs_group = pygame.sprite.Group()
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
@@ -39,6 +40,7 @@ class Toolbar(GameSprite):
         self.pixel_length_per_poly_point_textbox: TextBox = None
         self.create_poly_points_button: Button = None
         self.toggle_lock_image_panel_button: Button = None
+        self.remove_image_panel_button: Button = None
 
         self.toggle_show_physical_body_button: Button = None
 
@@ -50,8 +52,8 @@ class Toolbar(GameSprite):
         self.show_physical_body = False
 
         self.setup_visuals()
-        self.setup_toolbar()
         self.redraw()
+        self.setup_toolbar()
 
     def setup_visuals(self):
         # Housing 
@@ -69,6 +71,8 @@ class Toolbar(GameSprite):
         button_default_bg_color = pygame.Color('gray95')
         button_hover_bg_color = pygame.Color('gray80')
         button_active_bg_color = pygame.Color('gold')
+        button_warning_bg_color = pygame.Color('darkolivegreen2')
+        button_danger_bg_color = pygame.Color('indianred1')
         button_border_color = pygame.Color('gray80')
         button_border_width = 1
         button_surface = pygame.Surface((self.button_size, self.button_size), pygame.SRCALPHA)
@@ -113,17 +117,38 @@ class Toolbar(GameSprite):
         button_image.blit(button_icon, icon_rect)
         self.lock_image_panel_on_button_image = button_image
 
-
         font = pygame.font.Font('freesansbold.ttf', 12)
-        color = pygame.Color('black')
+        font_color = pygame.Color('black')
 
-        # Create poly points Button
-        label_surface = font.render('Create poly points', True, color, button_default_bg_color)
+
+        # Delete Button
+        label_surface = font.render('Remove image panel', True, font_color, button_danger_bg_color)
         label_rect = label_surface.get_rect()
 
         button_size = (label_rect.width + self.button_size + 6, self.button_size)
         button_surface = pygame.Surface(button_size, pygame.SRCALPHA)
-        button_surface.fill(button_default_bg_color)
+        button_surface.fill(button_danger_bg_color)
+        label_rect.midright = (button_size[0] - 5, button_size[1]/2)
+        button_surface.blit(label_surface, label_rect)
+
+        image = media_manager.get('icons/bin_icon.png', convert_alpha=True)
+        icon_scale = 0.6
+        button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
+        icon_rect = button_icon.get_rect(midleft=(5, button_size[1]/2))
+        button_surface.blit(button_icon, icon_rect)
+
+        pygame.draw.rect(button_surface, color, pygame.Rect(0,0,button_size[0],button_size[1]), 1)
+        self.remove_image_panel_button_image = button_surface
+
+
+        
+        # Create poly points Button
+        label_surface = font.render('Create poly points', True, font_color, button_warning_bg_color)
+        label_rect = label_surface.get_rect()
+
+        button_size = (label_rect.width + self.button_size + 6, self.button_size)
+        button_surface = pygame.Surface(button_size, pygame.SRCALPHA)
+        button_surface.fill(button_warning_bg_color)
         label_rect.midright = (button_size[0] - 5, button_size[1]/2)
         button_surface.blit(label_surface, label_rect)
 
@@ -138,31 +163,31 @@ class Toolbar(GameSprite):
         
 
 
-        # Move Button
-        image = media_manager.get('icons/move_icon.png', convert_alpha=True)
-        icon_scale = 0.8
-        button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
-        icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
+        # # Move Button
+        # image = media_manager.get('icons/move_icon.png', convert_alpha=True)
+        # icon_scale = 0.8
+        # button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
+        # icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
 
-        # default
-        button_image = button_surface.copy()
-        button_image.blit(button_border_surface, (0,0))
-        button_image.blit(button_icon, icon_rect)
-        self.move_button_default_image = button_image
+        # # default
+        # button_image = button_surface.copy()
+        # button_image.blit(button_border_surface, (0,0))
+        # button_image.blit(button_icon, icon_rect)
+        # self.move_button_default_image = button_image
 
-        # hover
-        button_image = button_surface.copy()
-        button_image.fill(button_hover_bg_color)
-        button_image.blit(button_border_surface, (0,0))
-        button_image.blit(button_icon, icon_rect)
-        self.move_button_hover_image = button_image
+        # # hover
+        # button_image = button_surface.copy()
+        # button_image.fill(button_hover_bg_color)
+        # button_image.blit(button_border_surface, (0,0))
+        # button_image.blit(button_icon, icon_rect)
+        # self.move_button_hover_image = button_image
 
-        # active
-        button_image = button_surface.copy()
-        button_image.fill(button_active_bg_color)
-        button_image.blit(button_border_surface, (0,0))
-        button_image.blit(button_icon, icon_rect)
-        self.move_button_active_image = button_image
+        # # active
+        # button_image = button_surface.copy()
+        # button_image.fill(button_active_bg_color)
+        # button_image.blit(button_border_surface, (0,0))
+        # button_image.blit(button_icon, icon_rect)
+        # self.move_button_active_image = button_image
 
     def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
@@ -227,6 +252,7 @@ class Toolbar(GameSprite):
     def setup_toolbar(self):
         x = self.button_gap/2
         y = self.button_gap
+        child_indent = 22
 
         font = pygame.font.Font('freesansbold.ttf', 12)
         color = pygame.Color('black')
@@ -244,6 +270,7 @@ class Toolbar(GameSprite):
         
         y += self.button_size + self.button_gap
 
+
         # Toggle Image Layer Button
         position = (x,y)
         value = False
@@ -256,28 +283,40 @@ class Toolbar(GameSprite):
         
         label_surface = font.render('Image', True, color, self.housing_bg_color)
         label_rect = label_surface.get_rect()
-        x += 5 + self.toggle_show_image_button.rect.width
+        x += self.button_gap/2 + self.toggle_show_image_button.rect.width
         this_y = y + self.toggle_show_image_button.rect.height/2 - label_rect.height/2
         position = (x, this_y)
         self.button_labels.append((label_surface, position))
 
+        y += self.button_size + self.button_gap
+
+
         # Image Alpha TextBox
         textbox_size = (27,20)
-        x = self.size[0] - textbox_size[0] - self.button_gap
+        x = self.button_gap/2 + child_indent
         this_y = y + self.toggle_show_image_button.rect.height/2 - textbox_size[1]/2
         position = (x, this_y)
         value = 255
         on_submit = self.on_image_alpha_submit
         font_size = 11
         tooltip = 'Set image alpha'
+        label = 'Alpha'
         self.image_alpha_textbox = TextBox('', textbox_size, position, value, on_submit, font_size, tooltip=tooltip)
         self.inputs_group.add(self.image_alpha_textbox)
 
+        label_surface = font.render(label, True, color, self.housing_bg_color)
+        label_rect = label_surface.get_rect()
+        x = self.image_alpha_textbox.rect.right
+        this_y = self.image_alpha_textbox.rect.top + label_rect.height/2
+        position = (x, this_y)
+        self.button_labels.append((label_surface, position))
+
+
+        y += self.button_size + self.button_gap
 
 
         # Toggle Poly Points Layer Button
         x = self.button_gap/2
-        y += self.button_size + self.button_gap
         position = (x,y)
         value = False
         tooltip = 'Toggle Poly Points layer'
@@ -294,9 +333,11 @@ class Toolbar(GameSprite):
         position = (x, this_y)
         self.button_labels.append((label_surface, position))
 
-        # Toggle Poly Point Numbers Layer Button
-        x = self.button_gap/2
         y += self.button_size + self.button_gap
+
+
+        # Toggle Poly Point Numbers Layer Button
+        x = self.button_gap/2 + child_indent
         position = (x,y)
         value = False
         tooltip = 'Toggle point numbers layer'
@@ -313,9 +354,11 @@ class Toolbar(GameSprite):
         position = (x, this_y)
         self.button_labels.append((label_surface, position))
 
-        # Toggle Physical Body
-        x = self.button_gap/2
         y += self.button_size + self.button_gap
+
+
+        # Toggle Physical Body
+        x = self.button_gap/2 + child_indent
         position = (x,y)
         value = False
         tooltip = 'Toggle Physical Body layer'
@@ -332,10 +375,11 @@ class Toolbar(GameSprite):
         position = (x, y)
         self.button_labels.append((label_surface, position))
 
+        y += self.button_size + self.button_gap
+
 
         # Poly Points Every TextBox
         x = self.button_gap/2
-        y += self.button_size + self.button_gap
 
         textbox_size = (27,20)
         this_y = y + self.button_size/2 - textbox_size[1]/2
@@ -347,10 +391,10 @@ class Toolbar(GameSprite):
         self.pixel_length_per_poly_point_textbox = TextBox('', textbox_size, position, value, on_submit, font_size, tooltip=tooltip)
         self.inputs_group.add(self.pixel_length_per_poly_point_textbox)
 
+
         # Create Poly Points Button
         x += self.pixel_length_per_poly_point_textbox.rect.width
-        this_y = y
-        position = (x, this_y)
+        position = (x, y)
         value = 1
         tooltip = '* Overwrites current poly and physical body'
         on_hover = None
@@ -358,6 +402,7 @@ class Toolbar(GameSprite):
         on_release = None
         self.create_poly_points_button = Button(self.create_poly_points_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
         self.buttons_group.add(self.create_poly_points_button)
+
 
         # # Move Button
         # position = (x,y)
@@ -369,6 +414,21 @@ class Toolbar(GameSprite):
         # self.move_button = Button(self.move_button_default_image, position, value, on_hover, on_press, on_release, hover_surface=self.move_button_hover_image, active_surface=self.move_button_active_image, tooltip=tooltip)
         # self.buttons_group.add(self.move_button)
 
+
+        # Delete Image Panel
+        rect = self.remove_image_panel_button_image.get_rect()
+        y = self.rect.height - rect.height - self.button_gap
+        x = self.button_gap
+        position = (x, y)
+        value = 1
+        tooltip = '* Any unsaved changes will be destroyed'
+        on_hover = None
+        on_press = self.on_remove_image_panel_button_press
+        on_release = None
+        self.remove_image_panel_button = Button(self.remove_image_panel_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
+        self.buttons_group.add(self.remove_image_panel_button)
+
+
     # TODO: CHECK IF WE CAN REMOVE THIS IN REPLACEMENT WITH BUTTON ACTIVE STATE AND SURFACE CONSTRUCTION... I THINK WE CAN.
     def update_buttons(self):
         self.toggle_show_image_button.image = self.show_button_image if self.show_image else self.hide_button_image
@@ -378,6 +438,7 @@ class Toolbar(GameSprite):
         self.toggle_lock_image_panel_button.image = self.lock_image_panel_on_button_image if self.lock_image_panel else self.lock_image_panel_off_button_image
 
     def set_active_image_panel(self, image_panel: ImagePanel):
+        self.lock_image_panel = image_panel.is_locked
         self.show_image = image_panel.show_image
         self.toggle_show_image_button.value = not self.show_image
         self.image_alpha_textbox.value = str(image_panel.image_alpha)
@@ -477,3 +538,10 @@ class Toolbar(GameSprite):
         
         button.value = not show_poly_points
         self.update_buttons()
+
+    def on_remove_image_panel_button_press(self, button: Button):
+        if not self.active_image_panel:
+            return
+        
+        self.active_image_panel.kill()
+        self.active_image_panel = None
