@@ -242,9 +242,9 @@ class ImagePanel(GameSprite):
                 x, y = point
 
                 if flip_x:
-                    x = self.sprite_rect.width - x
+                    x = self.orig_image_rect.width - x
                 if flip_y:
-                    y = self.sprite_rect.height - y
+                    y = self.orig_image_rect.height - y
 
                 flipped_points.append((x, y))
 
@@ -256,7 +256,7 @@ class ImagePanel(GameSprite):
             self.flip_y = not self.flip_y
 
         self.redraw()
-        # self.construct_physical_body()
+        self.construct_physical_body()
 
     def finish_shape_cutting(self):
         if self.end_cut_poly_point_idx:
@@ -293,24 +293,7 @@ class ImagePanel(GameSprite):
             new_point = (curr_x + x_diff, curr_y + y_diff)
             self.poly_points.insert(next_idx, new_point)
 
-
-        # curr_x, curr_y = self.active_poly_point
-        # new_x, new_y = self.live_poly_point_position
-        
-        # if new_x < curr_x:
-        #     next_idx = curr_idx - 1
-        # elif new_x > curr_x:
-        #     next_point_idx = curr_idx + 1
-        # else:
-        #     if mouse_y_diff < 0:
-        #         next_point_idx = curr_idx - 1
-        #     elif mouse_y_diff > 0:
-        #         next_point_idx = curr_idx + 1
-        
-        # if self.live_poly_point_insert_before:
-        #     self.poly_points.insert(curr_idx, self.live_poly_point_position)    # TODO: CHECK IF WE HAVE A SCALING ISSUE
-        # else:
-        #     self.poly_points.insert(curr_idx + 1, self.live_poly_point_position)
+        self.construct_physical_body()
 
     def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
         self.mouse_position = mouse_position
@@ -379,6 +362,7 @@ class ImagePanel(GameSprite):
                     
                     self.active_poly_point = None
                     self.poly_points = new_points
+                    self.construct_physical_body()
 
             if event.key == pygame.K_a: # zoom in
                 self.zoom_at_scale(0.1)
