@@ -19,6 +19,8 @@ class ImagePanel(GameSprite):
         self.sprite_image: pygame.Surface = None
         self.sprite_mask_image: pygame.Surface = None
         self.housing_box_image: pygame.Surface = None
+        self.poly_outline_surface: pygame.Surface = None
+        self.live_poly_point_placement_surface: pygame.Surface = None
         self.mask_alpha = 255
         self.pixel_length_per_poly_point = 15
         self.sprite_rect: pygame.Rect = None
@@ -52,7 +54,8 @@ class ImagePanel(GameSprite):
         self.is_locked = False
         self.flip_x = False
         self.flip_y = False
-
+        self.can_add_poly_point = False
+        self.live_poly_point_position = None
 
         self.space = pymunk.Space()
         self.body: pymunk.Body = None
@@ -198,6 +201,15 @@ class ImagePanel(GameSprite):
         self.housing_box_image = pygame.Surface(self.rect.size, pygame.SRCALPHA)
         pygame.draw.rect(self.housing_box_image, color, (0,0,self.size[0], self.size[1]), border)
 
+    def redraw_live_poly_point_placement(self):
+        color = pygame.Color('red')
+        size = (self.poly_point_radius*6, self.poly_point_radius*6)
+        surface = pygame.Surface(size, pygame.SRCALPHA)
+        position = (size[0]/2, size[1]/2)
+        pygame.draw.circle(surface, color, position, self.poly_point_radius)
+        pygame.draw.circle(surface, color, position, self.poly_point_radius*3, 2)
+        self.live_poly_point_placement_surface = surface
+
     def redraw(self):
         self.surface = pygame.Surface(self.size, pygame.SRCALPHA)
         self.rect = self.surface.get_rect(center=self.position)
@@ -210,6 +222,7 @@ class ImagePanel(GameSprite):
 
         self.redraw_sprite_image(orig_image)
         self.redraw_mask_image()
+        self.redraw_live_poly_point_placement()
         self.redraw_housing_box()
 
     def create_new_poly_points(self, pixel_length_per_poly_point):
@@ -261,6 +274,43 @@ class ImagePanel(GameSprite):
         if self.active_poly_point and self.hovered_poly_point is not self.active_poly_point:
             self.active_poly_point = None
         self.construct_physical_body()
+    
+    def create_new_poly_point(self):
+        curr_idx = self.poly_points.index(self.active_poly_point)
+        next_idx = self.poly_points.index(self.live_poly_point_position)
+
+        curr_x, curr_y = self.active_poly_point
+        next_x, next_y = self.live_poly_point_position
+
+        if curr_idx > next_idx:
+            x_diff = (curr_x - next_x)/2
+            y_diff = (curr_y - next_y)/2
+            new_point = (curr_x - x_diff, curr_y - y_diff)
+            self.poly_points.insert(curr_idx, new_point)
+        else:
+            x_diff = (next_x - curr_x)/2
+            y_diff = (next_y - curr_y)/2
+            new_point = (curr_x + x_diff, curr_y + y_diff)
+            self.poly_points.insert(next_idx, new_point)
+
+
+        # curr_x, curr_y = self.active_poly_point
+        # new_x, new_y = self.live_poly_point_position
+        
+        # if new_x < curr_x:
+        #     next_idx = curr_idx - 1
+        # elif new_x > curr_x:
+        #     next_point_idx = curr_idx + 1
+        # else:
+        #     if mouse_y_diff < 0:
+        #         next_point_idx = curr_idx - 1
+        #     elif mouse_y_diff > 0:
+        #         next_point_idx = curr_idx + 1
+        
+        # if self.live_poly_point_insert_before:
+        #     self.poly_points.insert(curr_idx, self.live_poly_point_position)    # TODO: CHECK IF WE HAVE A SCALING ISSUE
+        # else:
+        #     self.poly_points.insert(curr_idx + 1, self.live_poly_point_position)
 
     def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
         self.mouse_position = mouse_position
@@ -291,7 +341,7 @@ class ImagePanel(GameSprite):
                     is_within_point_x = relative_mouse_pos[0] >= scaled_point[0] - bleed and relative_mouse_pos[0] <= scaled_point[0] + bleed
                     is_within_point_y = relative_mouse_pos[1] >= scaled_point[1] - bleed and relative_mouse_pos[1] <= scaled_point[1] + bleed
                     is_point_hovered = is_within_point_x and is_within_point_y
-                    if is_point_hovered:
+                    if is_point_hovered and not self.can_add_poly_point:
                         self.hovered_poly_point = point
                         hovered_point_index = i
                         break
@@ -301,7 +351,9 @@ class ImagePanel(GameSprite):
             if self.move_active_poly_point:
                 self.stop_moving_poly_point()
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.edit_cut_shapes:
+            if self.can_add_poly_point:
+                self.create_new_poly_point()
+            elif self.edit_cut_shapes:
                 if not self.start_cut_poly_point_idx:
                     self.start_cut_poly_point_idx = hovered_point_index
                 else:
@@ -327,6 +379,16 @@ class ImagePanel(GameSprite):
                     
                     self.active_poly_point = None
                     self.poly_points = new_points
+
+            if event.key == pygame.K_a: # zoom in
+                self.zoom_at_scale(0.1)
+            elif event.key == pygame.K_z: # zoom out
+                self.zoom_at_scale(-0.1)
+            elif event.key in [pygame.K_LSHIFT, pygame.K_RSHIFT] and self.show_poly_points and self.active_poly_point: # Allow adding of new poly point
+                self.can_add_poly_point = True
+        elif event.type == pygame.KEYUP:
+            self.can_add_poly_point = False
+            
 
     def zoom_at_scale(self, scale):
         self.draw_scale += scale
@@ -379,6 +441,36 @@ class ImagePanel(GameSprite):
         
         if self.move_panel:
             self.move_panel_with_mouse()
+
+
+        if self.can_add_poly_point:
+            scaled_point = (self.active_poly_point[0] * self.draw_scale, self.active_poly_point[1] * self.draw_scale)
+            positioned_point = pygame.Vector2(self.sprite_rect.left + scaled_point[0] + self.poly_point_radius/2, self.sprite_rect.top + scaled_point[1] + self.poly_point_radius/2)
+
+            # check is mouse left or right of point
+            mouse_x_diff = self.relative_mouse_position[0] - positioned_point[0]
+            mouse_y_diff = self.relative_mouse_position[1] - positioned_point[1]
+            
+            # get current idx of point
+            curr_idx = self.poly_points.index(self.active_poly_point)
+            next_point_idx = curr_idx
+            if mouse_x_diff < 0:
+                next_point_idx = curr_idx - 1
+            elif mouse_x_diff > 0:
+                next_point_idx = curr_idx + 1
+            else:
+                if mouse_y_diff < 0:
+                    next_point_idx = curr_idx - 1
+                elif mouse_y_diff > 0:
+                    next_point_idx = curr_idx + 1
+
+            if next_point_idx < 0:
+                next_point_idx = len(self.poly_points) - 1
+            elif next_point_idx >= len(self.poly_points):
+                next_point_idx = 0
+
+            next_point = self.poly_points[next_point_idx]
+            self.live_poly_point_position = next_point
 
         if self.body:
             self.body.position = self.position
@@ -434,6 +526,9 @@ class ImagePanel(GameSprite):
             scaled_and_positioned_poly_points.append(positioned_point)
 
         pygame.draw.polygon(poly_surface, line_color, scaled_and_positioned_poly_points, line_width)
+
+        #temp placement for now..
+        self.poly_outline_surface = poly_surface
         
         # Points
         font_size = 11
@@ -514,14 +609,25 @@ class ImagePanel(GameSprite):
                     position = (self.sprite_rect.left + scaled_point[0] + self.poly_point_radius/2, self.sprite_rect.top + scaled_point[1] + self.poly_point_radius/2)
                     pygame.draw.circle(self.surface, color, position, self.poly_point_radius*2, 2)
             
+
             if self.is_active:
+                # Active Poly Point
                 if self.active_poly_point and self.show_poly_points:
                     scaled_point = (self.active_poly_point[0] * self.draw_scale, self.active_poly_point[1] * self.draw_scale)
 
                     color = pygame.Color('black')
-                    position = (self.sprite_rect.left + scaled_point[0] + self.poly_point_radius/2, self.sprite_rect.top + scaled_point[1] + self.poly_point_radius/2)
+                    position = pygame.Vector2(self.sprite_rect.left + scaled_point[0] + self.poly_point_radius/2, self.sprite_rect.top + scaled_point[1] + self.poly_point_radius/2)
                     pygame.draw.circle(self.surface, color, position, self.poly_point_radius*2, 2)
+
+                    # Show live poly point position (mouse)
+                    if self.can_add_poly_point:
+                        next_scaled_point = (self.live_poly_point_position[0] * self.draw_scale, self.live_poly_point_position[1] * self.draw_scale)
+                        next_positioned_point = pygame.Vector2(self.sprite_rect.left + next_scaled_point[0] + self.poly_point_radius/2, self.sprite_rect.top + next_scaled_point[1] + self.poly_point_radius/2)
+
+                        self.surface.blit(self.live_poly_point_placement_surface, next_positioned_point)
+                        pygame.draw.line(self.surface, 'black', position, next_positioned_point, 4)
                 
+                # Cut Points
                 if self.edit_cut_shapes:
                     if self.start_cut_poly_point_idx:
                         point = self.poly_points[self.start_cut_poly_point_idx]
@@ -542,6 +648,8 @@ class ImagePanel(GameSprite):
                         pygame.draw.circle(self.surface, color, end_pos, self.poly_point_radius*2, 2)
 
                         pygame.draw.line(self.surface, 'darkgreen', start_pos, end_pos, 2)
+
+
 
             # Image Dimensions
             self.draw_image_info()

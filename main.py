@@ -91,7 +91,7 @@ class App:
         
         if event.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
             self.mouse_position = Vector2(event.pos[0], event.pos[1])
-
+        
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if not self.toolbar.is_hovered and not self.menu.is_hovered and not self.media_explorer.is_hovered:
                 #Nothing demands focus.
@@ -106,7 +106,6 @@ class App:
                     self.set_active_panel(hovered_panel)
                     
 
-                    
         self.menu.on_event(self.mouse_position, event)
         self.toolbar.on_event(self.mouse_position, event)
         self.media_explorer.on_event(event)
@@ -115,12 +114,6 @@ class App:
         # if self.floating_toolbar.has_killed_panel:
         #     self.active_image_panel = None
 
-        if self.active_image_panel:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a: # zoom in
-                    self.active_image_panel.zoom_at_scale(0.1)
-                elif event.key == pygame.K_z: # zoom out
-                    self.active_image_panel.zoom_at_scale(-0.1)
 
     def create_image_panel_from_poly_points(self):
         if not self.active_image_panel:
