@@ -23,6 +23,7 @@ class Toolbar(GameSprite):
         self.remove_image_panel_button_image: pygame.Surface = None
         self.unsaved_data_button_image: pygame.Surface = None
         self.saved_data_button_image: pygame.Surface = None
+        self.reload_data_button_image: pygame.Surface = None
         self.flip_x_button_image: pygame.Surface = None
         self.flip_y_button_image: pygame.Surface = None
         self.buttons_group = pygame.sprite.Group()
@@ -50,6 +51,7 @@ class Toolbar(GameSprite):
         self.flip_y_button: Button = None
         self.toggle_shape_cuts_button: Button = None
         self.toggle_show_physical_body_button: Button = None
+        self.reload_data_button: Button = None
 
     
         self.lock_image_panel = False
@@ -204,6 +206,19 @@ class Toolbar(GameSprite):
         button_image.blit(button_border_surface, (0,0))
         button_image.blit(button_icon, icon_rect)
         self.saved_data_button_image = button_image
+
+
+        # Reset Data Button
+        button_surface = pygame.Surface((self.button_size, self.button_size), pygame.SRCALPHA)
+        image = media_manager.get('icons/reset_icon.png', convert_alpha=True)
+        icon_scale = 0.7
+        button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
+        icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
+        button_image = button_surface.copy()
+        button_image.fill(button_warning_bg_color)
+        button_image.blit(button_border_surface, (0,0))
+        button_image.blit(button_icon, icon_rect)
+        self.reload_data_button_image = button_image
         
     def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
@@ -325,6 +340,18 @@ class Toolbar(GameSprite):
         self.buttons_group.add(self.flip_y_button)
         
         
+        # Reload Data Button
+        x = self.rect.width - self.button_size*2 - self.button_gap
+        position = (x,y)
+        value = True
+        tooltip = 'Reload from file'
+        on_hover = None
+        on_press = self.on_reload_data_button_press
+        on_release = None
+        self.reload_data_button = Button(self.reload_data_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
+        self.buttons_group.add(self.reload_data_button)
+        
+
         # Save Data Button
         x = self.rect.width - self.button_size - self.button_gap
         position = (x,y)
@@ -560,6 +587,13 @@ class Toolbar(GameSprite):
     
     def on_flip_x_button_press(self, button: Button):
         self.active_image_panel.flip(flip_x=True, flip_y=False)
+
+    def on_reload_data_button_press(self, button: Button):
+        if not self.active_image_panel:
+            return
+        
+        self.active_image_panel.reload_from_file()
+        self.set_active_image_panel(self.active_image_panel)
 
     def on_flip_y_button_press(self, button: Button):
         self.active_image_panel.flip(flip_x=False, flip_y=True)

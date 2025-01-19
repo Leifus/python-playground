@@ -73,11 +73,7 @@ class ImagePanel(GameSprite):
         # Adjust Parent surface to fit scaled image
         self.size = (self.image_size[0]+self.housing_box_spacing*2, self.image_size[1]+self.housing_box_spacing*2)
         
-        self.try_load_from_file()
-        self.redraw()
-        if len(self.poly_points) == 0:
-            self.create_new_poly_points(self.pixel_length_per_poly_point)
-        self.construct_physical_body()
+        self.reload_from_file()
 
     def move_by(self, offset):
         self.position = (self.position[0] + offset[0], self.position[1] + offset[1])
@@ -100,6 +96,12 @@ class ImagePanel(GameSprite):
         self.move_initial_position = None
         self.start_cut_poly_point_idx = None
         self.end_cut_poly_point_idx = None
+        self.move_panel = False
+        self.is_locked = False
+        self.flip_x = False
+        self.flip_y = False
+        self.can_add_poly_point = False
+        self.live_poly_point_position = None
 
     def construct_physical_body(self):
         if self.space.bodies:
@@ -412,6 +414,16 @@ class ImagePanel(GameSprite):
         self.size = (self.image_size[0]+(self.housing_box_spacing*2), self.image_size[1]+(self.housing_box_spacing*2))
 
         self.redraw()
+        self.construct_physical_body()
+
+    def reload_from_file(self):
+        self.deactivate()
+        self.cut_points.clear()
+        self.poly_points.clear()
+        self.try_load_from_file()
+        self.redraw()
+        if len(self.poly_points) == 0:
+            self.create_new_poly_points(self.pixel_length_per_poly_point)
         self.construct_physical_body()
 
     def try_load_from_file(self):
