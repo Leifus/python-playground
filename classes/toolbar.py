@@ -170,7 +170,7 @@ class Toolbar(GameSprite):
 
         
         # Create poly points Button
-        label_surface = button_font.render('CREATE POLY POINTS', True, font_color, button_success_bg_color)
+        label_surface = button_font.render('CREATE POLY SHAPE', True, font_color, button_success_bg_color)
         label_rect = label_surface.get_rect()
 
         button_size = (label_rect.width + self.button_size + 6, self.button_size)
@@ -208,17 +208,26 @@ class Toolbar(GameSprite):
         self.saved_data_button_image = button_image
 
 
-        # Reset Data Button
-        button_surface = pygame.Surface((self.button_size, self.button_size), pygame.SRCALPHA)
+        
+        # Reload Button
+        label_surface = button_font.render('RELOAD FROM FILE', True, font_color, button_warning_bg_color)
+        label_rect = label_surface.get_rect()
+
+        button_size = (label_rect.width + self.button_size + 6, self.button_size)
+        button_surface = pygame.Surface(button_size, pygame.SRCALPHA)
+        button_surface.fill(button_warning_bg_color)
+        label_rect.midright = (button_size[0] - 5, button_size[1]/2)
+        button_surface.blit(label_surface, label_rect)
+
         image = media_manager.get('icons/reset_icon.png', convert_alpha=True)
-        icon_scale = 0.7
+        icon_scale = 0.6
         button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
-        icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
-        button_image = button_surface.copy()
-        button_image.fill(button_warning_bg_color)
-        button_image.blit(button_border_surface, (0,0))
-        button_image.blit(button_icon, icon_rect)
-        self.reload_data_button_image = button_image
+        icon_rect = button_icon.get_rect(midleft=(5, button_size[1]/2))
+        button_surface.blit(button_icon, icon_rect)
+
+        pygame.draw.rect(button_surface, color, pygame.Rect(0,0,button_size[0],button_size[1]), 1)
+        self.reload_data_button_image = button_surface
+
         
     def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
@@ -340,18 +349,6 @@ class Toolbar(GameSprite):
         self.buttons_group.add(self.flip_y_button)
         
         
-        # Reload Data Button
-        x = self.rect.width - self.button_size*2 - self.button_gap
-        position = (x,y)
-        value = True
-        tooltip = 'Reload from file'
-        on_hover = None
-        on_press = self.on_reload_data_button_press
-        on_release = None
-        self.reload_data_button = Button(self.reload_data_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
-        self.buttons_group.add(self.reload_data_button)
-        
-
         # Save Data Button
         x = self.rect.width - self.button_size - self.button_gap
         position = (x,y)
@@ -496,9 +493,23 @@ class Toolbar(GameSprite):
         y += self.button_size + self.button_gap
 
 
-        # Poly Points Every TextBox
+        # Create Poly Points Button
+        y += self.button_gap
         x = self.button_gap/2
+        position = (x, y)
+        value = 1
+        tooltip = '* Overwrites current poly and physical body'
+        on_hover = None
+        on_press = self.on_create_poly_points_button_press
+        on_release = None
+        self.create_poly_points_button = Button(self.create_poly_points_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
+        self.buttons_group.add(self.create_poly_points_button)
 
+        y += self.button_size + self.button_gap
+
+
+        # Poly Points Every TextBox
+        x = self.button_gap/2 + child_indent
         textbox_size = (27,20)
         this_y = y + self.button_size/2 - textbox_size[1]/2
         position = (x, this_y)
@@ -509,29 +520,27 @@ class Toolbar(GameSprite):
         self.pixel_length_per_poly_point_textbox = TextBox('', textbox_size, position, value, on_submit, font_size, tooltip=tooltip)
         self.inputs_group.add(self.pixel_length_per_poly_point_textbox)
 
+        label = 'px per new point'
+        label_surface = font.render(label, True, color, self.housing_bg_color)
+        label_rect = label_surface.get_rect()
+        x = self.pixel_length_per_poly_point_textbox.rect.right
+        this_y = self.pixel_length_per_poly_point_textbox.rect.top + label_rect.height/2
+        position = (x, this_y)
+        self.button_labels.append((label_surface, position))
 
-        # Create Poly Points Button
-        x += self.pixel_length_per_poly_point_textbox.rect.width
+
+        # Reload Data Button
+        rect = self.reload_data_button_image.get_rect()
+        x = self.button_gap
+        y = self.rect.height - rect.height*2 - self.button_gap*2
         position = (x, y)
         value = 1
-        tooltip = '* Overwrites current poly and physical body'
+        tooltip = '* Any unsaved changes will be destroyed'
         on_hover = None
         on_press = self.on_create_poly_points_button_press
         on_release = None
-        self.create_poly_points_button = Button(self.create_poly_points_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
-        self.buttons_group.add(self.create_poly_points_button)
-
-
-        # # Move Button
-        # position = (x,y)
-        # value = 'move'
-        # tooltip = 'Move panels'
-        # on_hover = None
-        # on_press = self.on_move_button_press
-        # on_release = None
-        # self.move_button = Button(self.move_button_default_image, position, value, on_hover, on_press, on_release, hover_surface=self.move_button_hover_image, active_surface=self.move_button_active_image, tooltip=tooltip)
-        # self.buttons_group.add(self.move_button)
-
+        self.reload_data_button = Button(self.reload_data_button_image, position, value, on_hover, on_press, on_release, tooltip=tooltip)
+        self.buttons_group.add(self.reload_data_button)
 
         # Delete Image Panel
         rect = self.remove_image_panel_button_image.get_rect()
