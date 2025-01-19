@@ -357,8 +357,18 @@ class ImagePanel(GameSprite):
                 if not self.start_cut_poly_point_idx:
                     self.start_cut_poly_point_idx = hovered_point_index
                 else:
-                    self.end_cut_poly_point_idx = hovered_point_index
-                    self.finish_shape_cutting()
+                    next_point_idx = self.start_cut_poly_point_idx+1
+                    prev_point_idx = self.start_cut_poly_point_idx-1
+                    if prev_point_idx < 0:
+                        prev_point_idx = len(self.poly_points)-1
+                    if next_point_idx == len(self.poly_points):
+                        next_point_idx = 0
+
+                    is_point_next_to_start = hovered_point_index in [prev_point_idx, next_point_idx]
+                    is_point_same_as_start = hovered_point_index == self.start_cut_poly_point_idx
+                    if not is_point_next_to_start and not is_point_same_as_start:
+                        self.end_cut_poly_point_idx = hovered_point_index
+                        self.finish_shape_cutting()
             elif not self.move_active_poly_point and self.hovered_poly_point:
                 self.active_poly_point = self.hovered_poly_point
                 self.move_active_poly_point = True
