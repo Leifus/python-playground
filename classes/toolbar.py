@@ -520,6 +520,10 @@ class Toolbar(GameSprite):
         self.buttons_group.add(self.remove_image_panel_button)
 
     def set_active_image_panel(self, image_panel: ImagePanel):
+        is_saved = image_panel.is_saved
+        self.save_data_button.value = not is_saved
+        self.save_data_button.set_is_active(is_saved)
+
         self.lock_image_panel = image_panel.is_locked
         self.toggle_lock_image_panel_button.value = not self.lock_image_panel
         self.toggle_lock_image_panel_button.set_is_active(self.lock_image_panel)

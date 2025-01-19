@@ -56,6 +56,8 @@ class ImagePanel(GameSprite):
         self.flip_y = False
         self.can_add_poly_point = False
         self.live_poly_point_position = None
+        self.is_saved = False
+
 
         self.space = pymunk.Space()
         self.body: pymunk.Body = None
@@ -71,8 +73,10 @@ class ImagePanel(GameSprite):
         # Adjust Parent surface to fit scaled image
         self.size = (self.image_size[0]+self.housing_box_spacing*2, self.image_size[1]+self.housing_box_spacing*2)
         
+        self.try_load_from_file()
         self.redraw()
-        self.create_new_poly_points(self.pixel_length_per_poly_point)
+        if len(self.poly_points) == 0:
+            self.create_new_poly_points(self.pixel_length_per_poly_point)
         self.construct_physical_body()
 
     def move_by(self, offset):
@@ -181,7 +185,6 @@ class ImagePanel(GameSprite):
 
         self.body = body
         self.space.add(self.body, *shapes)
-        self.is_saved = False
     
     def redraw_mask_image(self):
         self.sprite_mask_image = self.sprite_mask.to_surface(setcolor=self.mask_setcolor, unsetcolor=None)
@@ -231,6 +234,7 @@ class ImagePanel(GameSprite):
         #Ensure to use the original size for poly construction.
         self.poly_points = self.orig_mask.outline(self.pixel_length_per_poly_point)
         self.construct_physical_body()
+        self.is_saved = False
 
     def flip(self, flip_x: bool, flip_y: bool):
         self.hovered_poly_point = None
@@ -257,6 +261,7 @@ class ImagePanel(GameSprite):
 
         self.redraw()
         self.construct_physical_body()
+        self.is_saved = False
 
     def finish_shape_cutting(self):
         if self.end_cut_poly_point_idx:
@@ -266,6 +271,7 @@ class ImagePanel(GameSprite):
         self.end_cut_poly_point_idx = None
 
         self.construct_physical_body()
+        self.is_saved = False
 
     def stop_moving_poly_point(self):
         self.move_active_poly_point = False
@@ -274,6 +280,8 @@ class ImagePanel(GameSprite):
         if self.active_poly_point and self.hovered_poly_point is not self.active_poly_point:
             self.active_poly_point = None
         self.construct_physical_body()
+        self.is_saved = False
+
     
     def create_new_poly_point(self):
         curr_idx = self.poly_points.index(self.active_poly_point)
@@ -294,6 +302,8 @@ class ImagePanel(GameSprite):
             self.poly_points.insert(next_idx, new_point)
 
         self.construct_physical_body()
+        self.is_saved = False
+
 
     def remove_poly_point(self):
         # Remove any shape cuts using this point
@@ -311,6 +321,8 @@ class ImagePanel(GameSprite):
         
         self.active_poly_point = None
         self.construct_physical_body()
+        self.is_saved = False
+
 
     def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
         self.mouse_position = mouse_position
@@ -402,6 +414,30 @@ class ImagePanel(GameSprite):
         self.redraw()
         self.construct_physical_body()
 
+    def try_load_from_file(self):
+        folder = f'{os.getcwd()}/outputs'
+        file_name = f"{folder}/output_{self.identifier}.txt"
+        if not os.path.isfile(file_name):
+            return
+        
+        json_data = None
+        with open(file_name) as f:
+            json_data = json.load(f)
+
+        if not json_data:
+            return
+        
+        keys = json_data.keys()
+        if 'poly_shape' in keys:
+            self.poly_points = json_data['poly_shape']
+        if 'meta' in keys:
+            meta = json_data['meta']
+            meta_keys = meta.keys()
+            if 'cut_points' in meta_keys:
+                self.cut_points = meta['cut_points']
+
+        self.is_saved = True
+
     def save_to_file(self):
         physical_shapes = []
         for shape in self.physical_shapes:
@@ -412,15 +448,23 @@ class ImagePanel(GameSprite):
             })
 
         data = {
-            'dimensions': self.sprite_rect.size,
-            'poly_points': self.poly_points,
+            'meta': {
+                'identifier:': self.identifier,
+                'dimensions': {
+                    'x': self.sprite_rect.x,
+                    'y': self.sprite_rect.y
+                },
+                'cut_points': self.cut_points,
+            },
+            'poly_shape': self.poly_points,
             'physical_shapes': physical_shapes
         }
 
         json_string = json.dumps(data, indent=2)
         folder = f'{os.getcwd()}/outputs'
+        file_name = f"{folder}/output_{self.identifier}.txt"
         try:
-            with open(f"{folder}/output_{self.identifier}.txt", 'w') as filehandle:
+            with open(file_name, 'w') as filehandle:
                 filehandle.write(json_string)
 
             self.is_saved = True
