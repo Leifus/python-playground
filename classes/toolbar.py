@@ -48,7 +48,7 @@ class Toolbar(GameSprite):
         self.save_data_button: Button = None
         self.flip_x_button: Button = None
         self.flip_y_button: Button = None
-
+        self.toggle_shape_cuts_button: Button = None
         self.toggle_show_physical_body_button: Button = None
 
     
@@ -57,6 +57,7 @@ class Toolbar(GameSprite):
         self.show_poly_points = False
         self.show_poly_point_numbers = False
         self.show_physical_body = False
+        self.edit_cut_shapes = False
 
         self.setup_visuals()
         self.redraw()
@@ -204,34 +205,6 @@ class Toolbar(GameSprite):
         button_image.blit(button_icon, icon_rect)
         self.saved_data_button_image = button_image
         
-
-
-        # # Move Button
-        # image = media_manager.get('icons/move_icon.png', convert_alpha=True)
-        # icon_scale = 0.8
-        # button_icon = pygame.transform.scale(image, (self.button_size*icon_scale, self.button_size*icon_scale))
-        # icon_rect = button_icon.get_rect(center=(self.button_size/2, self.button_size/2))
-
-        # # default
-        # button_image = button_surface.copy()
-        # button_image.blit(button_border_surface, (0,0))
-        # button_image.blit(button_icon, icon_rect)
-        # self.move_button_default_image = button_image
-
-        # # hover
-        # button_image = button_surface.copy()
-        # button_image.fill(button_hover_bg_color)
-        # button_image.blit(button_border_surface, (0,0))
-        # button_image.blit(button_icon, icon_rect)
-        # self.move_button_hover_image = button_image
-
-        # # active
-        # button_image = button_surface.copy()
-        # button_image.fill(button_active_bg_color)
-        # button_image.blit(button_border_surface, (0,0))
-        # button_image.blit(button_icon, icon_rect)
-        # self.move_button_active_image = button_image
-
     def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
         self.mouse_cursor = pygame.SYSTEM_CURSOR_ARROW
         self.relative_mouse_position = None
@@ -251,27 +224,41 @@ class Toolbar(GameSprite):
 
         self.is_hovered = is_in_x and is_in_y
 
-        if self.is_hovered and self.active_image_panel: # Only check toolbar when there's an active panel
-            for button in self.buttons_group:
-                button: Button
-                button.on_event(self.relative_mouse_position, event)
+        for button in self.buttons_group:
+            button: Button
+            button.on_event(self.relative_mouse_position, event)
+            if self.is_hovered and self.active_image_panel:
                 if button.is_hovered:
                     self.hovered_button = button
                     break
 
-            for input in self.inputs_group:
-                input: TextBox
-                input.on_event(self.relative_mouse_position, event)
+        for input in self.inputs_group:
+            input: TextBox
+            input.on_event(self.relative_mouse_position, event)
+            if self.is_hovered and self.active_image_panel:
                 if input.is_hovered: 
                     self.hovered_input = input
 
         if self.hovered_button:
             self.mouse_cursor = pygame.SYSTEM_CURSOR_HAND
 
+        
+
     def update(self, *args, **kwargs):
         self.inputs_group.update(self, self.relative_mouse_position)
 
+        focused_input = None
+        for input in self.inputs_group:
+            input: TextBox
+            if input.is_focused:
+                focused_input = input
+                break
+
+        
         if self.active_image_panel:
+            if focused_input: # Check if any inputs are focused to avoid deleting poly points!
+                self.active_image_panel.active_poly_point = None
+
             self.save_data_button.set_is_active(self.active_image_panel.is_saved)
 
         return super().update(*args, **kwargs)
@@ -413,6 +400,27 @@ class Toolbar(GameSprite):
         label_rect = label_surface.get_rect()
         x += 5 + self.toggle_show_poly_points_button.rect.width
         this_y = y + self.toggle_show_poly_points_button.rect.height/2 - label_rect.height/2
+        position = (x, this_y)
+        self.button_labels.append((label_surface, position))
+
+        y += self.button_size + self.button_gap
+        
+
+        # Toggle Shape Cuts Layer Button
+        x = self.button_gap/2 + child_indent
+        position = (x,y)
+        value = True
+        tooltip = 'Toggle Shape Cuts layer'
+        on_hover = None
+        on_press = self.on_toggle_shape_cuts_button_press
+        on_release = None
+        self.toggle_shape_cuts_button = Button(self.hide_button_image, position, value, on_hover, on_press, on_release, active_surface=self.show_button_image, tooltip=tooltip)
+        self.buttons_group.add(self.toggle_shape_cuts_button)
+        
+        label_surface = font.render('Shape Cuts', True, color, self.housing_bg_color)
+        label_rect = label_surface.get_rect()
+        x += 5 + self.toggle_shape_cuts_button.rect.width
+        this_y = y + self.toggle_shape_cuts_button.rect.height/2 - label_rect.height/2
         position = (x, this_y)
         self.button_labels.append((label_surface, position))
 
@@ -632,6 +640,21 @@ class Toolbar(GameSprite):
         
         button.value = not show_poly_points
         button.set_is_active(show_poly_points)
+  
+    def on_toggle_shape_cuts_button_press(self, button: Button):
+        if not self.active_image_panel:
+            return
+        
+        edit_cut_shapes = bool(button.value)
+        self.edit_cut_shapes = edit_cut_shapes
+        self.active_image_panel.active_poly_point = None
+        self.active_image_panel.edit_cut_shapes = self.edit_cut_shapes
+        
+        button.value = not edit_cut_shapes
+        button.set_is_active(edit_cut_shapes)
+
+        if not self.show_poly_points and edit_cut_shapes:
+            self.on_toggle_show_poly_points_button_press(self.toggle_show_poly_points_button)
 
     def on_remove_image_panel_button_press(self, button: Button):
         if not self.active_image_panel:

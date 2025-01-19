@@ -295,6 +295,23 @@ class ImagePanel(GameSprite):
 
         self.construct_physical_body()
 
+    def remove_poly_point(self):
+        # Remove any shape cuts using this point
+        active_idx = self.poly_points.index(self.active_poly_point)
+        cuts_to_remove = []
+        for cut in self.cut_points:
+            if active_idx in [*cut]:
+                cuts_to_remove.append(cut)
+
+        for cut in cuts_to_remove:
+            self.cut_points.remove(cut)
+
+        # Remove poly point
+        self.poly_points.remove(self.active_poly_point)
+        
+        self.active_poly_point = None
+        self.construct_physical_body()
+
     def on_event(self, mouse_position: pygame.Vector2, event: pygame.event.Event):
         self.mouse_position = mouse_position
         if mouse_position:
@@ -346,7 +363,8 @@ class ImagePanel(GameSprite):
                 self.active_poly_point = self.hovered_poly_point
                 self.move_active_poly_point = True
                 self.move_initial_position = self.mouse_position
-            elif self.is_hovered: # Move panel
+            
+            if self.is_hovered and not self.hovered_poly_point: # Move panel
                 self.move_panel = True
                 self.move_initial_position = self.mouse_position
         
@@ -354,21 +372,13 @@ class ImagePanel(GameSprite):
         if event.type == pygame.KEYDOWN:
             if self.active_poly_point:
                 if event.key in [pygame.K_d, pygame.K_BACKSPACE, pygame.K_DELETE] and len(self.poly_points) > 3:
-                    # Delete poly point: Badly
-                    new_points = []
-                    for point in self.poly_points:
-                        if point is not self.active_poly_point:
-                            new_points.append(point)
-                    
-                    self.active_poly_point = None
-                    self.poly_points = new_points
-                    self.construct_physical_body()
+                    self.remove_poly_point()
 
             if event.key == pygame.K_a: # zoom in
                 self.zoom_at_scale(0.1)
             elif event.key == pygame.K_z: # zoom out
                 self.zoom_at_scale(-0.1)
-            elif event.key in [pygame.K_LSHIFT, pygame.K_RSHIFT] and self.show_poly_points and self.active_poly_point: # Allow adding of new poly point
+            elif event.key in [pygame.K_LSHIFT, pygame.K_RSHIFT] and not self.edit_cut_shapes and self.show_poly_points and self.active_poly_point: # Allow adding of new poly point
                 self.can_add_poly_point = True
         elif event.type == pygame.KEYUP:
             self.can_add_poly_point = False
@@ -492,7 +502,7 @@ class ImagePanel(GameSprite):
 
         poly_surface = pygame.Surface(self.rect.size, pygame.SRCALPHA)
         if self.edit_cut_shapes:
-            poly_surface.set_alpha(100)
+            # poly_surface.set_alpha(100)
             line_color = pygame.Color('darkgreen')
             point_color = pygame.Color('darkgreen')
         else:
